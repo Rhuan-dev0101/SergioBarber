@@ -1,6 +1,6 @@
 import React from 'react'
 export const dynamic = 'force-dynamic'
-import { MapPin, Phone, Clock, Compass, Car, Coffee } from 'lucide-react'
+import { MapPin, Phone, Clock, Compass, Car, Heart } from 'lucide-react'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { getBusinessSettings, formatPhoneNumber } from '@/lib/settings'
@@ -70,11 +70,11 @@ export default async function Localizacao() {
 
                   <div className="flex gap-3">
                     <div className="p-2.5 rounded bg-primary/10 text-primary h-max shrink-0">
-                      <Coffee className="w-5 h-5" />
+                      <Heart className="w-5 h-5" />
                     </div>
                     <div>
                       <h4 className="font-semibold text-xs text-foreground uppercase tracking-wider">Comodidades</h4>
-                      <p className="text-[11px] text-muted-foreground">Café expresso de cortesia, cervejas artesanais geladas e rede Wi-Fi de alta velocidade.</p>
+                      <p className="text-[11px] text-muted-foreground">Pagamento no cartão de crédito, Wi-Fi grátis e programa de fidelidade exclusivo.</p>
                     </div>
                   </div>
                 </div>

@@ -1,7 +1,7 @@
 import React from 'react'
 export const dynamic = 'force-dynamic'
 import Link from 'next/link'
-import { Scissors, Calendar, MapPin, Phone, MessageSquare, Star, Award, Sparkles, Check, ChevronRight } from 'lucide-react'
+import { Scissors, Calendar, MapPin, Phone, MessageSquare, Star, Award, Sparkles, Check, ChevronRight, CreditCard, Wifi, Heart } from 'lucide-react'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { createServerSupabaseClient } from '@/lib/supabase'
@@ -222,9 +222,24 @@ export default async function Home() {
                 <h2 className="text-3xl font-serif font-bold text-foreground">Ambiente Climatizado & Premium</h2>
               </div>
               <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                Localizada no coração de São Paulo, a Osanchez Barbearia oferece vagas de estacionamento exclusivas, 
-                café expresso, cerveja artesanal e um espaço aconchegante com mesa de sinuca para você relaxar enquanto aguarda seu horário.
+                Localizada no coração de São Paulo, a Osanchez Barbearia oferece um espaço aconchegante e climatizado para você relaxar enquanto aguarda seu horário.
               </p>
+
+              {/* Amenity Badges */}
+              <div className="flex flex-wrap gap-2 pt-1">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary/60 border border-border text-xs font-medium text-foreground shadow-sm">
+                  <CreditCard className="w-4 h-4 text-primary shrink-0" />
+                  <span>Pagamento com Cartão de Crédito</span>
+                </div>
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary/60 border border-border text-xs font-medium text-foreground shadow-sm">
+                  <Wifi className="w-4 h-4 text-primary shrink-0" />
+                  <span>Wi-Fi Grátis</span>
+                </div>
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary/60 border border-border text-xs font-medium text-foreground shadow-sm">
+                  <Heart className="w-4 h-4 text-primary shrink-0" />
+                  <span>Programa de Fidelidade</span>
+                </div>
+              </div>
               
               <div className="space-y-4 pt-2">
                 <div className="flex gap-3">
