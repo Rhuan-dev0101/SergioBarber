@@ -76,7 +76,7 @@ export default async function Barbeiros() {
             {barbers.map((barber, index) => (
               <div 
                 key={index}
-                className="shimmer-border-card p-8 flex flex-col md:flex-row items-center md:items-start gap-8 shadow-lg transition-all duration-300"
+                className="shimmer-border-card p-8 flex flex-col md:flex-row items-center md:items-start gap-8 shadow-lg transition-all duration-300 group"
               >
                 {/* Avatar Placeholder / Image */}
                 <div className="w-32 h-32 rounded-full border-2 border-primary/40 p-0.5 shrink-0 overflow-hidden relative group-hover:border-primary transition-all duration-300 shadow-lg">
@@ -86,7 +86,7 @@ export default async function Barbeiros() {
                       alt={barber.name} 
                       width={128}
                       height={128}
-                      className="w-full h-full object-cover rounded-full filter grayscale hover:grayscale-0 transition-all duration-500" 
+                      className="w-full h-full object-cover rounded-full transition-transform duration-500 ease-out group-hover:scale-105" 
                     />
                   ) : (
                     <div className="w-full h-full rounded-full bg-gradient-to-tr from-secondary to-muted flex items-center justify-center text-primary text-4xl font-serif font-bold">

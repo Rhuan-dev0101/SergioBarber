@@ -83,7 +83,7 @@ export function BarbersSection({ initialBarbers }: BarbersSectionProps) {
             onKeyDown={(e) => handleKeyDownCard(e, id)}
             aria-expanded={isActive}
             aria-label={`Perfil de ${barber.full_name}. Pressione Enter para ver história.`}
-            className={`shimmer-border-card p-8 rounded-lg flex flex-col items-center md:items-start text-left focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer select-none transition-all duration-300 ${
+            className={`shimmer-border-card p-8 rounded-lg flex flex-col items-center md:items-start text-left focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer select-none transition-all duration-300 group ${
               isActive ? 'active' : ''
             }`}
           >
@@ -96,7 +96,7 @@ export function BarbersSection({ initialBarbers }: BarbersSectionProps) {
                     alt={barber.full_name} 
                     width={96}
                     height={96}
-                    className="w-full h-full object-cover rounded-full filter grayscale hover:grayscale-0 transition-all duration-500" 
+                    className="w-full h-full object-cover rounded-full transition-transform duration-500 ease-out group-hover:scale-105" 
                   />
                 ) : (
                   <div className="w-full h-full rounded-full bg-gradient-to-tr from-secondary to-muted flex items-center justify-center text-primary text-2xl font-serif font-bold">
