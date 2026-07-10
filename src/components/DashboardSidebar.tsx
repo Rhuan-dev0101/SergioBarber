@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { 
   Scissors, LayoutDashboard, CalendarRange, Users, UserCog, 
-  Sparkles, DollarSign, Settings, LogOut, Menu, X, User 
+  Sparkles, DollarSign, Settings, LogOut, Menu, X, User, Image as ImageIcon 
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 
@@ -48,6 +48,7 @@ export function DashboardSidebar() {
     { label: 'Editar Perfil', href: '/painel/perfil-barbeiro', icon: User, roles: ['admin', 'barber'] },
     { label: 'Funcionários', href: '/painel/funcionarios', icon: UserCog, roles: ['admin'] },
     { label: 'Serviços', href: '/painel/servicos', icon: Sparkles, roles: ['admin'] },
+    { label: 'Galeria', href: '/painel/galeria', icon: ImageIcon, roles: ['admin'] },
     { label: 'Financeiro', href: '/painel/financeiro', icon: DollarSign, roles: ['admin'] },
     { label: 'Configurações', href: '/painel/configuracoes', icon: Settings, roles: ['admin'] },
   ]
