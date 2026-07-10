@@ -1,0 +1,608 @@
+'use client'
+
+import React, { useState, useEffect, useTransition, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
+import { 
+  Scissors, Calendar, Clock, ChevronRight, ChevronLeft, 
+  Check, AlertCircle, ArrowLeft, Loader2, DollarSign, 
+  MessageSquare, User, CheckCircle2 
+} from 'lucide-react'
+import { createClient } from '@/lib/supabase'
+import { createAppointmentAction } from './actions'
+import { Header } from '@/components/Header'
+import { Footer } from '@/components/Footer'
+
+// Local fallbacks in case database is empty
+const STATIC_SERVICES = [
+  { id: '1', name: 'Corte', duration: 60, price: 50.00, description: 'Corte clássico ou moderno com acabamento na navalha.' },
+  { id: '2', name: 'Cabelo + Barba', duration: 90, price: 85.00, description: 'Serviço completo de corte e barba com toalha quente.' },
+  { id: '3', name: 'Infantil', duration: 40, price: 50.00, description: 'Corte infantil com paciência e estilo para os pequenos.' },
+  { id: '4', name: 'Barba', duration: 30, price: 45.00, description: 'Alinhamento de barba com terapia de toalha quente.' }
+]
+
+const STATIC_BARBERS = [
+  { id: 'sergio-uuid', name: 'Sergio Sanchez', role: 'Barbeiro Master' },
+  { id: 'kauan-uuid', name: 'Kauan Soares', role: 'Especialista' }
+]
+
+function AgendarWizardInner() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const preSelectedBarberId = searchParams.get('barberId')
+  const [step, setStep] = useState(1)
+  
+  // Database state
+  const [barbers, setBarbers] = useState<any[]>([])
+  const [services, setServices] = useState<any[]>([])
+  const [loadingDb, setLoadingDb] = useState(true)
+
+  // Selection states
+  const [selectedBarber, setSelectedBarber] = useState<any>(null)
+  const [selectedService, setSelectedService] = useState<any>(null)
+  const [selectedDate, setSelectedDate] = useState<string>('')
+  const [selectedTime, setSelectedTime] = useState<string>('')
+  const [notes, setNotes] = useState('')
+  const [acceptTerms, setAcceptTerms] = useState(false)
+
+  // Time slots logic
+  const [slots, setSlots] = useState<string[]>([])
+  const [loadingSlots, setLoadingSlots] = useState(false)
+
+  // Booking submit transition
+  const [isPending, startTransition] = useTransition()
+  const [errorMsg, setErrorMsg] = useState('')
+  const [successInfo, setSuccessInfo] = useState<any>(null)
+
+  const supabase = createClient()
+
+  // Load barbers and services
+  useEffect(() => {
+    async function loadData() {
+      try {
+        // Fetch active services
+        const { data: dbServices } = await supabase
+          .from('services')
+          .select('id, name, duration, price, description')
+          .eq('is_active', true)
+        
+        // Fetch active barbers
+        const { data: dbBarbers } = await supabase
+          .from('profiles')
+          .select('id, full_name, role, barbers(is_active)')
+          .eq('role', 'barber')
+
+        if (dbServices && dbServices.length > 0) {
+          setServices(dbServices)
+        } else {
+          setServices(STATIC_SERVICES)
+        }
+
+        if (dbBarbers && dbBarbers.length > 0) {
+          const formatted = dbBarbers
+            .filter((b: any) => b.barbers && b.barbers.is_active)
+            .map((b: any) => ({
+              id: b.id,
+              name: b.full_name,
+              role: b.role === 'admin' ? 'Fundador & Master' : 'Especialista'
+            }))
+          setBarbers(formatted)
+
+          if (preSelectedBarberId) {
+            const matched = formatted.find(b => b.id === preSelectedBarberId)
+            if (matched) {
+              setSelectedBarber(matched)
+              setStep(2) // Skip step 1 if pre-selected
+            }
+          }
+        } else {
+          setBarbers(STATIC_BARBERS)
+          if (preSelectedBarberId) {
+            const matched = STATIC_BARBERS.find(b => b.id === preSelectedBarberId)
+            if (matched) {
+              setSelectedBarber(matched)
+              setStep(2)
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Error loading database info, falling back:', err)
+        setServices(STATIC_SERVICES)
+        setBarbers(STATIC_BARBERS)
+        if (preSelectedBarberId) {
+          const matched = STATIC_BARBERS.find(b => b.id === preSelectedBarberId)
+          if (matched) {
+            setSelectedBarber(matched)
+            setStep(2)
+          }
+        }
+      } finally {
+        setLoadingDb(false)
+      }
+    }
+    loadData()
+  }, [supabase, preSelectedBarberId])
+
+  // Recalculate slots when barber, service or date changes
+  useEffect(() => {
+    if (!selectedBarber || !selectedService || !selectedDate) {
+      setSlots([])
+      return
+    }
+
+    async function loadSlots() {
+      setLoadingSlots(true)
+      setSelectedTime('')
+      try {
+        // We call the API endpoint or Server Action. Since we want dynamic, we can fetch
+        const res = await fetch(`/api/booking/slots?barberId=${selectedBarber.id}&dateStr=${selectedDate}&duration=${selectedService.duration}`)
+        const data = await res.json()
+        setSlots(data.slots || [])
+      } catch (error) {
+        console.error('Error fetching slots:', error)
+        setSlots([])
+      } finally {
+        setLoadingSlots(false)
+      }
+    }
+
+    loadSlots()
+  }, [selectedBarber, selectedService, selectedDate])
+
+  // Helper to generate the next 10 calendar days
+  const getNextDays = () => {
+    const days = []
+    const today = new Date()
+    
+    for (let i = 0; i < 14; i++) {
+      const d = new Date()
+      d.setDate(today.getDate() + i)
+      
+      const dayOfWeek = d.getDay()
+      // Exclude Sunday (0) and Monday (1)
+      if (dayOfWeek !== 0 && dayOfWeek !== 1) {
+        const year = d.getFullYear()
+        const month = String(d.getMonth() + 1).padStart(2, '0')
+        const day = String(d.getDate()).padStart(2, '0')
+        const dateStrStr = `${year}-${month}-${day}`
+        
+        const label = d.toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' })
+        days.push({ dateStr: dateStrStr, label })
+      }
+      
+      if (days.length >= 10) break
+    }
+    return days
+  }
+
+  const handleConfirmBooking = () => {
+    setErrorMsg('')
+    if (!acceptTerms) {
+      setErrorMsg('Você deve aceitar as regras de cancelamento e comparecimento.')
+      return
+    }
+
+    startTransition(async () => {
+      const res = await createAppointmentAction(
+        selectedBarber.id,
+        selectedService.id,
+        selectedDate,
+        selectedTime,
+        notes
+      )
+
+      if (!res.success) {
+        setErrorMsg(res.message)
+      } else {
+        setSuccessInfo({
+          appointmentId: res.appointmentId,
+          barber: selectedBarber.name,
+          service: selectedService.name,
+          price: selectedService.price,
+          deposit: selectedService.price * 0.5,
+          date: selectedDate,
+          time: selectedTime
+        })
+      }
+    })
+  }
+
+  const formatDateText = (dateStr: string) => {
+    if (!dateStr) return ''
+    const [y, m, d] = dateStr.split('-').map(Number)
+    return new Date(y, m - 1, d).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })
+  }
+
+  if (loadingDb) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col justify-between">
+        <Header />
+        <div className="flex-grow flex flex-col items-center justify-center gap-2">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <p className="text-xs text-muted-foreground">Carregando painel de agendamento...</p>
+        </div>
+        <Footer />
+      </div>
+    )
+  }
+
+  // Render Success Screen
+  if (successInfo) {
+    const waMessage = encodeURIComponent(
+      `Olá! Gostaria de confirmar meu agendamento na Osanchez Barbearia.\n` +
+      `Código: ${successInfo.appointmentId}\n` +
+      `Serviço: ${successInfo.service}\n` +
+      `Barbeiro: ${successInfo.barber}\n` +
+      `Data: ${formatDateText(successInfo.date)} às ${successInfo.time}\n` +
+      `Sinal de 50% via Pix: R$ ${successInfo.deposit.toFixed(2)} (Aguardando comprovante)`
+    )
+
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <Header />
+        <main className="flex-grow py-12 px-4 flex items-center justify-center">
+          <div className="max-w-md w-full glass p-8 rounded-lg border border-border text-center space-y-6 shadow-2xl">
+            <div className="w-16 h-16 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center mx-auto border border-emerald-500/20">
+              <CheckCircle2 className="w-8 h-8" />
+            </div>
+            
+            <div className="space-y-2">
+              <h2 className="text-2xl font-serif font-bold text-foreground">Horário Pré-Reservado!</h2>
+              <p className="text-xs text-muted-foreground">
+                Seu agendamento foi registrado com sucesso. Para confirmar definitivamente, efetue o sinal Pix de 50%.
+              </p>
+            </div>
+
+            {/* Price Details */}
+            <div className="bg-secondary/40 p-5 rounded-lg border border-border/60 text-left space-y-3">
+              <div className="flex justify-between text-xs text-muted-foreground border-b border-border/40 pb-2">
+                <span>Serviço:</span>
+                <span className="font-semibold text-foreground">{successInfo.service}</span>
+              </div>
+              <div className="flex justify-between text-xs text-muted-foreground border-b border-border/40 pb-2">
+                <span>Barbeiro:</span>
+                <span className="font-semibold text-foreground">{successInfo.barber}</span>
+              </div>
+              <div className="flex justify-between text-xs text-muted-foreground border-b border-border/40 pb-2">
+                <span>Data/Hora:</span>
+                <span className="font-semibold text-foreground">{formatDateText(successInfo.date)} às {successInfo.time}</span>
+              </div>
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>Valor Total:</span>
+                <span className="font-semibold text-foreground">R$ {successInfo.price.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-sm text-primary font-bold pt-1">
+                <span>Sinal Exigido (50%):</span>
+                <span>R$ {successInfo.deposit.toFixed(2)}</span>
+              </div>
+            </div>
+
+            {/* Pix Info */}
+            <div className="p-4 bg-primary/5 rounded border border-primary/20 text-xs text-left space-y-2">
+              <p className="font-semibold text-primary flex items-center gap-1.5">
+                <DollarSign className="w-4 h-4 text-primary" /> Instruções de Pagamento Pix
+              </p>
+              <p className="text-muted-foreground">Chave Pix CNPJ: <span className="font-mono text-foreground font-semibold">12.345.678/0001-90</span></p>
+              <p className="text-[10px] text-muted-foreground leading-normal">
+                Efetue a transferência do sinal de 50% (R$ {successInfo.deposit.toFixed(2)}) e envie o comprovante pelo WhatsApp clicando no botão abaixo para aprovação manual.
+              </p>
+            </div>
+
+            {/* WA button */}
+            <a
+              href={`https://wa.me/5511999999999?text=${waMessage}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded text-xs transition-all shadow-md flex items-center justify-center gap-2"
+            >
+              <MessageSquare className="w-4 h-4 text-white" />
+              Enviar Comprovante no WhatsApp
+            </a>
+
+            <div className="pt-2">
+              <Link href="/cliente" className="text-xs text-muted-foreground hover:text-foreground hover:underline">
+                Ir para Meus Agendamentos
+              </Link>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-background flex flex-col justify-between">
+      <Header />
+
+      <main className="flex-grow py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-2xl mx-auto space-y-6">
+          {/* Header Wizard Info */}
+          <div className="flex justify-between items-center pb-4 border-b border-border/60">
+            <div className="flex items-center gap-2">
+              <Scissors className="w-5 h-5 text-primary rotate-45" />
+              <h1 className="text-xl font-serif font-bold text-foreground">Novo Agendamento</h1>
+            </div>
+            <span className="text-xs text-muted-foreground">Passo {step} de 5</span>
+          </div>
+
+          {/* Form Card */}
+          <div className="glass p-6 sm:p-8 rounded-lg border border-border shadow-2xl space-y-6">
+            
+            {errorMsg && (
+              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded flex items-start gap-2 text-xs text-destructive">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{errorMsg}</span>
+              </div>
+            )}
+
+            {/* STEP 1: Select Barber */}
+            {step === 1 && (
+              <div className="space-y-4">
+                <h3 className="font-serif font-semibold text-lg text-foreground">Escolha o Profissional</h3>
+                <p className="text-xs text-muted-foreground">Selecione o barbeiro de sua preferência para realizar o serviço</p>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {barbers.map((barber) => (
+                    <button
+                      key={barber.id}
+                      onClick={() => setSelectedBarber(barber)}
+                      className={`p-5 rounded-lg border text-left flex items-center justify-between transition-all cursor-pointer ${
+                        selectedBarber?.id === barber.id
+                          ? 'border-primary bg-primary/5'
+                          : 'border-border hover:border-muted-foreground/35 bg-secondary/35'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-primary/20 text-primary flex items-center justify-center font-serif font-bold">
+                          {barber.name.charAt(0)}
+                        </div>
+                        <div>
+                          <h4 className="font-serif font-semibold text-sm text-foreground">{barber.name}</h4>
+                          <span className="text-[10px] text-primary">{barber.role}</span>
+                        </div>
+                      </div>
+                      {selectedBarber?.id === barber.id && <Check className="w-5 h-5 text-primary shrink-0" />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* STEP 2: Select Service */}
+            {step === 2 && (
+              <div className="space-y-4">
+                <h3 className="font-serif font-semibold text-lg text-foreground">Selecione o Serviço</h3>
+                <p className="text-xs text-muted-foreground">Escolha qual serviço gostaria de fazer hoje</p>
+
+                <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
+                  {services.map((service) => (
+                    <button
+                      key={service.id}
+                      onClick={() => setSelectedService(service)}
+                      className={`w-full p-4 rounded-lg border text-left flex items-start justify-between transition-all cursor-pointer ${
+                        selectedService?.id === service.id
+                          ? 'border-primary bg-primary/5'
+                          : 'border-border hover:border-muted-foreground/35 bg-secondary/35'
+                      }`}
+                    >
+                      <div className="space-y-1 pr-4">
+                        <h4 className="font-serif font-semibold text-sm text-foreground">{service.name}</h4>
+                        <p className="text-[11px] text-muted-foreground line-clamp-1">{service.description}</p>
+                        <span className="inline-block text-[10px] text-muted-foreground bg-secondary px-2 py-0.5 rounded font-mono uppercase mt-1">
+                          {service.duration} min
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0">
+                        <span className="text-sm font-serif font-bold text-primary">R$ {Number(service.price).toFixed(2)}</span>
+                        {selectedService?.id === service.id && <Check className="w-4 h-4 text-primary" />}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* STEP 3: Select Date */}
+            {step === 3 && (
+              <div className="space-y-4">
+                <h3 className="font-serif font-semibold text-lg text-foreground">Selecione a Data</h3>
+                <p className="text-xs text-muted-foreground">Escolha um dos próximos dias disponíveis para agendamento (Domingo e Segunda fechados)</p>
+
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                  {getNextDays().map((day) => (
+                    <button
+                      key={day.dateStr}
+                      onClick={() => setSelectedDate(day.dateStr)}
+                      className={`p-4 rounded-lg border flex flex-col items-center justify-center text-center gap-1.5 transition-all cursor-pointer ${
+                        selectedDate === day.dateStr
+                          ? 'border-primary bg-primary/5'
+                          : 'border-border hover:border-muted-foreground/35 bg-secondary/35'
+                      }`}
+                    >
+                      <span className="text-xs font-semibold uppercase text-muted-foreground">{day.label.split(' ')[0]}</span>
+                      <span className="text-base font-serif font-bold text-foreground">{day.label.split(' ')[1]}</span>
+                      <span className="text-[10px] text-primary">{day.label.split(' ')[2]}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* STEP 4: Select Time Slot */}
+            {step === 4 && (
+              <div className="space-y-4">
+                <h3 className="font-serif font-semibold text-lg text-foreground">Escolha o Horário</h3>
+                <p className="text-xs text-muted-foreground">Horários disponíveis para {selectedBarber?.name} em {formatDateText(selectedDate)}</p>
+
+                {loadingSlots ? (
+                  <div className="py-8 flex flex-col items-center justify-center gap-2">
+                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                    <span className="text-xs text-muted-foreground">Calculando horários livres...</span>
+                  </div>
+                ) : slots.length > 0 ? (
+                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 max-h-60 overflow-y-auto pr-1">
+                    {slots.map((slot) => (
+                      <button
+                        key={slot}
+                        onClick={() => setSelectedTime(slot)}
+                        className={`py-2 rounded border text-center font-semibold text-xs transition-all cursor-pointer ${
+                          selectedTime === slot
+                            ? 'border-primary bg-primary text-primary-foreground'
+                            : 'border-border hover:border-primary/40 bg-secondary/30 text-foreground'
+                        }`}
+                      >
+                        {slot}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-6 bg-secondary/20 rounded border border-border text-center text-xs text-muted-foreground">
+                    Infelizmente, todos os horários estão preenchidos para este profissional na data escolhida. Por favor, volte e escolha outro dia ou outro barbeiro.
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* STEP 5: Review & Confirm */}
+            {step === 5 && (
+              <div className="space-y-4">
+                <h3 className="font-serif font-semibold text-lg text-foreground">Revisar Agendamento</h3>
+                <p className="text-xs text-muted-foreground">Revise os detalhes da sua reserva antes de submeter</p>
+
+                <div className="space-y-3 bg-secondary/35 p-5 rounded-lg border border-border/60">
+                  <div className="flex justify-between items-center border-b border-border/40 pb-2.5 text-xs text-muted-foreground">
+                    <span>Profissional:</span>
+                    <span className="font-semibold text-foreground">{selectedBarber?.name}</span>
+                  </div>
+                  <div className="flex justify-between items-center border-b border-border/40 pb-2.5 text-xs text-muted-foreground">
+                    <span>Serviço Escolhido:</span>
+                    <span className="font-semibold text-foreground">{selectedService?.name} ({selectedService?.duration}min)</span>
+                  </div>
+                  <div className="flex justify-between items-center border-b border-border/40 pb-2.5 text-xs text-muted-foreground">
+                    <span>Data Reservada:</span>
+                    <span className="font-semibold text-foreground">{formatDateText(selectedDate)}</span>
+                  </div>
+                  <div className="flex justify-between items-center border-b border-border/40 pb-2.5 text-xs text-muted-foreground">
+                    <span>Horário Reservado:</span>
+                    <span className="font-semibold text-foreground">{selectedTime}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs text-muted-foreground pb-2">
+                    <span>Preço Total do Serviço:</span>
+                    <span className="font-semibold text-foreground">R$ {Number(selectedService?.price).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm font-bold text-primary pt-1.5 border-t border-border/40">
+                    <span>Sinal via Pix (50%):</span>
+                    <span>R$ {(Number(selectedService?.price) * 0.5).toFixed(2)}</span>
+                  </div>
+                </div>
+
+                {/* Additional Notes */}
+                <div className="space-y-1.5">
+                  <label htmlFor="notes" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Observações / Notas (Opcional)</label>
+                  <textarea
+                    id="notes"
+                    placeholder="Ex: Gostaria de corte baixo na lateral, tenho alergia a certa pomada..."
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    disabled={isPending}
+                    rows={2}
+                    className="w-full p-3 bg-secondary border border-border focus:border-primary rounded text-xs text-foreground placeholder:text-muted-foreground outline-none resize-none"
+                  />
+                </div>
+
+                {/* Confirm Rules Accept */}
+                <label className="flex items-start gap-2.5 text-xs text-muted-foreground cursor-pointer select-none pt-2">
+                  <input
+                    type="checkbox"
+                    checked={acceptTerms}
+                    onChange={(e) => setAcceptTerms(e.target.checked)}
+                    disabled={isPending}
+                    className="mt-0.5 rounded accent-primary w-4 h-4 cursor-pointer"
+                    required
+                  />
+                  <span>
+                    Confirmo o agendamento e declaro-me ciente de que atrasos superiores a <strong>10 minutos</strong> configuram no-show, e de que o cancelamento do sinal integral exige aviso de{' '}
+                    <strong>2 horas</strong> de antecedência.
+                  </span>
+                </label>
+              </div>
+            )}
+
+            {/* Navigation Buttons */}
+            <div className="flex justify-between gap-4 border-t border-border/40 pt-4 mt-6">
+              {step > 1 ? (
+                <button
+                  onClick={() => setStep(step - 1)}
+                  disabled={isPending}
+                  className="px-4 py-2.5 bg-secondary hover:bg-muted text-foreground border border-border rounded text-xs font-semibold flex items-center gap-1 cursor-pointer transition-all disabled:opacity-50"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  Voltar
+                </button>
+              ) : (
+                <Link
+                  href="/cliente"
+                  className="px-4 py-2.5 bg-secondary hover:bg-muted text-foreground border border-border rounded text-xs font-semibold flex items-center gap-1 transition-all"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Cancelar
+                </Link>
+              )}
+
+              {step < 5 ? (
+                <button
+                  onClick={() => setStep(step + 1)}
+                  disabled={
+                    (step === 1 && !selectedBarber) ||
+                    (step === 2 && !selectedService) ||
+                    (step === 3 && !selectedDate) ||
+                    (step === 4 && !selectedTime)
+                  }
+                  className="px-5 py-2.5 bg-primary hover:bg-primary-hover text-primary-foreground rounded text-xs font-semibold flex items-center gap-1 cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed ml-auto"
+                >
+                  Continuar
+                  <ChevronRight className="w-4 h-4 text-primary-foreground" />
+                </button>
+              ) : (
+                <button
+                  onClick={handleConfirmBooking}
+                  disabled={isPending || !acceptTerms}
+                  className="px-6 py-2.5 bg-primary hover:bg-primary-hover text-primary-foreground rounded text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed ml-auto"
+                >
+                  {isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin text-primary-foreground" />
+                      Registrando...
+                    </>
+                  ) : (
+                    <>
+                      Confirmar Agendamento
+                      <Check className="w-4 h-4 text-primary-foreground" />
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+
+          </div>
+        </div>
+      </main>
+
+      <Footer />
+    </div>
+  )
+}
+
+export default function AgendarWizard() {
+  return (
+    <Suspense fallback={
+      <div className="flex flex-col min-h-screen bg-background items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    }>
+      <AgendarWizardInner />
+    </Suspense>
+  )
+}
+

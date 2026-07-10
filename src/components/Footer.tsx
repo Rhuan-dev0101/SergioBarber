@@ -1,0 +1,107 @@
+'use client'
+
+import React from 'react'
+import Link from 'next/link'
+import { Scissors, Phone, MapPin, Mail, Clock } from 'lucide-react'
+
+export function Footer() {
+  return (
+    <footer className="relative bg-background mt-auto transition-colors">
+      {/* 6. Gold gradient divider top line */}
+      <div className="w-full h-[1px] bg-gradient-to-r from-transparent via-primary/45 to-transparent opacity-80" />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 sm:gap-8">
+          
+          {/* Logo & About */}
+          <div className="space-y-5">
+            <Link href="/" className="flex items-center gap-2 group">
+              <div className="p-2 rounded bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300 shadow">
+                <Scissors className="w-4.5 h-4.5 rotate-45" />
+              </div>
+              <span className="font-serif font-bold text-lg tracking-wider text-foreground">
+                OSANCHEZ
+              </span>
+            </Link>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Uma experiência única de estilo e cuidado para o homem moderno. Cortes clássicos e modernos realizados por especialistas em visagismo facial.
+            </p>
+            <div className="flex gap-3">
+              <a
+                href="https://instagram.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-2 rounded-full bg-secondary hover:bg-primary hover:text-primary-foreground text-muted-foreground transition-all btn-premium shadow-md"
+                aria-label="Instagram"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+              </a>
+              <a
+                href="https://wa.me/5511999999999"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-2 rounded-full bg-secondary hover:bg-primary hover:text-primary-foreground text-muted-foreground transition-all btn-premium shadow-md"
+                aria-label="WhatsApp"
+              >
+                <Phone className="w-4 h-4" />
+              </a>
+            </div>
+          </div>
+
+          {/* Contact Details */}
+          <div className="space-y-4">
+            <h3 className="font-serif font-bold text-xs text-foreground tracking-widest uppercase pb-1.5 border-b border-border/30">
+              Contato
+            </h3>
+            <ul className="space-y-3.5 text-xs text-muted-foreground">
+              <li className="flex items-start gap-2.5">
+                <MapPin className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                <span>Rua da Barbearia, 123 - Centro, São Paulo - SP</span>
+              </li>
+              <li className="flex items-center gap-2.5">
+                <Phone className="w-4 h-4 text-primary shrink-0" />
+                <a href="tel:+5511999999999" className="hover:text-primary transition-colors hover:underline">+55 (11) 99999-9999</a>
+              </li>
+              <li className="flex items-center gap-2.5">
+                <Mail className="w-4 h-4 text-primary shrink-0" />
+                <a href="mailto:contato@osanchez.com.br" className="hover:text-primary transition-colors hover:underline">contato@osanchez.com.br</a>
+              </li>
+            </ul>
+          </div>
+
+          {/* Legal Links */}
+          <div className="space-y-4">
+            <h3 className="font-serif font-bold text-xs text-foreground tracking-widest uppercase pb-1.5 border-b border-border/30">
+              Links Úteis
+            </h3>
+            <ul className="space-y-3 text-xs text-muted-foreground">
+              <li className="transform hover:translate-x-1 transition-all duration-200">
+                <Link href="/servicos" className="hover:text-primary transition-colors">Nossos Serviços</Link>
+              </li>
+              <li className="transform hover:translate-x-1 transition-all duration-200">
+                <Link href="/barbeiros" className="hover:text-primary transition-colors">Nossa Equipe</Link>
+              </li>
+              <li className="transform hover:translate-x-1 transition-all duration-200">
+                <Link href="/termos-de-uso" className="hover:text-primary transition-colors">Termos de Uso</Link>
+              </li>
+              <li className="transform hover:translate-x-1 transition-all duration-200">
+                <Link href="/politica-de-privacidade" className="hover:text-primary transition-colors">Política de Privacidade</Link>
+              </li>
+              <li className="transform hover:translate-x-1 transition-all duration-200">
+                <Link href="/politica-de-cookies" className="hover:text-primary transition-colors">Política de Cookies</Link>
+              </li>
+            </ul>
+          </div>
+
+        </div>
+
+        <div className="border-t border-border/40 mt-12 pt-6 flex flex-col sm:flex-row items-center justify-between text-[11px] text-muted-foreground gap-4">
+          <span>© 2026 Osanchez Barbearia. Todos os direitos reservados.</span>
+          <span className="flex items-center gap-1 text-[10px] tracking-wider uppercase font-semibold text-primary/75">
+            Mãos Especialistas • Estilo Premium
+          </span>
+        </div>
+      </div>
+    </footer>
+  )
+}
