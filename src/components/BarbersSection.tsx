@@ -175,7 +175,7 @@ export function BarbersSection({ initialBarbers }: BarbersSectionProps) {
                 {/* Direct CTA */}
                 <div className="pt-4 flex justify-end">
                   <GradientButton asChild className="text-xs px-5 py-2.5 h-9 min-w-[120px]">
-                    <Link href={`/cliente/agendar?barberId=${barber.id || id}`}>
+                    <Link href={`/cliente/agendar?barberId=${barber.id}`}>
                       Agendar com {barber.full_name.split(' ')[0]}
                     </Link>
                   </GradientButton>

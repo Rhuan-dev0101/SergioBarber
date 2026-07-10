@@ -9,6 +9,7 @@ import { GradientButton } from '@/components/ui/gradient-button'
 
 const SEED_BARBERS = [
   {
+    id: 'sergio-uuid',
     name: 'Sergio Sanchez',
     role: 'Fundador & Barbeiro Master',
     bio: 'Mais de 10 anos de experiência lapidando visuais clássicos e modernos. Sergio é especialista em visagismo facial, garantindo que cada corte seja planejado de acordo com o formato e estrutura óssea do rosto do cliente.',
@@ -16,6 +17,7 @@ const SEED_BARBERS = [
     avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80'
   },
   {
+    id: 'kauan-uuid',
     name: 'Kauan Soares',
     role: 'Barbeiro Especialista & Designer',
     bio: 'Kauan é focado em tendências urbanas contemporâneas. Especialista em técnicas de degradê (Fade), pigmentação, freestyle (riscos personalizados) e platinados, ele traz inovação e detalhes marcantes para o seu corte.',
@@ -31,13 +33,14 @@ export default async function Barbeiros() {
     const supabase = await createServerSupabaseClient()
     const { data: dbBarbers } = await supabase
       .from('profiles')
-      .select('full_name, role, barbers(bio, avatar_url, is_active)')
+      .select('id, full_name, role, barbers(bio, avatar_url, is_active)')
       .eq('role', 'barber')
 
     if (dbBarbers && dbBarbers.length > 0) {
       const activeBarbers = dbBarbers
         .filter(b => b.barbers && (b.barbers as any).is_active)
         .map(b => ({
+          id: b.id,
           name: b.full_name,
           role: b.role === 'admin' ? 'Fundador & Barbeiro Master' : 'Barbeiro Especialista',
           bio: (b.barbers as any).bio || 'Barbeiro profissional da equipe Osanchez.',
@@ -126,7 +129,10 @@ export default async function Barbeiros() {
                       Disponível de Terça a Sábado
                     </div>
                     <GradientButton asChild>
-                      <Link href="/entrar" className="flex items-center gap-1.5 text-xs font-bold px-5 py-2.5">
+                      <Link 
+                        href={`/entrar?redirectTo=${encodeURIComponent(`/cliente/agendar?barberId=${barber.id}`)}`} 
+                        className="flex items-center gap-1.5 text-xs font-bold px-5 py-2.5"
+                      >
                         <Scissors className="w-3.5 h-3.5" />
                         Agendar com {barber.name.split(' ')[0]}
                         <ChevronRight className="w-3.5 h-3.5" />

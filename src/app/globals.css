@@ -485,5 +485,66 @@ body {
   }
 }
 
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animated-gradient-card {
+  position: relative;
+  background: linear-gradient(
+    135deg,
+    #0c0b0a, /* Deep charcoal */
+    #181512, /* Dark bronze */
+    #2a221a, /* Gold/champagne tint */
+    #181512,
+    #0c0b0a
+  );
+  background-size: 400% 400%;
+  animation: gradient-shift 14s ease infinite;
+  border-radius: 1rem;
+  border: 1px solid var(--border);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), 0 0 25px rgba(197, 168, 128, 0.05);
+  transition: box-shadow 0.5s ease, border-color 0.5s ease;
+}
+
+.animated-gradient-card::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  background: linear-gradient(
+    135deg,
+    rgba(197, 168, 128, 0.1),
+    rgba(197, 168, 128, 0.3),
+    rgba(197, 168, 128, 0.1)
+  );
+  background-size: 200% 200%;
+  animation: gradient-shift 14s ease infinite;
+  z-index: -1;
+  border-radius: calc(1rem + 1px);
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+/* Respect reduced motion settings */
+@media (prefers-reduced-motion: reduce) {
+  .animated-gradient-card {
+    background: #0c0b0a;
+    animation: none;
+    background-size: 100% 100%;
+  }
+  .animated-gradient-card::after {
+    animation: none;
+    opacity: 0.5;
+  }
+}
+
 
 

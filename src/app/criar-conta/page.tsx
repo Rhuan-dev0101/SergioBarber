@@ -1,12 +1,111 @@
 'use client'
 
-import React, { useState, useTransition } from 'react'
+import React, { useState, useTransition, useEffect, useRef, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Scissors, User, Mail, Phone, Lock, ArrowRight, AlertCircle, CheckCircle, Loader2 } from 'lucide-react'
+import { Scissors, User, Mail, Phone, Lock, ArrowRight, AlertCircle, CheckCircle, Loader2, Sun, Moon } from 'lucide-react'
 import { signUpAction } from '@/app/auth/actions'
+import { createClient } from '@/lib/supabase'
+import { useTheme } from '@/components/ThemeProvider'
 
-export default function CriarConta() {
+function ParticlesBackground() {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const { theme } = useTheme()
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    const setCanvasSize = () => {
+      canvas.width = window.innerWidth
+      canvas.height = window.innerHeight
+    }
+
+    setCanvasSize()
+    window.addEventListener('resize', setCanvasSize)
+
+    class Particle {
+      x: number
+      y: number
+      size: number
+      speedX: number
+      speedY: number
+      color: string
+
+      constructor() {
+        this.x = Math.random() * canvas!.width
+        this.y = Math.random() * canvas!.height
+        this.size = Math.random() * 2 + 0.5
+        this.speedX = (Math.random() - 0.5) * 0.25
+        this.speedY = (Math.random() - 0.5) * 0.25
+        this.color = theme === 'dark'
+          ? `rgba(197, 168, 128, ${Math.random() * 0.15})`
+          : `rgba(140, 110, 67, ${Math.random() * 0.12})`
+      }
+
+      update() {
+        this.x += this.speedX
+        this.y += this.speedY
+
+        if (this.x > canvas!.width) this.x = 0
+        if (this.x < 0) this.x = canvas!.width
+        if (this.y > canvas!.height) this.y = 0
+        if (this.y < 0) this.y = canvas!.height
+      }
+
+      draw() {
+        if (!ctx) return
+        ctx.fillStyle = this.color
+        ctx.beginPath()
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2)
+        ctx.fill()
+      }
+    }
+
+    const particles: Particle[] = []
+    const particleCount = Math.min(
+      80,
+      Math.floor((canvas.width * canvas.height) / 25000)
+    )
+
+    for (let i = 0; i < particleCount; i++) {
+      particles.push(new Particle())
+    }
+
+    let animationFrameId: number
+
+    const animate = () => {
+      if (!ctx) return
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+      for (const particle of particles) {
+        particle.update()
+        particle.draw()
+      }
+
+      animationFrameId = requestAnimationFrame(animate)
+    }
+
+    animate()
+
+    return () => {
+      window.removeEventListener('resize', setCanvasSize)
+      cancelAnimationFrame(animationFrameId)
+    }
+  }, [theme])
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="absolute inset-0 w-full h-full pointer-events-none z-0"
+    />
+  )
+}
+
+function SignUpForm() {
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
@@ -63,200 +162,296 @@ export default function CriarConta() {
     })
   }
 
+  const handleGoogleSignUp = async () => {
+    setErrorMsg('')
+    try {
+      const supabase = createClient()
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback?redirectTo=/cliente`
+        }
+      })
+      if (error) {
+        setErrorMsg('Erro ao se cadastrar com Google: ' + error.message)
+      }
+    } catch (err: any) {
+      setErrorMsg('Erro ao conectar ao Google: ' + err.message)
+    }
+  }
+
   return (
-    <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-secondary/40 via-background to-background flex items-center justify-center p-4 py-12">
-      <div className="w-full max-w-md space-y-6">
+    <div className="animated-gradient-card p-8 sm:p-10 rounded-2xl space-y-6 shadow-2xl relative overflow-hidden transition-all duration-300">
+      
+      {errorMsg && (
+        <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg flex items-start gap-2.5 text-xs text-destructive animate-in fade-in duration-200">
+          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+          <span>{errorMsg}</span>
+        </div>
+      )}
+
+      {successMsg && (
+        <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg flex items-start gap-2.5 text-xs text-emerald-500 animate-in fade-in duration-200">
+          <CheckCircle className="w-4 h-4 shrink-0 mt-0.5" />
+          <span>{successMsg}</span>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-4">
         
-        {/* Logo and Intro */}
-        <div className="text-center space-y-2">
-          <Link href="/" className="inline-flex items-center gap-2 group mx-auto">
-            <div className="p-2 rounded bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300">
+        {/* Full Name Floating input */}
+        <div className="relative">
+          <div className="relative border border-border/80 focus-within:border-primary rounded-lg transition-all duration-200 bg-secondary/30">
+            <input
+              type="text"
+              id="fullName"
+              placeholder=" "
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              disabled={isPending || !!successMsg}
+              className="block px-3.5 pb-2.5 pt-5 w-full text-sm text-foreground bg-transparent border-0 appearance-none focus:outline-none focus:ring-0 peer disabled:opacity-50"
+              required
+            />
+            <label
+              htmlFor="fullName"
+              className="absolute text-xs sm:text-sm text-muted-foreground duration-200 transform -translate-y-4 scale-75 top-2 z-10 origin-[0] px-3.5 peer-focus:text-primary peer-placeholder-shown:scale-100 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:top-1/2 peer-focus:top-2 peer-focus:scale-75 peer-focus:-translate-y-4 select-none pointer-events-none"
+            >
+              Nome Completo
+            </label>
+          </div>
+        </div>
+
+        {/* Email Floating input */}
+        <div className="relative">
+          <div className="relative border border-border/80 focus-within:border-primary rounded-lg transition-all duration-200 bg-secondary/30">
+            <input
+              type="email"
+              id="email"
+              placeholder=" "
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={isPending || !!successMsg}
+              className="block px-3.5 pb-2.5 pt-5 w-full text-sm text-foreground bg-transparent border-0 appearance-none focus:outline-none focus:ring-0 peer disabled:opacity-50"
+              required
+            />
+            <label
+              htmlFor="email"
+              className="absolute text-xs sm:text-sm text-muted-foreground duration-200 transform -translate-y-4 scale-75 top-2 z-10 origin-[0] px-3.5 peer-focus:text-primary peer-placeholder-shown:scale-100 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:top-1/2 peer-focus:top-2 peer-focus:scale-75 peer-focus:-translate-y-4 select-none pointer-events-none"
+            >
+              E-mail
+            </label>
+          </div>
+        </div>
+
+        {/* Phone Floating input */}
+        <div className="relative">
+          <div className="relative border border-border/80 focus-within:border-primary rounded-lg transition-all duration-200 bg-secondary/30">
+            <input
+              type="tel"
+              id="phone"
+              placeholder=" "
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              disabled={isPending || !!successMsg}
+              className="block px-3.5 pb-2.5 pt-5 w-full text-sm text-foreground bg-transparent border-0 appearance-none focus:outline-none focus:ring-0 peer disabled:opacity-50"
+              required
+            />
+            <label
+              htmlFor="phone"
+              className="absolute text-xs sm:text-sm text-muted-foreground duration-200 transform -translate-y-4 scale-75 top-2 z-10 origin-[0] px-3.5 peer-focus:text-primary peer-placeholder-shown:scale-100 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:top-1/2 peer-focus:top-2 peer-focus:scale-75 peer-focus:-translate-y-4 select-none pointer-events-none"
+            >
+              Telefone (WhatsApp)
+            </label>
+          </div>
+        </div>
+
+        {/* Password Floating input */}
+        <div className="relative">
+          <div className="relative border border-border/80 focus-within:border-primary rounded-lg transition-all duration-200 bg-secondary/30">
+            <input
+              type="password"
+              id="password"
+              placeholder=" "
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={isPending || !!successMsg}
+              className="block px-3.5 pb-2.5 pt-5 w-full text-sm text-foreground bg-transparent border-0 appearance-none focus:outline-none focus:ring-0 peer disabled:opacity-50"
+              required
+            />
+            <label
+              htmlFor="password"
+              className="absolute text-xs sm:text-sm text-muted-foreground duration-200 transform -translate-y-4 scale-75 top-2 z-10 origin-[0] px-3.5 peer-focus:text-primary peer-placeholder-shown:scale-100 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:top-1/2 peer-focus:top-2 peer-focus:scale-75 peer-focus:-translate-y-4 select-none pointer-events-none"
+            >
+              Senha
+            </label>
+          </div>
+        </div>
+
+        {/* Confirm Password Floating input */}
+        <div className="relative">
+          <div className="relative border border-border/80 focus-within:border-primary rounded-lg transition-all duration-200 bg-secondary/30">
+            <input
+              type="password"
+              id="confirmPassword"
+              placeholder=" "
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              disabled={isPending || !!successMsg}
+              className="block px-3.5 pb-2.5 pt-5 w-full text-sm text-foreground bg-transparent border-0 appearance-none focus:outline-none focus:ring-0 peer disabled:opacity-50"
+              required
+            />
+            <label
+              htmlFor="confirmPassword"
+              className="absolute text-xs sm:text-sm text-muted-foreground duration-200 transform -translate-y-4 scale-75 top-2 z-10 origin-[0] px-3.5 peer-focus:text-primary peer-placeholder-shown:scale-100 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:top-1/2 peer-focus:top-2 peer-focus:scale-75 peer-focus:-translate-y-4 select-none pointer-events-none"
+            >
+              Confirmar Senha
+            </label>
+          </div>
+        </div>
+
+        {/* Terms Checkboxes */}
+        <div className="space-y-3 pt-2">
+          <label className="flex items-start gap-2.5 text-xs text-muted-foreground cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={acceptTerms}
+              onChange={(e) => setAcceptTerms(e.target.checked)}
+              disabled={isPending || !!successMsg}
+              className="mt-0.5 rounded accent-primary w-4 h-4 cursor-pointer"
+              required
+            />
+            <span>
+              Eu aceito e concordo com os{' '}
+              <Link href="/termos-de-uso" target="_blank" className="text-primary hover:underline font-semibold">
+                Termos de Uso
+              </Link>{' '}
+              da barbearia.
+            </span>
+          </label>
+
+          <label className="flex items-start gap-2.5 text-xs text-muted-foreground cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={acceptPrivacy}
+              onChange={(e) => setAcceptPrivacy(e.target.checked)}
+              disabled={isPending || !!successMsg}
+              className="mt-0.5 rounded accent-primary w-4 h-4 cursor-pointer"
+              required
+            />
+            <span>
+              Eu aceito a{' '}
+              <Link href="/politica-de-privacidade" target="_blank" className="text-primary hover:underline font-semibold">
+                Política de Privacidade
+              </Link>{' '}
+              e autorizo o tratamento dos dados.
+            </span>
+          </label>
+        </div>
+
+        {/* Submit Button */}
+        <button
+          type="submit"
+          disabled={isPending || !!successMsg}
+          className="w-full py-3 bg-primary hover:bg-primary-hover text-primary-foreground font-bold rounded-lg text-xs transition-all shadow-md hover:shadow-lg hover:scale-[1.01] active:scale-[0.99] disabled:opacity-75 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer mt-2"
+        >
+          {isPending ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin text-primary-foreground" />
+              Criando sua Conta...
+            </>
+          ) : (
+            <>
+              Cadastrar
+              <ArrowRight className="w-4 h-4 text-primary-foreground" />
+            </>
+          )}
+        </button>
+      </form>
+
+      {/* "ou continue com" divider */}
+      <div className="relative flex items-center justify-center my-4">
+        <div className="border-t border-border/40 w-full absolute z-0" />
+        <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground bg-secondary/80 backdrop-blur px-3.5 relative z-10 rounded-full border border-border/30">
+          ou continue com
+        </span>
+      </div>
+
+      {/* Google login action button */}
+      <button
+        type="button"
+        onClick={handleGoogleSignUp}
+        disabled={isPending || !!successMsg}
+        className="w-full py-3 bg-secondary hover:bg-muted border border-border text-foreground font-semibold rounded-lg text-xs transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2.5 cursor-pointer shadow-md disabled:opacity-50"
+      >
+        <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335"/>
+        </svg>
+        <span>Cadastrar com Google</span>
+      </button>
+
+      {/* Redirection link */}
+      <div className="text-center text-xs text-muted-foreground border-t border-border/40 pt-4">
+        Já tem uma conta?{' '}
+        <Link href="/entrar" className="text-primary hover:underline font-semibold transition-all">
+          Entrar agora
+        </Link>
+      </div>
+    </div>
+  )
+}
+
+export default function CriarConta() {
+  const { theme, toggleTheme } = useTheme()
+
+  return (
+    <div className="relative min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-secondary/40 via-background to-background flex items-center justify-center p-4 py-12 overflow-hidden transition-colors duration-300">
+      
+      {/* Dynamic Gold/Amber Particle Canvas */}
+      <ParticlesBackground />
+
+      {/* Floating Theme Toggle at top right */}
+      <button
+        onClick={toggleTheme}
+        className="absolute top-6 right-6 p-3 rounded-full hover:bg-secondary text-muted-foreground hover:text-foreground transition-all duration-200 z-10 cursor-pointer border border-border/50 glass"
+        aria-label="Alternar tema"
+      >
+        {theme === 'dark' ? <Sun size={20} className="text-primary" /> : <Moon size={20} className="text-primary" />}
+      </button>
+
+      <div className="w-full max-w-md space-y-6 z-10 relative">
+        
+        {/* Logo and Premium Branding Headers */}
+        <div className="text-center space-y-3">
+          <Link href="/" className="inline-flex items-center gap-2 group mx-auto hover:scale-105 transition-all duration-300">
+            <div className="p-2 rounded bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300 shadow-md">
               <Scissors className="w-6 h-6 rotate-45" />
             </div>
             <span className="font-serif font-bold text-xl tracking-wider text-foreground">
               OSANCHEZ
             </span>
           </Link>
-          <h2 className="text-2xl font-serif font-bold text-foreground">Crie sua Conta</h2>
-          <p className="text-xs text-muted-foreground">Cadastre-se para agendar seu horário premium</p>
-        </div>
-
-        {/* Card Form */}
-        <div className="glass p-8 rounded-lg border border-border space-y-6 shadow-2xl">
-          {errorMsg && (
-            <div className="p-3 bg-destructive/10 border border-destructive/20 rounded flex items-start gap-2 text-xs text-destructive">
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-              <span>{errorMsg}</span>
-            </div>
-          )}
-
-          {successMsg && (
-            <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded flex items-start gap-2 text-xs text-emerald-500">
-              <CheckCircle className="w-4 h-4 shrink-0 mt-0.5" />
-              <span>{successMsg}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Full Name */}
-            <div className="space-y-1.5">
-              <label htmlFor="fullName" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Nome Completo</label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input
-                  id="fullName"
-                  type="text"
-                  placeholder="Seu nome completo"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  disabled={isPending || !!successMsg}
-                  className="w-full pl-10 pr-4 py-2 bg-secondary border border-border focus:border-primary rounded text-sm text-foreground placeholder:text-muted-foreground outline-none transition-all"
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Email */}
-            <div className="space-y-1.5">
-              <label htmlFor="email" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">E-mail</label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input
-                  id="email"
-                  type="email"
-                  placeholder="exemplo@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={isPending || !!successMsg}
-                  className="w-full pl-10 pr-4 py-2 bg-secondary border border-border focus:border-primary rounded text-sm text-foreground placeholder:text-muted-foreground outline-none transition-all"
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Phone */}
-            <div className="space-y-1.5">
-              <label htmlFor="phone" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Telefone (WhatsApp)</label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input
-                  id="phone"
-                  type="tel"
-                  placeholder="(11) 99999-9999"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  disabled={isPending || !!successMsg}
-                  className="w-full pl-10 pr-4 py-2 bg-secondary border border-border focus:border-primary rounded text-sm text-foreground placeholder:text-muted-foreground outline-none transition-all"
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Password */}
-            <div className="space-y-1.5">
-              <label htmlFor="password" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Senha</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input
-                  id="password"
-                  type="password"
-                  placeholder="Mínimo 6 caracteres"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={isPending || !!successMsg}
-                  className="w-full pl-10 pr-4 py-2 bg-secondary border border-border focus:border-primary rounded text-sm text-foreground placeholder:text-muted-foreground outline-none transition-all"
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Confirm Password */}
-            <div className="space-y-1.5">
-              <label htmlFor="confirmPassword" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Confirmar Senha</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input
-                  id="confirmPassword"
-                  type="password"
-                  placeholder="Repita sua senha"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  disabled={isPending || !!successMsg}
-                  className="w-full pl-10 pr-4 py-2 bg-secondary border border-border focus:border-primary rounded text-sm text-foreground placeholder:text-muted-foreground outline-none transition-all"
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Checkboxes */}
-            <div className="space-y-3 pt-2">
-              <label className="flex items-start gap-2.5 text-xs text-muted-foreground cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={acceptTerms}
-                  onChange={(e) => setAcceptTerms(e.target.checked)}
-                  disabled={isPending || !!successMsg}
-                  className="mt-0.5 rounded accent-primary w-4 h-4 cursor-pointer"
-                  required
-                />
-                <span>
-                  Eu aceito e concordo com os{' '}
-                  <Link href="/termos-de-uso" target="_blank" className="text-primary hover:underline font-semibold">
-                    Termos de Uso
-                  </Link>{' '}
-                  da barbearia.
-                </span>
-              </label>
-
-              <label className="flex items-start gap-2.5 text-xs text-muted-foreground cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={acceptPrivacy}
-                  onChange={(e) => setAcceptPrivacy(e.target.checked)}
-                  disabled={isPending || !!successMsg}
-                  className="mt-0.5 rounded accent-primary w-4 h-4 cursor-pointer"
-                  required
-                />
-                <span>
-                  Eu aceito a{' '}
-                  <Link href="/politica-de-privacidade" target="_blank" className="text-primary hover:underline font-semibold">
-                    Política de Privacidade (LGPD)
-                  </Link>{' '}
-                  e autorizo o tratamento dos meus dados cadastrais.
-                </span>
-              </label>
-            </div>
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={isPending || !!successMsg}
-              className="w-full py-3 bg-primary hover:bg-primary-hover text-primary-foreground font-bold rounded text-xs transition-all shadow-md flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-75 disabled:cursor-not-allowed cursor-pointer mt-4"
-            >
-              {isPending ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin text-primary-foreground" />
-                  Criando sua Conta...
-                </>
-              ) : (
-                <>
-                  Cadastrar
-                  <ArrowRight className="w-4 h-4 text-primary-foreground" />
-                </>
-              )}
-            </button>
-          </form>
-
-          {/* Login Link */}
-          <div className="text-center text-xs text-muted-foreground border-t border-border/40 pt-4">
-            Já tem uma conta?{' '}
-            <Link href="/entrar" className="text-primary hover:underline font-semibold">Entrar agora</Link>
+          <div className="space-y-1">
+            <h1 className="text-3xl font-serif font-bold text-foreground tracking-tight">Osanchez Barbearia</h1>
+            <p className="text-xs text-muted-foreground">Crie sua conta para continuar</p>
           </div>
         </div>
 
-        {/* Back link */}
+        {/* Card Form inside Suspense */}
+        <Suspense fallback={
+          <div className="glass p-10 rounded-2xl border border-border flex flex-col items-center justify-center py-12 gap-2 shadow-2xl">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <p className="text-xs text-muted-foreground">Carregando formulário...</p>
+          </div>
+        }>
+          <SignUpForm />
+        </Suspense>
+
+        {/* Small footer back to site */}
         <div className="text-center">
-          <Link href="/" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+          <Link href="/" className="text-xs text-muted-foreground hover:text-foreground hover:underline transition-all">
             ← Voltar para a página inicial
           </Link>
         </div>
