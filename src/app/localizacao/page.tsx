@@ -1,6 +1,6 @@
 import React from 'react'
 export const dynamic = 'force-dynamic'
-import { MapPin, Phone, Clock, Compass, Car, Heart } from 'lucide-react'
+import { MapPin, Phone, Clock, Heart } from 'lucide-react'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { getBusinessSettings, formatPhoneNumber } from '@/lib/settings'
@@ -11,6 +11,9 @@ export default async function Localizacao() {
   const address = settings?.address || 'Rua da Barbearia, 123 - Centro, São Paulo - SP'
   const formattedPhone = formatPhoneNumber(rawWhatsapp)
   const telUrl = `tel:+${rawWhatsapp.replace(/\D/g, '')}`
+  const encodedAddress = encodeURIComponent(address)
+  const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`
+  const wazeUrl = `https://waze.com/ul?q=${encodedAddress}&navigate=yes`
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
@@ -48,25 +51,6 @@ export default async function Localizacao() {
                       <a href={telUrl} className="text-[11px] text-muted-foreground hover:text-primary transition-colors">{formattedPhone}</a>
                     </div>
                   </div>
-                  <div className="flex gap-3">
-                    <div className="p-2.5 rounded bg-primary/10 text-primary h-max shrink-0">
-                      <Compass className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-xs text-foreground uppercase tracking-wider">Ponto de Referência</h4>
-                      <p className="text-[11px] text-muted-foreground">A duas quadras da estação de Metrô Central, ao lado do Café Premium.</p>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-3">
-                    <div className="p-2.5 rounded bg-primary/10 text-primary h-max shrink-0">
-                      <Car className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-xs text-foreground uppercase tracking-wider">Estacionamento</h4>
-                      <p className="text-[11px] text-muted-foreground">Estacionamento conveniado gratuito por 2 horas com carimbo no local.</p>
-                    </div>
-                  </div>
 
                   <div className="flex gap-3">
                     <div className="p-2.5 rounded bg-primary/10 text-primary h-max shrink-0">
@@ -80,14 +64,22 @@ export default async function Localizacao() {
                 </div>
               </div>
 
-              <div className="pt-6 border-t border-border/40">
+              <div className="pt-6 border-t border-border/40 flex flex-col sm:flex-row gap-3">
                 <a
-                  href="https://maps.google.com"
+                  href={googleMapsUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full text-center py-3 bg-primary hover:bg-primary-hover text-primary-foreground font-bold rounded text-xs transition-all shadow-md block"
+                  className="flex-1 text-center py-3 bg-primary hover:bg-primary-hover text-primary-foreground font-bold rounded text-xs transition-all shadow-md block"
                 >
                   Abrir no Google Maps
+                </a>
+                <a
+                  href={wazeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 text-center py-3 bg-secondary hover:bg-muted text-foreground border border-border font-bold rounded text-xs transition-all shadow-md block"
+                >
+                  Abrir no Waze
                 </a>
               </div>
             </div>
