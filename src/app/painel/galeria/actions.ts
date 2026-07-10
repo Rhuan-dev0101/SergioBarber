@@ -5,6 +5,12 @@ import { createServerSupabaseClient } from '@/lib/supabase'
 export type GalleryActionResponse = {
   success: boolean
   message: string
+  error?: {
+    message: string
+    code?: string
+    details?: string
+    hint?: string
+  }
 }
 
 async function verifyAdminSession() {
@@ -56,7 +62,16 @@ export async function addGalleryImageAction(
 
     if (error) {
       console.error('Error inserting gallery image:', error)
-      return { success: false, message: 'Erro ao registrar imagem no banco de dados.' }
+      return { 
+        success: false, 
+        message: 'Erro ao registrar imagem no banco de dados.',
+        error: {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint
+        }
+      }
     }
 
     return { success: true, message: 'Imagem adicionada à galeria com sucesso!' }
@@ -106,7 +121,16 @@ export async function updateGalleryImageAction(
 
     if (error) {
       console.error('Error updating gallery image:', error)
-      return { success: false, message: 'Erro ao atualizar dados da imagem.' }
+      return { 
+        success: false, 
+        message: 'Erro ao atualizar dados da imagem.',
+        error: {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint
+        }
+      }
     }
 
     return { success: true, message: 'Imagem da galeria atualizada com sucesso!' }
@@ -151,7 +175,16 @@ export async function deleteGalleryImageAction(
 
     if (dbErr) {
       console.error('Error deleting gallery image from DB:', dbErr)
-      return { success: false, message: 'Erro ao remover imagem da galeria.' }
+      return { 
+        success: false, 
+        message: 'Erro ao remover imagem da galeria.',
+        error: {
+          message: dbErr.message,
+          code: dbErr.code,
+          details: dbErr.details,
+          hint: dbErr.hint
+        }
+      }
     }
 
     return { success: true, message: 'Imagem removida com sucesso!' }

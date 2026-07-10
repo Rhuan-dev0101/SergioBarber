@@ -102,8 +102,8 @@ export default function PainelGaleria() {
         })
 
       if (error) {
-        console.error('Storage upload error:', error)
-        throw new Error('Certifique-se de que o bucket "gallery-photos" foi criado e está público no Supabase console.')
+        console.error('Storage upload error details:', error)
+        throw new Error(`Erro ao enviar foto para o storage: ${error.message || 'Desconhecido'}`)
       }
 
       // Get public URL
@@ -143,6 +143,9 @@ export default function PainelGaleria() {
       const res = await addGalleryImageAction(imageUrl, title, category, description)
       if (!res.success) {
         setErrorMsg(res.message)
+        if (res.error) {
+          console.error('Database INSERT failed details:', res.error)
+        }
       } else {
         setSuccessMsg(res.message)
         setImageUrl('')
@@ -179,6 +182,9 @@ export default function PainelGaleria() {
       )
       if (!res.success) {
         setErrorMsg(res.message)
+        if (res.error) {
+          console.error('Database UPDATE failed details:', res.error)
+        }
       } else {
         setSuccessMsg(res.message)
         setEditingImage(null)
@@ -202,6 +208,9 @@ export default function PainelGaleria() {
       const res = await deleteGalleryImageAction(img.id, storagePath)
       if (!res.success) {
         setErrorMsg(res.message)
+        if (res.error) {
+          console.error('Database DELETE failed details:', res.error)
+        }
       } else {
         setSuccessMsg(res.message)
         loadGallery()
