@@ -19,8 +19,8 @@ const FALLBACK_SERVICES = [
 ]
 
 const FALLBACK_BARBERS = [
-  { id: 'sergio-uuid', full_name: 'Sergio Sanchez', bio: 'Fundador e barbeiro master com mais de 10 anos de experiência em cortes clássicos e visagismo.', avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80' },
-  { id: 'kauan-uuid', full_name: 'Kauan Soares', bio: 'Especialista em cortes modernos, freestyle e barba terapia de alta precisão.', avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80' }
+  { id: 'sergio-uuid', full_name: 'Sergio Sanchez', bio: 'Fundador e barbeiro master com mais de 10 anos de experiência em cortes clássicos e visagismo.', avatar_url: '/barbers/sergio.jpg' },
+  { id: 'kauan-uuid', full_name: 'Kauan Soares', bio: 'Especialista em cortes modernos, freestyle e barba terapia de alta precisão.', avatar_url: '/barbers/kauan.jpg' }
 ]
 
 export default async function Home() {
@@ -56,7 +56,7 @@ export default async function Home() {
           id: b.id,
           full_name: b.full_name,
           bio: (b.barbers as any).bio || '',
-          avatar_url: (b.barbers as any).avatar_url || ''
+          avatar_url: (b.barbers as any).avatar_url || (b.full_name.includes('Sergio') ? '/barbers/sergio.jpg' : b.full_name.includes('Kauan') ? '/barbers/kauan.jpg' : '')
         }))
       if (activeBarbers.length > 0) {
         barbers = activeBarbers

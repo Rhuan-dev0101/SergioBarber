@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Check, ChevronDown, ChevronUp, User, Clock, Star, Calendar } from 'lucide-react'
 import { GradientButton } from '@/components/ui/gradient-button'
 
@@ -90,9 +91,11 @@ export function BarbersSection({ initialBarbers }: BarbersSectionProps) {
             <div className="flex flex-col md:flex-row items-center gap-6 w-full">
               <div className="w-24 h-24 rounded-full border-2 border-primary/45 p-0.5 shrink-0 overflow-hidden relative transition-all duration-300">
                 {barber.avatar_url ? (
-                  <img 
+                  <Image 
                     src={barber.avatar_url} 
                     alt={barber.full_name} 
+                    width={96}
+                    height={96}
                     className="w-full h-full object-cover rounded-full filter grayscale hover:grayscale-0 transition-all duration-500" 
                   />
                 ) : (

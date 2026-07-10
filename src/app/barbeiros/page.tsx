@@ -1,6 +1,7 @@
 import React from 'react'
 export const dynamic = 'force-dynamic'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Award, Star, Check, Scissors, ChevronRight, Clock } from 'lucide-react'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
@@ -43,9 +44,9 @@ export default async function Barbeiros() {
           id: b.id,
           name: b.full_name,
           role: b.role === 'admin' ? 'Fundador & Barbeiro Master' : 'Barbeiro Especialista',
-          bio: (b.barbers as any).bio || 'Barbeiro profissional da equipe Osanchez.',
+          bio: (b.barbers as any).bio || 'Barbeiro professional da equipe Osanchez.',
           skills: b.full_name.includes('Sergio') ? ['Cortes Clássicos', 'Visagismo Facial', 'Barba Terapia'] : ['Fade / Degradê', 'Química e Selante', 'Desenhos Freestyle'],
-          avatar_url: (b.barbers as any).avatar_url || ''
+          avatar_url: (b.barbers as any).avatar_url || (b.full_name.includes('Sergio') ? '/barbers/sergio.jpg' : b.full_name.includes('Kauan') ? '/barbers/kauan.jpg' : '')
         }))
       if (activeBarbers.length > 0) {
         barbers = activeBarbers
@@ -80,9 +81,11 @@ export default async function Barbeiros() {
                 {/* Avatar Placeholder / Image */}
                 <div className="w-32 h-32 rounded-full border-2 border-primary/40 p-0.5 shrink-0 overflow-hidden relative group-hover:border-primary transition-all duration-300 shadow-lg">
                   {barber.avatar_url ? (
-                    <img 
+                    <Image 
                       src={barber.avatar_url} 
                       alt={barber.name} 
+                      width={128}
+                      height={128}
                       className="w-full h-full object-cover rounded-full filter grayscale hover:grayscale-0 transition-all duration-500" 
                     />
                   ) : (
