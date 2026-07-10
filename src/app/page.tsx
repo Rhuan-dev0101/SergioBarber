@@ -83,12 +83,19 @@ export default async function Home() {
               <h1 className="text-4xl sm:text-6xl font-serif font-bold tracking-tight text-foreground leading-[1.15]">
                 Estilo & Tradição Com Toque <span className="text-primary italic">Premium</span>
               </h1>
-              <p className="text-base sm:text-lg text-muted-foreground leading-relaxed">
-                Osanchez Barbearia é onde cada detalhe é esculpido para ressaltar a sua melhor versão. 
-                Desfrute de um ambiente sofisticado, cerveja gelada e os melhores profissionais de São Paulo.
+              <p className="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto">
+                Na Osanchez, tradição encontra simplicidade. Cada corte é feito com humildade e o capricho de quem trata cada cliente como único — sem excessos, só o essencial bem-feito.
               </p>
               
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+              <div className="flex items-center justify-center gap-4 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-primary select-none pt-1">
+                <span>Humildade</span>
+                <span className="text-border/60 font-light">•</span>
+                <span>Simplicidade</span>
+                <span className="text-border/60 font-light">•</span>
+                <span>Capricho</span>
+              </div>
+              
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-3">
                 <GradientButton asChild>
                   <Link href="/entrar" className="flex items-center gap-2 group">
                     <Calendar className="w-5 h-5" />
