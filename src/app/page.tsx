@@ -7,6 +7,7 @@ import { Footer } from '@/components/Footer'
 import { createServerSupabaseClient } from '@/lib/supabase'
 import { GradientButton } from '@/components/ui/gradient-button'
 import { BarbersSection } from '@/components/BarbersSection'
+import { getBusinessSettings, formatPhoneNumber, formatWhatsAppLink } from '@/lib/settings'
 
 // Static fallback seed data in case database is empty or unreachable during build
 const FALLBACK_SERVICES = [
@@ -31,6 +32,13 @@ const FALLBACK_GALLERY = [
 ]
 
 export default async function Home() {
+  const settings = await getBusinessSettings()
+  const rawWhatsapp = settings?.whatsapp || '5511999999999'
+  const address = settings?.address || 'Rua da Barbearia, 123 - Centro, São Paulo - SP'
+  const whatsappUrl = formatWhatsAppLink(rawWhatsapp)
+  const formattedPhone = formatPhoneNumber(rawWhatsapp)
+  const telUrl = `tel:+${rawWhatsapp.replace(/\D/g, '')}`
+
   let services = FALLBACK_SERVICES
   let barbers = FALLBACK_BARBERS
   let gallery = FALLBACK_GALLERY
@@ -131,7 +139,7 @@ export default async function Home() {
                 </GradientButton>
                 <GradientButton variant="variant" asChild>
                   <a
-                    href="https://wa.me/5511999999999"
+                    href={whatsappUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-2"
@@ -225,7 +233,7 @@ export default async function Home() {
                   </div>
                   <div>
                     <h4 className="font-semibold text-sm text-foreground">Endereço</h4>
-                    <p className="text-xs text-muted-foreground">Rua da Barbearia, 123 - Centro, São Paulo - SP</p>
+                    <p className="text-xs text-muted-foreground">{address}</p>
                   </div>
                 </div>
                 <div className="flex gap-3">
@@ -234,7 +242,7 @@ export default async function Home() {
                   </div>
                   <div>
                     <h4 className="font-semibold text-sm text-foreground">Contato Direto</h4>
-                    <p className="text-xs text-muted-foreground">+55 (11) 99999-9999</p>
+                    <a href={telUrl} className="text-xs text-muted-foreground hover:text-primary transition-colors">{formattedPhone}</a>
                   </div>
                 </div>
               </div>
@@ -255,7 +263,7 @@ export default async function Home() {
         </section>
       </main>
 
-      <Footer />
+      <Footer initialSettings={settings || undefined} />
     </div>
   )
 }

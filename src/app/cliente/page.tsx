@@ -11,6 +11,7 @@ import { createClient } from '@/lib/supabase'
 import { cancelAppointmentAction } from './actions'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
+import { formatWhatsAppLink } from '@/lib/settings'
 
 export default function ClientePanel() {
   const router = useRouter()
@@ -20,11 +21,22 @@ export default function ClientePanel() {
   const [errorMsg, setErrorMsg] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
   const [isPending, startTransition] = useTransition()
+  const [settings, setSettings] = useState<any>(null)
   
   const supabase = createClient()
 
   const loadData = async () => {
     try {
+      // Fetch general settings
+      const { data: config } = await supabase
+        .from('business_settings')
+        .select('*')
+        .eq('key', 'general_settings')
+        .single()
+      if (config?.value) {
+        setSettings(config.value)
+      }
+
       const { data: { session } } = await supabase.auth.getSession()
       if (!session?.user) {
         router.push('/entrar')
@@ -322,7 +334,7 @@ export default function ClientePanel() {
                   Dúvidas sobre o Pix de sinal, reagendamentos urgentes ou alteração de serviço? Entre em contato diretamente com nossa recepção no WhatsApp.
                 </p>
                 <a
-                  href="https://wa.me/5511999999999"
+                  href={formatWhatsAppLink(settings?.whatsapp || '5511999999999')}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-full text-center py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded shadow-md block transition-all"

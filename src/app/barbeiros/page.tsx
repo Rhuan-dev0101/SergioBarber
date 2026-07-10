@@ -7,6 +7,7 @@ import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { createServerSupabaseClient } from '@/lib/supabase'
 import { GradientButton } from '@/components/ui/gradient-button'
+import { getBusinessSettings } from '@/lib/settings'
 
 const SEED_BARBERS = [
   {
@@ -28,6 +29,7 @@ const SEED_BARBERS = [
 ]
 
 export default async function Barbeiros() {
+  const settings = await getBusinessSettings()
   let barbers = SEED_BARBERS
 
   try {
@@ -151,7 +153,7 @@ export default async function Barbeiros() {
         </div>
       </main>
 
-      <Footer />
+      <Footer initialSettings={settings || undefined} />
     </div>
   )
 }

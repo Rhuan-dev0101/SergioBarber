@@ -1,11 +1,55 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Scissors, Phone, MapPin, Mail, Clock } from 'lucide-react'
+import { createClient } from '@/lib/supabase'
+import { formatPhoneNumber, formatWhatsAppLink } from '@/lib/settings'
 
-export function Footer() {
+interface BusinessSettings {
+  whatsapp?: string
+  address?: string
+  instagram?: string
+}
+
+export function Footer({ initialSettings }: { initialSettings?: BusinessSettings }) {
+  const [settings, setSettings] = useState<BusinessSettings | null>(initialSettings || null)
+
+  useEffect(() => {
+    if (initialSettings) {
+      setSettings(initialSettings)
+      return
+    }
+
+    async function loadSettings() {
+      try {
+        const supabase = createClient()
+        const { data } = await supabase
+          .from('business_settings')
+          .select('value')
+          .eq('key', 'general_settings')
+          .single()
+        
+        if (data?.value) {
+          setSettings(data.value as BusinessSettings)
+        }
+      } catch (err) {
+        console.error('Error fetching settings in Footer component:', err)
+      }
+    }
+
+    loadSettings()
+  }, [initialSettings])
+
+  const address = settings?.address || 'Rua da Barbearia, 123 - Centro, São Paulo - SP'
+  const rawWhatsapp = settings?.whatsapp || '5511999999999'
+  const instagramUrl = settings?.instagram || 'https://instagram.com/osanchezbarbearia/'
+  
+  const whatsappUrl = formatWhatsAppLink(rawWhatsapp)
+  const formattedPhone = formatPhoneNumber(rawWhatsapp)
+  const telUrl = `tel:+${rawWhatsapp.replace(/\D/g, '')}`
+
   return (
     <footer className="relative bg-background mt-auto transition-colors">
       {/* 6. Gold gradient divider top line */}
@@ -30,7 +74,7 @@ export function Footer() {
             </p>
             <div className="flex gap-3">
               <a
-                href="https://instagram.com"
+                href={instagramUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="p-2 rounded-full bg-secondary hover:bg-primary hover:text-primary-foreground text-muted-foreground transition-all btn-premium shadow-md"
@@ -39,7 +83,7 @@ export function Footer() {
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
               </a>
               <a
-                href="https://wa.me/5511999999999"
+                href={whatsappUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="p-2 rounded-full bg-secondary hover:bg-primary hover:text-primary-foreground text-muted-foreground transition-all btn-premium shadow-md"
@@ -58,11 +102,11 @@ export function Footer() {
             <ul className="space-y-3.5 text-xs text-muted-foreground">
               <li className="flex items-start gap-2.5">
                 <MapPin className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                <span>Rua da Barbearia, 123 - Centro, São Paulo - SP</span>
+                <span>{address}</span>
               </li>
               <li className="flex items-center gap-2.5">
                 <Phone className="w-4 h-4 text-primary shrink-0" />
-                <a href="tel:+5511999999999" className="hover:text-primary transition-colors hover:underline">+55 (11) 99999-9999</a>
+                <a href={telUrl} className="hover:text-primary transition-colors hover:underline">{formattedPhone}</a>
               </li>
               <li className="flex items-center gap-2.5">
                 <Mail className="w-4 h-4 text-primary shrink-0" />

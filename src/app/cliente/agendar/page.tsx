@@ -12,6 +12,7 @@ import { createClient } from '@/lib/supabase'
 import { createAppointmentAction } from './actions'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
+import { formatWhatsAppLink } from '@/lib/settings'
 
 // Local fallbacks in case database is empty
 const STATIC_SERVICES = [
@@ -53,6 +54,7 @@ function AgendarWizardInner() {
   const [isPending, startTransition] = useTransition()
   const [errorMsg, setErrorMsg] = useState('')
   const [successInfo, setSuccessInfo] = useState<any>(null)
+  const [settings, setSettings] = useState<any>(null)
 
   const supabase = createClient()
 
@@ -60,6 +62,16 @@ function AgendarWizardInner() {
   useEffect(() => {
     async function loadData() {
       try {
+        // Fetch general settings
+        const { data: config } = await supabase
+          .from('business_settings')
+          .select('*')
+          .eq('key', 'general_settings')
+          .single()
+        if (config?.value) {
+          setSettings(config.value)
+        }
+
         // Fetch active services
         const { data: dbServices } = await supabase
           .from('services')
@@ -282,7 +294,10 @@ function AgendarWizardInner() {
               <p className="font-semibold text-primary flex items-center gap-1.5">
                 <DollarSign className="w-4 h-4 text-primary" /> Instruções de Pagamento Pix
               </p>
-              <p className="text-muted-foreground">Chave Pix CNPJ: <span className="font-mono text-foreground font-semibold">12.345.678/0001-90</span></p>
+              <p className="text-muted-foreground">
+                Chave Pix {settings?.pixType === 'cnpj' ? 'CNPJ' : settings?.pixType === 'email' ? 'E-mail' : settings?.pixType === 'phone' ? 'Celular' : settings?.pixType === 'evp' ? 'Chave Aleatória (EVP)' : 'CNPJ'}:{' '}
+                <span className="font-mono text-foreground font-semibold">{settings?.pixKey || '12.345.678/0001-90'}</span>
+              </p>
               <p className="text-[10px] text-muted-foreground leading-normal">
                 Efetue a transferência do sinal de 50% (R$ {successInfo.deposit.toFixed(2)}) e envie o comprovante pelo WhatsApp clicando no botão abaixo para aprovação manual.
               </p>
@@ -290,7 +305,7 @@ function AgendarWizardInner() {
 
             {/* WA button */}
             <a
-              href={`https://wa.me/5511999999999?text=${waMessage}`}
+              href={formatWhatsAppLink(settings?.whatsapp || '5511999999999', waMessage)}
               target="_blank"
               rel="noopener noreferrer"
               className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded text-xs transition-all shadow-md flex items-center justify-center gap-2"

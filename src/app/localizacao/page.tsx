@@ -1,9 +1,16 @@
 import React from 'react'
+export const dynamic = 'force-dynamic'
 import { MapPin, Phone, Clock, Compass, Car, Coffee } from 'lucide-react'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
+import { getBusinessSettings, formatPhoneNumber } from '@/lib/settings'
 
-export default function Localizacao() {
+export default async function Localizacao() {
+  const settings = await getBusinessSettings()
+  const rawWhatsapp = settings?.whatsapp || '5511999999999'
+  const address = settings?.address || 'Rua da Barbearia, 123 - Centro, São Paulo - SP'
+  const formattedPhone = formatPhoneNumber(rawWhatsapp)
+  const telUrl = `tel:+${rawWhatsapp.replace(/\D/g, '')}`
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
@@ -27,12 +34,20 @@ export default function Localizacao() {
                 <div>
                   <h2 className="font-serif font-bold text-xl text-foreground mb-2">Nosso Endereço</h2>
                   <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                    Rua da Barbearia, 123 - Centro<br />
-                    São Paulo - SP, CEP: 01001-000
+                    {address}
                   </p>
                 </div>
 
                 <div className="space-y-4">
+                  <div className="flex gap-3">
+                    <div className="p-2.5 rounded bg-primary/10 text-primary h-max shrink-0">
+                      <Phone className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-xs text-foreground uppercase tracking-wider">Contato Direto</h4>
+                      <a href={telUrl} className="text-[11px] text-muted-foreground hover:text-primary transition-colors">{formattedPhone}</a>
+                    </div>
+                  </div>
                   <div className="flex gap-3">
                     <div className="p-2.5 rounded bg-primary/10 text-primary h-max shrink-0">
                       <Compass className="w-5 h-5" />
@@ -95,7 +110,7 @@ export default function Localizacao() {
         </div>
       </main>
 
-      <Footer />
+      <Footer initialSettings={settings || undefined} />
     </div>
   )
 }

@@ -5,6 +5,7 @@ import { Scissors, Clock, Award, Star, ChevronRight } from 'lucide-react'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { createServerSupabaseClient } from '@/lib/supabase'
+import { getBusinessSettings } from '@/lib/settings'
 import { GradientButton } from '@/components/ui/gradient-button'
 import { GlowCard } from '@/components/ui/spotlight-card'
 
@@ -29,6 +30,7 @@ const SEED_SERVICES = [
 ]
 
 export default async function Servicos() {
+  const settings = await getBusinessSettings()
   let services = SEED_SERVICES
 
   try {
@@ -136,7 +138,7 @@ export default async function Servicos() {
         </div>
       </main>
 
-      <Footer />
+      <Footer initialSettings={settings || undefined} />
     </div>
   )
 }

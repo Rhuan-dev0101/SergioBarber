@@ -7,6 +7,7 @@ import { Footer } from '@/components/Footer'
 import { createServerSupabaseClient } from '@/lib/supabase'
 import { GradientButton } from '@/components/ui/gradient-button'
 import { GlowCard } from '@/components/ui/spotlight-card'
+import { getBusinessSettings } from '@/lib/settings'
 
 const SEED_GALLERY = [
   { 
@@ -48,6 +49,7 @@ const SEED_GALLERY = [
 ]
 
 export default async function Galeria() {
+  const settings = await getBusinessSettings()
   let images = SEED_GALLERY
 
   try {
@@ -145,7 +147,7 @@ export default async function Galeria() {
         </div>
       </main>
 
-      <Footer />
+      <Footer initialSettings={settings || undefined} />
     </div>
   )
 }
