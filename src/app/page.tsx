@@ -23,9 +23,17 @@ const FALLBACK_BARBERS = [
   { id: 'kauan-uuid', full_name: 'Kauan Soares', bio: 'Especialista em cortes modernos, freestyle e barba terapia de alta precisão.', avatar_url: '/barbers/kauan.jpg' }
 ]
 
+const FALLBACK_GALLERY = [
+  { title: 'Degradê Navalhado', category: 'Corte', img: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=600&q=80' },
+  { title: 'Barba Alinhada', category: 'Barba', img: 'https://images.unsplash.com/photo-1621605815971-fbc98d665033?auto=format&fit=crop&w=600&q=80' },
+  { title: 'Corte Social Clássico', category: 'Corte', img: 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=600&q=80' },
+  { title: 'Corte Moderno Textured', category: 'Corte', img: 'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?auto=format&fit=crop&w=600&q=80' },
+]
+
 export default async function Home() {
   let services = FALLBACK_SERVICES
   let barbers = FALLBACK_BARBERS
+  let gallery = FALLBACK_GALLERY
 
   try {
     const supabase = await createServerSupabaseClient()
@@ -65,6 +73,20 @@ export default async function Home() {
       if (activeBarbers.length > 0) {
         barbers = activeBarbers
       }
+    }
+
+    const { data: dbGallery } = await supabase
+      .from('gallery_images')
+      .select('title, category, url')
+      .order('created_at', { ascending: false })
+      .limit(4)
+
+    if (dbGallery && dbGallery.length > 0) {
+      gallery = dbGallery.map(g => ({
+        title: g.title || '',
+        category: g.category || 'Corte',
+        img: g.url
+      }))
     }
   } catch (error) {
     console.error('Error fetching data from Supabase, using fallback seeds:', error)
@@ -150,12 +172,7 @@ export default async function Home() {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[
-              { title: 'Degradê Navalhado', category: 'Corte', img: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=600&q=80' },
-              { title: 'Barba Alinhada', category: 'Barba', img: 'https://images.unsplash.com/photo-1621605815971-fbc98d665033?auto=format&fit=crop&w=600&q=80' },
-              { title: 'Corte Social Clássico', category: 'Corte', img: 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=600&q=80' },
-              { title: 'Corte Moderno Textured', category: 'Corte', img: 'https://images.unsplash.com/photo-1599351431247-f50940f3f89a?auto=format&fit=crop&w=600&q=80' },
-            ].map((item, idx) => (
+            {gallery.map((item, idx) => (
               <div
                 key={idx}
                 className="relative aspect-square rounded-xl border border-border/85 overflow-hidden group hover:border-primary/50 transition-all duration-500 shadow-xl flex flex-col justify-end p-4"

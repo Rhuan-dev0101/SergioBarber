@@ -31,7 +31,7 @@ const SEED_GALLERY = [
     title: 'Corte Moderno Textured Crop', 
     category: 'Corte', 
     description: 'Corte texturizado e moderno para um visual despojado no dia a dia.',
-    url: 'https://images.unsplash.com/photo-1599351431247-f50940f3f89a?auto=format&fit=crop&w=600&q=80'
+    url: 'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?auto=format&fit=crop&w=600&q=80'
   },
   { 
     title: 'Luzes e Reflexo Platinado', 
@@ -54,14 +54,14 @@ export default async function Galeria() {
     const supabase = await createServerSupabaseClient()
     const { data: dbImages } = await supabase
       .from('gallery_images')
-      .select('url, description')
+      .select('url, description, title, category')
       .order('created_at', { ascending: false })
 
     if (dbImages && dbImages.length > 0) {
       // Map database images and augment with fields
       images = dbImages.map((img, idx) => ({
-        title: img.description || `Corte Premium ${idx + 1}`,
-        category: img.description?.includes('Barba') ? 'Barba' : 'Corte',
+        title: img.title || img.description || `Corte Premium ${idx + 1}`,
+        category: img.category || (img.description?.includes('Barba') ? 'Barba' : 'Corte'),
         description: img.description || 'Executado com precisão por nossos barbeiros.',
         url: img.url
       }))
