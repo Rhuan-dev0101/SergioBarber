@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { Scissors, Sun, Moon, Menu, X, User } from 'lucide-react'
 import { useTheme } from '@/components/ThemeProvider'
@@ -86,13 +87,15 @@ export function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-20 items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 group">
-            <div className="p-2 rounded bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300">
-              <Scissors className="w-6 h-6 rotate-45" />
-            </div>
-            <span className="font-serif font-bold text-lg sm:text-xl tracking-wider text-foreground">
-              OSANCHEZ <span className="text-primary font-sans font-light text-xs">BARBEARIA</span>
-            </span>
+          <Link href="/" className="flex items-center group select-none">
+            <Image 
+              src="/osanchez_logo_transparent.png" 
+              alt="Osanchez Barbearia" 
+              width={150} 
+              height={38} 
+              className="premium-logo object-contain"
+              priority
+            />
           </Link>
 
           {/* Desktop Navigation */}

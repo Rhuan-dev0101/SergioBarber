@@ -2,6 +2,7 @@
 
 import React, { useState, useTransition, useEffect, useRef, Suspense } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { Scissors, User, Mail, Phone, Lock, ArrowRight, AlertCircle, CheckCircle, Loader2, Sun, Moon } from 'lucide-react'
 import { signUpAction } from '@/app/auth/actions'
@@ -425,17 +426,18 @@ export default function CriarConta() {
         
         {/* Logo and Premium Branding Headers */}
         <div className="text-center space-y-3">
-          <Link href="/" className="inline-flex items-center gap-2 group mx-auto hover:scale-105 transition-all duration-300">
-            <div className="p-2 rounded bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300 shadow-md">
-              <Scissors className="w-6 h-6 rotate-45" />
-            </div>
-            <span className="font-serif font-bold text-xl tracking-wider text-foreground">
-              OSANCHEZ
-            </span>
+          <Link href="/" className="inline-flex items-center group mx-auto select-none">
+            <Image 
+              src="/osanchez_logo_transparent.png" 
+              alt="Osanchez Barbearia" 
+              width={180} 
+              height={46} 
+              className="premium-logo object-contain"
+              priority
+            />
           </Link>
-          <div className="space-y-1">
-            <h1 className="text-3xl font-serif font-bold text-foreground tracking-tight">Osanchez Barbearia</h1>
-            <p className="text-xs text-muted-foreground">Crie sua conta para continuar</p>
+          <div className="space-y-1 pt-1">
+            <p className="text-xs text-muted-foreground font-medium">Crie sua conta para continuar</p>
           </div>
         </div>
 

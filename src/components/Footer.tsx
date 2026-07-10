@@ -2,6 +2,7 @@
 
 import React from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Scissors, Phone, MapPin, Mail, Clock } from 'lucide-react'
 
 export function Footer() {
@@ -15,13 +16,14 @@ export function Footer() {
           
           {/* Logo & About */}
           <div className="space-y-5">
-            <Link href="/" className="flex items-center gap-2 group">
-              <div className="p-2 rounded bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300 shadow">
-                <Scissors className="w-4.5 h-4.5 rotate-45" />
-              </div>
-              <span className="font-serif font-bold text-lg tracking-wider text-foreground">
-                OSANCHEZ
-              </span>
+            <Link href="/" className="flex items-center group select-none">
+              <Image 
+                src="/osanchez_logo_transparent.png" 
+                alt="Osanchez Barbearia" 
+                width={140} 
+                height={36} 
+                className="premium-logo object-contain"
+              />
             </Link>
             <p className="text-xs text-muted-foreground leading-relaxed">
               Uma experiência única de estilo e cuidado para o homem moderno. Cortes clássicos e modernos realizados por especialistas em visagismo facial.

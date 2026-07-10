@@ -546,5 +546,27 @@ body {
   }
 }
 
+.premium-logo {
+  filter: drop-shadow(0 2px 4px rgba(197, 168, 128, 0.25)) drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+  transition: filter 0.4s ease, transform 0.4s ease;
+}
+
+.premium-logo:hover {
+  filter: drop-shadow(0 2px 4px rgba(197, 168, 128, 0.35)) 
+          drop-shadow(0 0 15px rgba(197, 168, 128, 0.3)) 
+          drop-shadow(0 8px 24px rgba(0, 0, 0, 0.45));
+  transform: translateY(-1px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .premium-logo {
+    transition: none;
+  }
+  .premium-logo:hover {
+    filter: drop-shadow(0 2px 4px rgba(197, 168, 128, 0.25)) drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+    transform: none;
+  }
+}
+
 
 
