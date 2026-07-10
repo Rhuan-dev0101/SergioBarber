@@ -11,6 +11,10 @@ interface Barber {
   full_name: string
   bio: string
   avatar_url: string
+  about_quote?: string | null
+  experience_years?: number | null
+  specialties?: string[] | null
+  photo_url?: string | null
 }
 
 interface BarbersSectionProps {
@@ -21,22 +25,16 @@ const BARBER_RICH_DETAILS: Record<string, {
   history: string
   experience: string
   specialties: string
-  beforeImg: string
-  afterImg: string
 }> = {
   'Sergio Sanchez': {
     history: 'Iniciou sua trajetória nas barbearias clássicas de Londres, trazendo para o Brasil o refinamento do visagismo italiano de alta performance.',
     experience: '12 anos esculpindo detalhes',
-    specialties: 'Visagismo Facial sob medida, Cortes Clássicos Executivos, Barba Terapia Premium.',
-    beforeImg: 'https://images.unsplash.com/photo-1590086782957-93c06ef217b4?auto=format&fit=crop&w=300&q=80',
-    afterImg: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80'
+    specialties: 'Visagismo Facial sob medida, Cortes Clássicos Executivos, Barba Terapia Premium.'
   },
   'Kauan Soares': {
     history: 'Mestre em tendências contemporâneas urbanas. Especializou-se em técnicas americanas de degradê de alta definição e pigmentações capilares.',
     experience: '6 anos inovando no estilo',
-    specialties: 'High Fade (Degradê Americano), Freestyle Artístico, Platinados e Química Capilar.',
-    beforeImg: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80',
-    afterImg: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=300&q=80'
+    specialties: 'High Fade (Degradê Americano), Freestyle Artístico, Platinados e Química Capilar.'
   }
 }
 
@@ -90,9 +88,9 @@ export function BarbersSection({ initialBarbers }: BarbersSectionProps) {
             {/* Header Area */}
             <div className="flex flex-col md:flex-row items-center gap-6 w-full">
               <div className="w-24 h-24 rounded-full border-2 border-primary/45 p-0.5 shrink-0 overflow-hidden relative transition-all duration-300">
-                {barber.avatar_url ? (
+                {(barber.photo_url || barber.avatar_url) ? (
                   <Image 
-                    src={barber.avatar_url} 
+                    src={barber.photo_url || barber.avatar_url} 
                     alt={barber.full_name} 
                     width={96}
                     height={96}
@@ -141,37 +139,26 @@ export function BarbersSection({ initialBarbers }: BarbersSectionProps) {
                 <div className="space-y-2">
                   <span className="text-[10px] uppercase tracking-wider font-semibold text-primary">Sobre o Mestre</span>
                   <p className="font-serif italic text-muted-foreground text-xs leading-relaxed">
-                    "{rich.history}"
+                    "{barber.about_quote || rich.history}"
                   </p>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-muted-foreground">
                   <div className="space-y-1">
                     <strong className="text-foreground font-semibold">Experiência:</strong>
-                    <p className="text-[11px]">{rich.experience}</p>
+                    <p className="text-[11px]">
+                      {barber.experience_years !== undefined && barber.experience_years !== null
+                        ? `${barber.experience_years} anos no estilo`
+                        : rich.experience}
+                    </p>
                   </div>
                   <div className="space-y-1">
                     <strong className="text-foreground font-semibold">Especialidades:</strong>
-                    <p className="text-[11px]">{rich.specialties}</p>
-                  </div>
-                </div>
-
-                {/* Before/After Highlights */}
-                <div className="space-y-2">
-                  <span className="text-[10px] uppercase tracking-wider font-semibold text-primary">Destaque de Transformação</span>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <span className="text-[9px] uppercase font-bold text-muted-foreground block mb-1">Antes</span>
-                      <div className="relative h-24 w-full rounded border border-border overflow-hidden">
-                        <img src={rich.beforeImg} alt="Antes do corte" className="w-full h-full object-cover filter grayscale" />
-                      </div>
-                    </div>
-                    <div>
-                      <span className="text-[9px] uppercase font-bold text-primary block mb-1">Resultado</span>
-                      <div className="relative h-24 w-full rounded border border-primary/30 overflow-hidden">
-                        <img src={rich.afterImg} alt="Depois do corte" className="w-full h-full object-cover" />
-                      </div>
-                    </div>
+                    <p className="text-[11px]">
+                      {barber.specialties && barber.specialties.length > 0
+                        ? barber.specialties.join(', ')
+                        : rich.specialties}
+                    </p>
                   </div>
                 </div>
 

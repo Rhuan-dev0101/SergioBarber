@@ -2,9 +2,10 @@
 
 import React, { useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { 
   Scissors, User, Shield, Clock, Calendar, Check, AlertCircle, 
-  CheckCircle2, Loader2, Save, Plus, X, Lock, Play, Pause, Trash2 
+  CheckCircle2, Loader2, Save, Plus, X, Lock, Play, Pause, Trash2, Camera 
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
@@ -14,14 +15,24 @@ import {
   addBlockedTimeAction, 
   addDayOffAction 
 } from './actions'
+import { updateBarberProfileAction } from '../perfil-barbeiro/actions'
+import { GradientButton } from '@/components/ui/gradient-button'
 
 export default function PainelFuncionarios() {
   const router = useRouter()
   const [barbers, setBarbers] = useState<any[]>([])
   const [selectedBarber, setSelectedBarber] = useState<any>(null)
-  const [activeTab, setActiveTab] = useState<'hours' | 'blocks' | 'days_off'>('hours')
+  const [activeTab, setActiveTab] = useState<'hours' | 'blocks' | 'days_off' | 'profile'>('hours')
   const [loading, setLoading] = useState(true)
   const [userRole, setUserRole] = useState<string | null>(null)
+
+  // Form inputs: Profile Data
+  const [editBio, setEditBio] = useState('')
+  const [editAboutQuote, setEditAboutQuote] = useState('')
+  const [editExperienceYears, setEditExperienceYears] = useState(0)
+  const [editSpecialtiesText, setEditSpecialtiesText] = useState('')
+  const [editPhotoUrl, setEditPhotoUrl] = useState<string | null>(null)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
 
   // Sub-data states for selected barber
   const [workingHours, setWorkingHours] = useState<any[]>([])
@@ -75,7 +86,7 @@ export default function PainelFuncionarios() {
       // Fetch barbers
       const { data: dbBarbers } = await supabase
         .from('profiles')
-        .select('id, full_name, email, role, barbers (is_active, bio)')
+        .select('id, full_name, email, role, barbers (is_active, bio, about_quote, experience_years, specialties, photo_url)')
         .eq('role', 'barber')
       
       if (dbBarbers) {
@@ -85,7 +96,11 @@ export default function PainelFuncionarios() {
           email: b.email,
           role: b.role,
           isActive: b.barbers?.is_active ?? true,
-          bio: b.barbers?.bio ?? ''
+          bio: b.barbers?.bio ?? '',
+          about_quote: b.barbers?.about_quote ?? '',
+          experience_years: b.barbers?.experience_years ?? 0,
+          specialties: b.barbers?.specialties ?? [],
+          photo_url: b.barbers?.photo_url ?? null
         }))
         setBarbers(formatted)
       }
@@ -111,6 +126,13 @@ export default function PainelFuncionarios() {
     setErrorMsg('')
     setSuccessMsg('')
     
+    // Set edit profile states
+    setEditBio(selectedBarber.bio || '')
+    setEditAboutQuote(selectedBarber.about_quote || '')
+    setEditExperienceYears(selectedBarber.experience_years || 0)
+    setEditSpecialtiesText(selectedBarber.specialties ? selectedBarber.specialties.join(', ') : '')
+    setEditPhotoUrl(selectedBarber.photo_url || null)
+
     try {
       // 1. Load working hours
       const { data: hours } = await supabase
@@ -294,6 +316,78 @@ export default function PainelFuncionarios() {
     }
   }
 
+  const handleEditPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!selectedBarber || !e.target.files || e.target.files.length === 0) return
+    const file = e.target.files[0]
+    
+    if (file.size > 2 * 1024 * 1024) {
+      setErrorMsg('A imagem deve ter no máximo 2MB.')
+      return
+    }
+
+    setUploadingAvatar(true)
+    setErrorMsg('')
+    setSuccessMsg('')
+    try {
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${selectedBarber.id}-${Date.now()}.${fileExt}`
+      const filePath = `avatars/${fileName}`
+
+      const { error } = await supabase.storage
+        .from('barber-photos')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true
+        })
+
+      if (error) {
+        throw new Error('Certifique-se de que o bucket "barber-photos" foi criado no Supabase console.')
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('barber-photos')
+        .getPublicUrl(filePath)
+
+      setEditPhotoUrl(publicUrl)
+      setSuccessMsg('Foto de perfil enviada. Salve o perfil para confirmar.')
+    } catch (err: any) {
+      console.error(err)
+      setErrorMsg(err.message || 'Erro ao fazer upload da imagem.')
+    } finally {
+      setUploadingAvatar(false)
+    }
+  }
+
+  const handleSaveProfileData = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedBarber) return
+    setErrorMsg('')
+    setSuccessMsg('')
+
+    const specialties = editSpecialtiesText
+      .split(',')
+      .map(s => s.trim())
+      .filter(s => s.length > 0)
+
+    startTransition(async () => {
+      const res = await updateBarberProfileAction(selectedBarber.id, {
+        bio: editBio,
+        about_quote: editAboutQuote,
+        experience_years: Number(editExperienceYears || 0),
+        specialties,
+        photo_url: editPhotoUrl
+      })
+
+      if (!res.success) {
+        setErrorMsg(res.message)
+      } else {
+        setSuccessMsg('Perfil atualizado com sucesso!')
+        // Reload list to get updated profiles list
+        loadData()
+      }
+    })
+  }
+
   const getDayName = (dayNum: number) => {
     const names = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado']
     return names[dayNum]
@@ -402,10 +496,10 @@ export default function PainelFuncionarios() {
                 )}
 
                 {/* Tabs */}
-                <div className="flex gap-2 border-b border-border pb-2 text-xs">
+                <div className="flex gap-2 border-b border-border pb-2 text-xs overflow-x-auto">
                   <button
                     onClick={() => setActiveTab('hours')}
-                    className={`px-3 py-1.5 font-bold rounded-md transition-all cursor-pointer ${
+                    className={`px-3 py-1.5 font-bold rounded-md transition-all shrink-0 cursor-pointer ${
                       activeTab === 'hours' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
                     }`}
                   >
@@ -413,7 +507,7 @@ export default function PainelFuncionarios() {
                   </button>
                   <button
                     onClick={() => setActiveTab('blocks')}
-                    className={`px-3 py-1.5 font-bold rounded-md transition-all cursor-pointer ${
+                    className={`px-3 py-1.5 font-bold rounded-md transition-all shrink-0 cursor-pointer ${
                       activeTab === 'blocks' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
                     }`}
                   >
@@ -421,11 +515,19 @@ export default function PainelFuncionarios() {
                   </button>
                   <button
                     onClick={() => setActiveTab('days_off')}
-                    className={`px-3 py-1.5 font-bold rounded-md transition-all cursor-pointer ${
+                    className={`px-3 py-1.5 font-bold rounded-md transition-all shrink-0 cursor-pointer ${
                       activeTab === 'days_off' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
                     }`}
                   >
                     Folgas / Férias
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('profile')}
+                    className={`px-3 py-1.5 font-bold rounded-md transition-all shrink-0 cursor-pointer ${
+                      activeTab === 'profile' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    Dados do Perfil
                   </button>
                 </div>
 
@@ -680,6 +782,110 @@ export default function PainelFuncionarios() {
                       )}
                     </div>
                   </div>
+                )}
+
+                {/* TAB 4: PROFILE DATA FORM */}
+                {activeTab === 'profile' && (
+                  <form onSubmit={handleSaveProfileData} className="space-y-4">
+                    <div className="space-y-1">
+                      <h4 className="text-xs uppercase font-bold text-foreground">Informações Profissionais</h4>
+                      <p className="text-[10px] text-muted-foreground">Estes dados aparecem na página inicial e no catálogo de barbeiros do site público</p>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row items-center gap-4 p-4 bg-secondary/10 border border-border/40 rounded-md">
+                      <div className="relative w-20 h-20 rounded-full border border-primary/40 p-0.5 overflow-hidden group shrink-0 bg-secondary/30">
+                        {editPhotoUrl ? (
+                          <Image 
+                            src={editPhotoUrl} 
+                            alt={selectedBarber.full_name} 
+                            width={80} 
+                            height={80} 
+                            className="w-full h-full object-cover rounded-full"
+                          />
+                        ) : (
+                          <div className="w-full h-full rounded-full bg-gradient-to-tr from-secondary to-muted flex items-center justify-center text-primary text-2xl font-serif font-bold">
+                            {selectedBarber.full_name.charAt(0)}
+                          </div>
+                        )}
+                        <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col items-center justify-center cursor-pointer text-white text-[8px] font-semibold">
+                          <Camera size={14} className="text-primary mb-0.5" />
+                          <span>Mudar</span>
+                          <input type="file" accept="image/*" onChange={handleEditPhotoUpload} disabled={uploadingAvatar} className="hidden" />
+                        </label>
+                        {uploadingAvatar && (
+                          <div className="absolute inset-0 bg-black/75 flex items-center justify-center">
+                            <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="space-y-1 text-center sm:text-left">
+                        <span className="text-[10px] text-muted-foreground uppercase font-semibold">Foto do Profissional</span>
+                        <p className="text-[9px] text-muted-foreground">Clique na foto para subir uma imagem quadrada (máx. 2MB)</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="space-y-1">
+                        <label htmlFor="editBio" className="block text-[10px] font-bold text-foreground uppercase tracking-wider">Apresentação Curta</label>
+                        <textarea
+                          id="editBio"
+                          rows={2}
+                          value={editBio}
+                          onChange={(e) => setEditBio(e.target.value)}
+                          className="w-full p-2.5 bg-secondary/30 border border-border/80 focus:border-primary rounded text-xs text-foreground focus:outline-none focus:ring-0"
+                          placeholder="Frase curta para o card fechado..."
+                          required
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label htmlFor="editAboutQuote" className="block text-[10px] font-bold text-foreground uppercase tracking-wider">Frase "Sobre o Mestre"</label>
+                        <textarea
+                          id="editAboutQuote"
+                          rows={3}
+                          value={editAboutQuote}
+                          onChange={(e) => setEditAboutQuote(e.target.value)}
+                          className="w-full p-2.5 bg-secondary/30 border border-border/80 focus:border-primary rounded text-xs text-foreground focus:outline-none focus:ring-0"
+                          placeholder="Trajetória de vida exibida no detalhe..."
+                          required
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <label htmlFor="editExp" className="block text-[10px] font-bold text-foreground uppercase tracking-wider">Anos de Experiência</label>
+                          <input
+                            type="number"
+                            id="editExp"
+                            value={editExperienceYears}
+                            onChange={(e) => setEditExperienceYears(Number(e.target.value))}
+                            className="w-full p-2.5 bg-secondary/30 border border-border/80 focus:border-primary rounded text-xs text-foreground focus:outline-none focus:ring-0"
+                            required
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <label htmlFor="editSpecs" className="block text-[10px] font-bold text-foreground uppercase tracking-wider">Especialidades (separadas por vírgula)</label>
+                          <input
+                            type="text"
+                            id="editSpecs"
+                            value={editSpecialtiesText}
+                            onChange={(e) => setEditSpecialtiesText(e.target.value)}
+                            className="w-full p-2.5 bg-secondary/30 border border-border/80 focus:border-primary rounded text-xs text-foreground focus:outline-none focus:ring-0"
+                            placeholder="Degradê, Barba, Visagismo"
+                            required
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 flex justify-end">
+                      <GradientButton type="submit" disabled={isPending || uploadingAvatar} className="h-9 text-xs px-4 gap-1.5">
+                        {isPending ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+                        Salvar Perfil
+                      </GradientButton>
+                    </div>
+                  </form>
                 )}
 
               </div>

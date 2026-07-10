@@ -46,7 +46,7 @@ export default async function Home() {
 
     const { data: dbBarbers } = await supabase
       .from('profiles')
-      .select('id, full_name, role, barbers(bio, avatar_url, is_active)')
+      .select('id, full_name, role, barbers(bio, avatar_url, is_active, about_quote, experience_years, specialties, photo_url)')
       .eq('role', 'barber')
 
     if (dbBarbers && dbBarbers.length > 0) {
@@ -56,7 +56,11 @@ export default async function Home() {
           id: b.id,
           full_name: b.full_name,
           bio: (b.barbers as any).bio || '',
-          avatar_url: (b.barbers as any).avatar_url || (b.full_name.includes('Sergio') ? '/barbers/sergio.jpg' : b.full_name.includes('Kauan') ? '/barbers/kauan.jpg' : '')
+          avatar_url: (b.barbers as any).avatar_url || (b.full_name.includes('Sergio') ? '/barbers/sergio.jpg' : b.full_name.includes('Kauan') ? '/barbers/kauan.jpg' : ''),
+          about_quote: (b.barbers as any).about_quote || null,
+          experience_years: (b.barbers as any).experience_years || null,
+          specialties: (b.barbers as any).specialties || null,
+          photo_url: (b.barbers as any).photo_url || null
         }))
       if (activeBarbers.length > 0) {
         barbers = activeBarbers

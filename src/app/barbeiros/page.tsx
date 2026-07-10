@@ -34,7 +34,7 @@ export default async function Barbeiros() {
     const supabase = await createServerSupabaseClient()
     const { data: dbBarbers } = await supabase
       .from('profiles')
-      .select('id, full_name, role, barbers(bio, avatar_url, is_active)')
+      .select('id, full_name, role, barbers(bio, avatar_url, is_active, about_quote, experience_years, specialties, photo_url)')
       .eq('role', 'barber')
 
     if (dbBarbers && dbBarbers.length > 0) {
@@ -45,8 +45,10 @@ export default async function Barbeiros() {
           name: b.full_name,
           role: b.role === 'admin' ? 'Fundador & Barbeiro Master' : 'Barbeiro Especialista',
           bio: (b.barbers as any).bio || 'Barbeiro professional da equipe Osanchez.',
-          skills: b.full_name.includes('Sergio') ? ['Cortes Clássicos', 'Visagismo Facial', 'Barba Terapia'] : ['Fade / Degradê', 'Química e Selante', 'Desenhos Freestyle'],
-          avatar_url: (b.barbers as any).avatar_url || (b.full_name.includes('Sergio') ? '/barbers/sergio.jpg' : b.full_name.includes('Kauan') ? '/barbers/kauan.jpg' : '')
+          skills: (b.barbers as any).specialties && (b.barbers as any).specialties.length > 0
+            ? (b.barbers as any).specialties
+            : (b.full_name.includes('Sergio') ? ['Cortes Clássicos', 'Visagismo Facial', 'Barba Terapia'] : ['Fade / Degradê', 'Química e Selante', 'Desenhos Freestyle']),
+          avatar_url: (b.barbers as any).photo_url || (b.barbers as any).avatar_url || (b.full_name.includes('Sergio') ? '/barbers/sergio.jpg' : b.full_name.includes('Kauan') ? '/barbers/kauan.jpg' : '')
         }))
       if (activeBarbers.length > 0) {
         barbers = activeBarbers

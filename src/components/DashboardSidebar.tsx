@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { 
   Scissors, LayoutDashboard, CalendarRange, Users, UserCog, 
-  Sparkles, DollarSign, Settings, LogOut, Menu, X 
+  Sparkles, DollarSign, Settings, LogOut, Menu, X, User 
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 
@@ -41,11 +41,11 @@ export function DashboardSidebar() {
     router.push('/')
   }
 
-  // Define links
   const links = [
     { label: 'Visão Geral', href: '/painel', icon: LayoutDashboard, roles: ['admin', 'barber'] },
     { label: 'Agendamentos', href: '/painel/agendamentos', icon: CalendarRange, roles: ['admin', 'barber'] },
     { label: 'Clientes', href: '/painel/clientes', icon: Users, roles: ['admin', 'barber'] },
+    { label: 'Editar Perfil', href: '/painel/perfil-barbeiro', icon: User, roles: ['admin', 'barber'] },
     { label: 'Funcionários', href: '/painel/funcionarios', icon: UserCog, roles: ['admin'] },
     { label: 'Serviços', href: '/painel/servicos', icon: Sparkles, roles: ['admin'] },
     { label: 'Financeiro', href: '/painel/financeiro', icon: DollarSign, roles: ['admin'] },
