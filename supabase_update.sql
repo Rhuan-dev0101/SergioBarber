@@ -75,3 +75,42 @@ FOR SELECT
 TO public
 USING (true);
 
+-- =======================================================
+-- 7. BARBER_SERVICES RLS SETUP
+-- =======================================================
+ALTER TABLE public.barber_services ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow public read access to barber services" ON public.barber_services;
+DROP POLICY IF EXISTS "Allow barbers to manage their own services" ON public.barber_services;
+DROP POLICY IF EXISTS "Allow admins full access to barber services" ON public.barber_services;
+
+CREATE POLICY "Allow public read access to barber services"
+ON public.barber_services
+FOR SELECT
+TO public
+USING (true);
+
+CREATE POLICY "Allow barbers to manage their own services"
+ON public.barber_services
+FOR ALL
+TO authenticated
+USING (barber_id = auth.uid())
+WITH CHECK (barber_id = auth.uid());
+
+CREATE POLICY "Allow admins full access to barber services"
+ON public.barber_services
+FOR ALL
+TO authenticated
+USING (
+  EXISTS (
+    SELECT 1 FROM public.profiles 
+    WHERE profiles.id = auth.uid() AND profiles.role = 'admin'
+  )
+)
+WITH CHECK (
+  EXISTS (
+    SELECT 1 FROM public.profiles 
+    WHERE profiles.id = auth.uid() AND profiles.role = 'admin'
+  )
+);
+
+

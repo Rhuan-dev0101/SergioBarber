@@ -31,14 +31,38 @@ export async function createAppointmentAction(
     }
 
     // 2. Fetch service details from DB (secure, avoids client-side price/duration tampering)
-    const { data: service, error: serviceError } = await supabase
-      .from('services')
-      .select('name, duration, price, is_active')
-      .eq('id', serviceId)
-      .single()
+    let service: { name: string; duration: number; price: number; is_active: boolean } | null = null
 
-    if (serviceError || !service || !service.is_active) {
-      return { success: false, message: 'Serviço selecionado inválido ou inativo.' }
+    if (barberId === 'sergio-uuid' || barberId === 'enzo-uuid') {
+      const mockServices = [
+        { id: '1', name: 'Corte', duration: 60, price: 50.00, is_active: true },
+        { id: '2', name: 'Cabelo + Barba', duration: 90, price: 85.00, is_active: true },
+        { id: '3', name: 'Barba', duration: 30, price: 45.00, is_active: true }
+      ]
+      const found = mockServices.find(s => s.id === serviceId)
+      if (found) {
+        service = { name: found.name, duration: found.duration, price: found.price, is_active: found.is_active }
+      }
+    } else {
+      const { data: barberService, error: serviceError } = await supabase
+        .from('barber_services')
+        .select('price, duration, is_active, services(name)')
+        .eq('barber_id', barberId)
+        .eq('service_id', serviceId)
+        .single()
+
+      if (!serviceError && barberService && barberService.is_active) {
+        service = {
+          name: (barberService.services as any)?.name || 'Serviço',
+          duration: Number(barberService.duration),
+          price: Number(barberService.price),
+          is_active: barberService.is_active
+        }
+      }
+    }
+
+    if (!service || !service.is_active) {
+      return { success: false, message: 'Serviço selecionado inválido ou inativo para este profissional.' }
     }
 
     // 3. Verify availability (Double-booking prevention rule)

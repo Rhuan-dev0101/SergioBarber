@@ -58,7 +58,7 @@ function AgendarWizardInner() {
 
   const supabase = createClient()
 
-  // Load barbers and services
+  // Load general config and barbers
   useEffect(() => {
     async function loadData() {
       try {
@@ -72,23 +72,11 @@ function AgendarWizardInner() {
           setSettings(config.value)
         }
 
-        // Fetch active services
-        const { data: dbServices } = await supabase
-          .from('services')
-          .select('id, name, duration, price, description')
-          .eq('is_active', true)
-        
         // Fetch active barbers
         const { data: dbBarbers } = await supabase
           .from('barbers')
           .select('id, is_active, profiles(full_name, role)')
           .eq('is_active', true)
-
-        if (dbServices && dbServices.length > 0) {
-          setServices(dbServices)
-        } else {
-          setServices(STATIC_SERVICES)
-        }
 
         if (dbBarbers && dbBarbers.length > 0) {
           const formatted = dbBarbers
@@ -119,7 +107,6 @@ function AgendarWizardInner() {
         }
       } catch (err) {
         console.error('Error loading database info, falling back:', err)
-        setServices(STATIC_SERVICES)
         setBarbers(STATIC_BARBERS)
         if (preSelectedBarberId) {
           const matched = STATIC_BARBERS.find(b => b.id === preSelectedBarberId)
@@ -134,6 +121,52 @@ function AgendarWizardInner() {
     }
     loadData()
   }, [supabase, preSelectedBarberId])
+
+  // Load services dynamically based on selected barber
+  useEffect(() => {
+    if (!selectedBarber) {
+      setServices([])
+      return
+    }
+
+    async function loadBarberServices() {
+      setLoadingDb(true)
+      try {
+        if (selectedBarber.id === 'sergio-uuid' || selectedBarber.id === 'enzo-uuid') {
+          setServices(STATIC_SERVICES)
+          return
+        }
+
+        const { data: dbBarberServices } = await supabase
+          .from('barber_services')
+          .select('price, duration, is_active, service_id, services(id, name, description)')
+          .eq('barber_id', selectedBarber.id)
+          .eq('is_active', true)
+
+        if (dbBarberServices && dbBarberServices.length > 0) {
+          const formattedServices = dbBarberServices
+            .filter((bs: any) => bs.services)
+            .map((bs: any) => ({
+              id: bs.service_id,
+              name: bs.services.name,
+              description: bs.services.description || '',
+              duration: bs.duration,
+              price: Number(bs.price)
+            }))
+          setServices(formattedServices)
+        } else {
+          setServices([])
+        }
+      } catch (err) {
+        console.error('Error loading barber services:', err)
+        setServices([])
+      } finally {
+        setLoadingDb(false)
+      }
+    }
+
+    loadBarberServices()
+  }, [selectedBarber, supabase])
 
   // Recalculate slots when barber, service or date changes
   useEffect(() => {
@@ -391,29 +424,35 @@ function AgendarWizardInner() {
                 <p className="text-xs text-muted-foreground">Escolha qual serviço gostaria de fazer hoje</p>
 
                 <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
-                  {services.map((service) => (
-                    <button
-                      key={service.id}
-                      onClick={() => setSelectedService(service)}
-                      className={`w-full p-4 rounded-lg border text-left flex items-start justify-between transition-all cursor-pointer ${
-                        selectedService?.id === service.id
-                          ? 'border-primary bg-primary/5'
-                          : 'border-border hover:border-muted-foreground/35 bg-secondary/35'
-                      }`}
-                    >
-                      <div className="space-y-1 pr-4">
-                        <h4 className="font-serif font-semibold text-sm text-foreground">{service.name}</h4>
-                        <p className="text-[11px] text-muted-foreground line-clamp-1">{service.description}</p>
-                        <span className="inline-block text-[10px] text-muted-foreground bg-secondary px-2 py-0.5 rounded font-mono uppercase mt-1">
-                          {service.duration} min
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-3 shrink-0">
-                        <span className="text-sm font-serif font-bold text-primary">R$ {Number(service.price).toFixed(2)}</span>
-                        {selectedService?.id === service.id && <Check className="w-4 h-4 text-primary" />}
-                      </div>
-                    </button>
-                  ))}
+                  {services.length > 0 ? (
+                    services.map((service) => (
+                      <button
+                        key={service.id}
+                        onClick={() => setSelectedService(service)}
+                        className={`w-full p-4 rounded-lg border text-left flex items-start justify-between transition-all cursor-pointer ${
+                          selectedService?.id === service.id
+                            ? 'border-primary bg-primary/5'
+                            : 'border-border hover:border-muted-foreground/35 bg-secondary/35'
+                        }`}
+                      >
+                        <div className="space-y-1 pr-4">
+                          <h4 className="font-serif font-semibold text-sm text-foreground">{service.name}</h4>
+                          <p className="text-[11px] text-muted-foreground line-clamp-1">{service.description}</p>
+                          <span className="inline-block text-[10px] text-muted-foreground bg-secondary px-2 py-0.5 rounded font-mono uppercase mt-1">
+                            {service.duration} min
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0">
+                          <span className="text-sm font-serif font-bold text-primary">R$ {Number(service.price).toFixed(2)}</span>
+                          {selectedService?.id === service.id && <Check className="w-4 h-4 text-primary" />}
+                        </div>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="p-6 bg-secondary/20 rounded border border-border text-center text-xs text-muted-foreground">
+                      Este profissional ainda não possui serviços cadastrados. Por favor, volte e escolha outro profissional.
+                    </div>
+                  )}
                 </div>
               </div>
             )}

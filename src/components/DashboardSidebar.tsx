@@ -45,6 +45,7 @@ export function DashboardSidebar() {
     { label: 'Visão Geral', href: '/painel', icon: LayoutDashboard, roles: ['admin', 'barber'] },
     { label: 'Agendamentos', href: '/painel/agendamentos', icon: CalendarRange, roles: ['admin', 'barber'] },
     { label: 'Clientes', href: '/painel/clientes', icon: Users, roles: ['admin', 'barber'] },
+    { label: 'Meus Serviços', href: '/painel/meus-servicos', icon: Sparkles, roles: ['admin', 'barber'] },
     { label: 'Editar Perfil', href: '/painel/perfil-barbeiro', icon: User, roles: ['admin', 'barber'] },
     { label: 'Funcionários', href: '/painel/funcionarios', icon: UserCog, roles: ['admin'] },
     { label: 'Serviços', href: '/painel/servicos', icon: Sparkles, roles: ['admin'] },

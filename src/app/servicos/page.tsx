@@ -31,33 +31,91 @@ const SEED_SERVICES = [
 
 export default async function Servicos() {
   const settings = await getBusinessSettings()
-  let services = SEED_SERVICES
+  let services = SEED_SERVICES.map(s => ({
+    id: s.name,
+    name: s.name,
+    description: s.description,
+    category: s.category,
+    minPrice: s.price,
+    maxPrice: s.price,
+    minDuration: s.duration,
+    maxDuration: s.duration,
+    barberOfferings: [
+      { barberName: 'Sergio Sanchez', price: s.price, duration: s.duration }
+    ]
+  })) as any[]
 
   try {
     const supabase = await createServerSupabaseClient()
-    const { data: dbServices } = await supabase
-      .from('services')
-      .select('name, duration, price, description')
+    const { data: dbBarberServices } = await supabase
+      .from('barber_services')
+      .select('price, duration, is_active, service_id, services(id, name, description), barbers(id, profiles(full_name))')
       .eq('is_active', true)
     
-    if (dbServices && dbServices.length > 0) {
-      services = dbServices.map(s => {
-        // Categorize dynamic services loosely
-        let category = 'Geral'
-        const lower = s.name.toLowerCase()
-        if (lower.includes('corte') || lower.includes('cabelo') || lower.includes('infantil')) category = 'Cabelo'
-        if (lower.includes('barba')) category = 'Barba'
-        if (lower.includes('plano')) category = 'Planos'
-        if (lower.includes('luzes') || lower.includes('progressiva') || lower.includes('platinado')) category = 'Química'
-        if (lower.includes('hidrata') || lower.includes('detox') || lower.includes('camuflagem')) category = 'Tratamentos'
-        if (lower.includes('sobrancelha')) category = 'Estética'
+    if (dbBarberServices && dbBarberServices.length > 0) {
+      const serviceGroups: Record<string, {
+        id: string
+        name: string
+        description: string
+        category: string
+        barberOfferings: Array<{
+          barberName: string
+          price: number
+          duration: number
+        }>
+      }> = {}
+
+      dbBarberServices.forEach((bs: any) => {
+        const s = bs.services
+        if (!s) return
+        const barberName = bs.barbers?.profiles?.full_name || 'Profissional'
+        const priceNum = Number(bs.price)
+        const durationNum = Number(bs.duration)
+
+        if (!serviceGroups[s.name]) {
+          let category = 'Geral'
+          const lower = s.name.toLowerCase()
+          if (lower.includes('corte') || lower.includes('cabelo') || lower.includes('infantil')) category = 'Cabelo'
+          if (lower.includes('barba')) category = 'Barba'
+          if (lower.includes('plano')) category = 'Planos'
+          if (lower.includes('luzes') || lower.includes('progressiva') || lower.includes('platinado')) category = 'Química'
+          if (lower.includes('hidrata') || lower.includes('detox') || lower.includes('camuflagem')) category = 'Tratamentos'
+          if (lower.includes('sobrancelha')) category = 'Estética'
+
+          serviceGroups[s.name] = {
+            id: bs.service_id,
+            name: s.name,
+            description: s.description || '',
+            category,
+            barberOfferings: []
+          }
+        }
+
+        serviceGroups[s.name].barberOfferings.push({
+          barberName,
+          price: priceNum,
+          duration: durationNum
+        })
+      })
+
+      services = Object.values(serviceGroups).map((g) => {
+        const prices = g.barberOfferings.map(o => o.price)
+        const durations = g.barberOfferings.map(o => o.duration)
+        const minPrice = Math.min(...prices)
+        const maxPrice = Math.max(...prices)
+        const minDuration = Math.min(...durations)
+        const maxDuration = Math.max(...durations)
 
         return {
-          name: s.name,
-          duration: s.duration,
-          price: Number(s.price),
-          category,
-          description: s.description || ''
+          id: g.id,
+          name: g.name,
+          description: g.description,
+          category: g.category,
+          minPrice,
+          maxPrice,
+          minDuration,
+          maxDuration,
+          barberOfferings: g.barberOfferings
         }
       })
     }
@@ -71,7 +129,7 @@ export default async function Servicos() {
     const items = services.filter(s => s.category === cat)
     if (items.length > 0) acc[cat] = items
     return acc
-  }, {} as Record<string, typeof services>)
+  }, {} as Record<string, any[]>)
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -97,40 +155,71 @@ export default async function Servicos() {
                 </h2>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {items.map((service, index) => (
-                    <GlowCard 
-                      key={index}
-                      glowColor="gold"
-                      customSize={true}
-                      className="p-6 gap-4 justify-between"
-                    >
-                      <div className="space-y-2">
-                        <div className="flex justify-between items-start gap-4">
-                          <h3 className="font-serif font-bold text-base sm:text-lg text-foreground">{service.name}</h3>
-                          <span className="text-primary font-bold font-serif whitespace-nowrap">
-                            R$ {service.price.toFixed(2)}
-                          </span>
-                        </div>
-                        <p className="text-xs text-muted-foreground leading-relaxed">
-                          {service.description}
-                        </p>
-                      </div>
+                  {items.map((service, index) => {
+                    const priceText = service.barberOfferings 
+                      ? (service.minPrice === service.maxPrice 
+                        ? `R$ ${service.minPrice.toFixed(2)}` 
+                        : `R$ ${service.minPrice.toFixed(2)} - R$ ${service.maxPrice.toFixed(2)}`)
+                      : `R$ ${service.price.toFixed(2)}`
 
-                      <div className="flex justify-between items-center text-[10px] text-muted-foreground border-t border-border/40 pt-3">
-                        <span className="flex items-center gap-1 uppercase font-semibold">
-                          <Clock className="w-3.5 h-3.5 text-primary" /> {service.duration} min
-                        </span>
-                        <GradientButton asChild>
-                          <Link 
-                            href="/entrar"
-                            className="px-3.5 py-1.5 text-xs font-semibold flex items-center gap-1"
-                          >
-                            Agendar <ChevronRight className="w-3 h-3" />
-                          </Link>
-                        </GradientButton>
-                      </div>
-                    </GlowCard>
-                  ))}
+                    const durationText = service.barberOfferings
+                      ? (service.minDuration === service.maxDuration
+                        ? `${service.minDuration} min`
+                        : `${service.minDuration} - ${service.maxDuration} min`)
+                      : `${service.duration} min`
+
+                    return (
+                      <GlowCard 
+                        key={index}
+                        glowColor="gold"
+                        customSize={true}
+                        className="p-6 gap-4 justify-between flex flex-col"
+                      >
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-start gap-4">
+                            <h3 className="font-serif font-bold text-base sm:text-lg text-foreground">{service.name}</h3>
+                            <span className="text-primary font-bold font-serif whitespace-nowrap">
+                              {priceText}
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted-foreground leading-relaxed">
+                            {service.description}
+                          </p>
+                        </div>
+
+                        {/* Barbers offering badges */}
+                        {service.barberOfferings && service.barberOfferings.length > 0 && (
+                          <div className="space-y-1.5 pt-2 border-t border-border/20">
+                            <span className="text-[9px] uppercase font-bold text-muted-foreground tracking-wider block">Profissionais:</span>
+                            <div className="flex flex-wrap gap-1.5">
+                              {service.barberOfferings.map((offering: any, idx: number) => (
+                                <span 
+                                  key={idx}
+                                  className="inline-flex items-center bg-secondary/60 border border-border px-2 py-0.5 rounded text-[10px] text-foreground font-medium"
+                                >
+                                  {offering.barberName} <span className="text-primary font-bold font-mono ml-1">R$ {offering.price.toFixed(2)}</span>
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="flex justify-between items-center text-[10px] text-muted-foreground border-t border-border/40 pt-3">
+                          <span className="flex items-center gap-1 uppercase font-semibold">
+                            <Clock className="w-3.5 h-3.5 text-primary" /> {durationText}
+                          </span>
+                          <GradientButton asChild>
+                            <Link 
+                              href="/entrar"
+                              className="px-3.5 py-1.5 text-xs font-semibold flex items-center gap-1"
+                            >
+                              Agendar <ChevronRight className="w-3 h-3" />
+                            </Link>
+                          </GradientButton>
+                        </div>
+                      </GlowCard>
+                    )
+                  })}
                 </div>
               </div>
             ))}
