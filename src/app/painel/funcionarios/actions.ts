@@ -195,3 +195,107 @@ export async function addDayOffAction(
     return { success: false, message: 'Erro interno no servidor.' }
   }
 }
+
+/**
+ * Create a new barber auth account and populate their tables (Admin only)
+ */
+export async function createBarberAction(
+  fullName: string,
+  email: string,
+  password: string
+): Promise<StaffActionResponse> {
+  const isAdmin = await verifyAdminSession()
+  if (!isAdmin) return { success: false, message: 'Acesso restrito a administradores.' }
+
+  if (!fullName || !email || !password) {
+    return { success: false, message: 'Nome, e-mail e senha são obrigatórios.' }
+  }
+
+  if (password.length < 6) {
+    return { success: false, message: 'A senha deve conter no mínimo 6 caracteres.' }
+  }
+
+  try {
+    const { createClient: createBaseClient } = await import('@supabase/supabase-js')
+    const supabaseAdmin = createBaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    )
+
+    // a. Create auth user (auto-confirmed)
+    const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true
+    })
+
+    if (createError || !newUser?.user) {
+      console.error('Error creating auth user:', createError)
+      return { success: false, message: `Erro ao cadastrar credenciais: ${createError?.message || 'E-mail inválido ou já existe.'}` }
+    }
+
+    const barberUserId = newUser.user.id
+
+    // b. update profiles.role to 'barber' and profile.full_name
+    const { error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .update({
+        role: 'barber',
+        full_name: fullName
+      })
+      .eq('id', barberUserId)
+
+    if (profileError) {
+      console.error('Error updating profile role:', profileError)
+      // Attempt cleanup
+      await supabaseAdmin.auth.admin.deleteUser(barberUserId)
+      return { success: false, message: 'Erro ao configurar perfil de barbeiro.' }
+    }
+
+    // d. Insert a row into public.barbers
+    const { error: barberError } = await supabaseAdmin
+      .from('barbers')
+      .insert({
+        id: barberUserId,
+        is_active: true,
+        bio: null
+      })
+
+    if (barberError) {
+      console.error('Error creating barber record:', barberError)
+      // Cleanup
+      await supabaseAdmin.auth.admin.deleteUser(barberUserId)
+      return { success: false, message: 'Erro ao registrar profissional no banco de dados.' }
+    }
+
+    // e. Insert default working hours into barber_working_hours
+    const defaultWorkingHours = [
+      { barber_id: barberUserId, day_of_week: 0, is_closed: true, slots: [] },
+      { barber_id: barberUserId, day_of_week: 1, is_closed: true, slots: [] },
+      { barber_id: barberUserId, day_of_week: 2, is_closed: false, slots: [{ start: '10:00', end: '13:00' }, { start: '14:00', end: '20:00' }] },
+      { barber_id: barberUserId, day_of_week: 3, is_closed: false, slots: [{ start: '09:00', end: '13:00' }, { start: '14:00', end: '22:00' }] },
+      { barber_id: barberUserId, day_of_week: 4, is_closed: false, slots: [{ start: '09:00', end: '13:00' }, { start: '14:00', end: '22:00' }] },
+      { barber_id: barberUserId, day_of_week: 5, is_closed: false, slots: [{ start: '09:00', end: '13:00' }, { start: '14:00', end: '22:00' }] },
+      { barber_id: barberUserId, day_of_week: 6, is_closed: false, slots: [{ start: '09:00', end: '13:00' }, { start: '14:00', end: '17:00' }] }
+    ]
+
+    const { error: hoursError } = await supabaseAdmin
+      .from('barber_working_hours')
+      .insert(defaultWorkingHours)
+
+    if (hoursError) {
+      console.error('Error inserting default working hours:', hoursError)
+    }
+
+    return { success: true, message: 'Funcionário cadastrado com sucesso!' }
+  } catch (err) {
+    console.error('Error inside createBarberAction:', err)
+    return { success: false, message: 'Erro interno no servidor.' }
+  }
+}

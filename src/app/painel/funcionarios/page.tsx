@@ -13,7 +13,8 @@ import {
   updateBarberStatusAction, 
   updateBarberWorkingHoursAction, 
   addBlockedTimeAction, 
-  addDayOffAction 
+  addDayOffAction,
+  createBarberAction
 } from './actions'
 import { updateBarberProfileAction } from '../perfil-barbeiro/actions'
 import { GradientButton } from '@/components/ui/gradient-button'
@@ -60,6 +61,13 @@ export default function PainelFuncionarios() {
   const [successMsg, setSuccessMsg] = useState('')
   const [isPending, startTransition] = useTransition()
 
+  // Add Barber Modal Form states
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [addName, setAddName] = useState('')
+  const [addEmail, setAddEmail] = useState('')
+  const [addPassword, setAddPassword] = useState('')
+  const [addConfirmPassword, setAddConfirmPassword] = useState('')
+
   const supabase = createClient()
 
   const loadData = async () => {
@@ -85,23 +93,24 @@ export default function PainelFuncionarios() {
 
       // Fetch barbers
       const { data: dbBarbers } = await supabase
-        .from('profiles')
-        .select('id, full_name, email, role, barbers (is_active, bio, about_quote, experience_years, specialties, photo_url)')
-        .eq('role', 'barber')
+        .from('barbers')
+        .select('id, is_active, bio, about_quote, experience_years, specialties, photo_url, profiles(full_name, email, role)')
       
       if (dbBarbers) {
-        const formatted = dbBarbers.map((b: any) => ({
-          id: b.id,
-          full_name: b.full_name,
-          email: b.email,
-          role: b.role,
-          isActive: b.barbers?.is_active ?? true,
-          bio: b.barbers?.bio ?? '',
-          about_quote: b.barbers?.about_quote ?? '',
-          experience_years: b.barbers?.experience_years ?? 0,
-          specialties: b.barbers?.specialties ?? [],
-          photo_url: b.barbers?.photo_url ?? null
-        }))
+        const formatted = dbBarbers
+          .filter((b: any) => b.profiles)
+          .map((b: any) => ({
+            id: b.id,
+            full_name: b.profiles.full_name,
+            email: b.profiles.email,
+            role: b.profiles.role,
+            isActive: b.is_active ?? true,
+            bio: b.bio ?? '',
+            about_quote: b.about_quote ?? '',
+            experience_years: b.experience_years ?? 0,
+            specialties: b.specialties ?? [],
+            photo_url: b.photo_url ?? null
+          }))
         setBarbers(formatted)
       }
     } catch (err) {
@@ -190,6 +199,46 @@ export default function PainelFuncionarios() {
       setAfternoonStart('14:00')
       setAfternoonEnd('22:00')
     }
+  }
+
+  const handleAddBarberSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    setErrorMsg('')
+    setSuccessMsg('')
+
+    if (!addName || !addEmail || !addPassword || !addConfirmPassword) {
+      setErrorMsg('Todos os campos do formulário são obrigatórios.')
+      return
+    }
+
+    if (addPassword !== addConfirmPassword) {
+      setErrorMsg('As senhas digitadas não coincidem.')
+      return
+    }
+
+    if (addPassword.length < 6) {
+      setErrorMsg('A senha deve conter pelo menos 6 caracteres.')
+      return
+    }
+
+    startTransition(async () => {
+      const res = await createBarberAction(addName, addEmail, addPassword)
+      if (!res.success) {
+        setErrorMsg(res.message)
+      } else {
+        setSuccessMsg(res.message)
+        setShowAddModal(false)
+        
+        // Reset states
+        setAddName('')
+        setAddEmail('')
+        setAddPassword('')
+        setAddConfirmPassword('')
+
+        // Refresh list
+        loadData()
+      }
+    })
   }
 
   const handleToggleStatus = (barber: any) => {
@@ -413,9 +462,24 @@ export default function PainelFuncionarios() {
 
       <main className="flex-grow p-6 sm:p-8 space-y-6 overflow-y-auto">
         {/* Title */}
-        <div className="border-b border-border/40 pb-4">
-          <h1 className="text-2xl font-serif font-bold text-foreground">Gerenciar Funcionários</h1>
-          <p className="text-xs text-muted-foreground">Configure a equipe de barbeiros, horários de expediente, pausas de almoço e dias de folga</p>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border/40 pb-4">
+          <div className="space-y-1">
+            <h1 className="text-2xl font-serif font-bold text-foreground">Gerenciar Funcionários</h1>
+            <p className="text-xs text-muted-foreground">Configure a equipe de barbeiros, horários de expediente, pausas de almoço e dias de folga</p>
+          </div>
+          {userRole === 'admin' && (
+            <button
+              onClick={() => {
+                setErrorMsg('')
+                setSuccessMsg('')
+                setShowAddModal(true)
+              }}
+              className="w-full sm:w-auto px-4 py-2.5 bg-primary hover:bg-primary-hover text-primary-foreground font-bold rounded text-xs flex items-center justify-center gap-1.5 shadow transition-all cursor-pointer border border-primary/20"
+            >
+              <Plus className="w-4 h-4 text-primary-foreground" />
+              Cadastrar Funcionário
+            </button>
+          )}
         </div>
 
         {/* Master Detail Grid */}
@@ -560,22 +624,47 @@ export default function PainelFuncionarios() {
                         ))}
                       </div>
 
-                      <div className="p-4 bg-secondary/20 border border-border/60 rounded-md space-y-4">
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs font-semibold text-foreground uppercase">{getDayName(selectedDayOfWeek)}</span>
-                          
-                          <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
-                            <input
-                              type="checkbox"
-                              checked={isClosed}
-                              onChange={(e) => setIsClosed(e.target.checked)}
-                              className="rounded accent-primary w-4 h-4 cursor-pointer"
-                            />
-                            <span>Fechar estabelecimento neste dia</span>
-                          </label>
+                      {isClosed ? (
+                        <div className="p-6 bg-rose-500/5 border border-rose-500/10 rounded-md flex flex-col items-center justify-center py-8 space-y-4 text-center">
+                          <div className="space-y-1">
+                            <span className="text-xs font-semibold text-rose-500 uppercase block">{getDayName(selectedDayOfWeek)}</span>
+                            <span className="text-xs text-muted-foreground block">Este dia está marcado como FECHADO (sem expediente).</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsClosed(false)
+                              if (!morningStart || morningStart === '00:00') setMorningStart('09:00')
+                              if (!morningEnd || morningEnd === '00:00') setMorningEnd('13:00')
+                              if (!afternoonStart || afternoonStart === '00:00') setAfternoonStart('14:00')
+                              if (!afternoonEnd || afternoonEnd === '00:00') setAfternoonEnd('22:00')
+                            }}
+                            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded text-xs transition-all flex items-center gap-1.5 shadow cursor-pointer"
+                          >
+                            <Play className="w-3.5 h-3.5" />
+                            Abrir este dia
+                          </button>
                         </div>
+                      ) : (
+                        <div className="p-4 bg-secondary/20 border border-border/60 rounded-md space-y-4">
+                          <div className="flex justify-between items-center border-b border-border/40 pb-3">
+                            <div className="space-y-0.5">
+                              <span className="text-xs font-semibold text-foreground uppercase block">{getDayName(selectedDayOfWeek)}</span>
+                              <span className="text-[10px] text-emerald-500 font-bold uppercase tracking-wider block">Expediente Aberto</span>
+                            </div>
+                            
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsClosed(true)
+                              }}
+                              className="px-3 py-1.5 bg-destructive/10 hover:bg-destructive/20 text-destructive font-bold border border-destructive/20 rounded text-[10px] uppercase transition-all cursor-pointer flex items-center gap-1"
+                            >
+                              <Pause className="w-3.5 h-3.5" />
+                              Fechar este dia
+                            </button>
+                          </div>
 
-                        {!isClosed && (
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             {/* Morning Shift */}
                             <div className="space-y-2 border border-border/40 p-3 rounded">
@@ -607,8 +696,8 @@ export default function PainelFuncionarios() {
                               </div>
                             </div>
                           </div>
-                        )}
-                      </div>
+                        </div>
+                      )}
 
                       <button
                         type="submit"
@@ -898,6 +987,107 @@ export default function PainelFuncionarios() {
           </div>
 
         </div>
+
+        {/* ADD BARBER MODAL */}
+        {showAddModal && (
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="glass max-w-md w-full rounded-lg border border-border shadow-2xl p-6 relative flex flex-col space-y-6">
+              
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="absolute top-4 right-4 text-muted-foreground hover:text-foreground cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="space-y-1">
+                <h3 className="text-lg font-serif font-bold text-foreground">Cadastrar Novo Profissional</h3>
+                <p className="text-xs text-muted-foreground">Insira os dados para criar a credencial de login e perfil do novo barbeiro</p>
+              </div>
+
+              <form onSubmit={handleAddBarberSubmit} className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Nome Completo</label>
+                  <div className="relative flex items-center">
+                    <User className="w-3.5 h-3.5 text-muted-foreground absolute left-3" />
+                    <input
+                      type="text"
+                      value={addName}
+                      onChange={(e) => setAddName(e.target.value)}
+                      placeholder="Ex: João Silva"
+                      className="w-full bg-secondary border border-border text-foreground pl-8 pr-3 py-2 rounded text-xs focus:ring-1 focus:ring-primary focus:outline-none"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">E-mail de Login</label>
+                  <div className="relative flex items-center">
+                    <User className="w-3.5 h-3.5 text-muted-foreground absolute left-3" />
+                    <input
+                      type="email"
+                      value={addEmail}
+                      onChange={(e) => setAddEmail(e.target.value)}
+                      placeholder="Ex: joao@barbearia.com"
+                      className="w-full bg-secondary border border-border text-foreground pl-8 pr-3 py-2 rounded text-xs focus:ring-1 focus:ring-primary focus:outline-none"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Senha</label>
+                    <div className="relative flex items-center">
+                      <Lock className="w-3.5 h-3.5 text-muted-foreground absolute left-3" />
+                      <input
+                        type="password"
+                        value={addPassword}
+                        onChange={(e) => setAddPassword(e.target.value)}
+                        placeholder="Mínimo 6 caracteres"
+                        className="w-full bg-secondary border border-border text-foreground pl-8 pr-3 py-2 rounded text-xs focus:ring-1 focus:ring-primary focus:outline-none font-mono"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Confirmar Senha</label>
+                    <div className="relative flex items-center">
+                      <Lock className="w-3.5 h-3.5 text-muted-foreground absolute left-3" />
+                      <input
+                        type="password"
+                        value={addConfirmPassword}
+                        onChange={(e) => setAddConfirmPassword(e.target.value)}
+                        placeholder="Repita a senha"
+                        className="w-full bg-secondary border border-border text-foreground pl-8 pr-3 py-2 rounded text-xs focus:ring-1 focus:ring-primary focus:outline-none font-mono"
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 justify-end pt-4 border-t border-border/40">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddModal(false)}
+                    className="px-4 py-2 bg-secondary hover:bg-muted text-foreground border border-border font-bold rounded text-xs transition-all cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isPending}
+                    className="px-4 py-2 bg-primary hover:bg-primary-hover text-primary-foreground font-bold rounded text-xs transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                    Confirmar Cadastro
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
 
       </main>
     </div>
