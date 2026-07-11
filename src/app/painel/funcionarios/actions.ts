@@ -299,3 +299,44 @@ export async function createBarberAction(
     return { success: false, message: 'Erro interno no servidor.' }
   }
 }
+
+/**
+ * Server Action to delete a barber profile and auth account (Admin only)
+ */
+export async function deleteBarberAction(barberId: string): Promise<StaffActionResponse> {
+  if (!barberId) {
+    return { success: false, message: 'ID de funcionário inválido.' }
+  }
+
+  const isAdmin = await verifyAdminSession()
+  if (!isAdmin) {
+    return { success: false, message: 'Acesso restrito a administradores. Apenas administradores podem excluir funcionários.' }
+  }
+
+  try {
+    const { createClient: createBaseClient } = await import('@supabase/supabase-js')
+    const supabaseAdmin = createBaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    )
+
+    // Delete the auth user (this will cascade delete everything linked to this user's ID)
+    const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(barberId)
+
+    if (deleteError) {
+      console.error('Error deleting user via admin API:', deleteError)
+      return { success: false, message: `Erro ao deletar usuário: ${deleteError.message}` }
+    }
+
+    return { success: true, message: 'Funcionário excluído com sucesso!' }
+  } catch (err) {
+    console.error('Error inside deleteBarberAction:', err)
+    return { success: false, message: 'Erro interno no servidor.' }
+  }
+}

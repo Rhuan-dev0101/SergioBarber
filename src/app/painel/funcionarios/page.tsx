@@ -14,7 +14,8 @@ import {
   updateBarberWorkingHoursAction, 
   addBlockedTimeAction, 
   addDayOffAction,
-  createBarberAction
+  createBarberAction,
+  deleteBarberAction
 } from './actions'
 import { updateBarberProfileAction } from '../perfil-barbeiro/actions'
 import { GradientButton } from '@/components/ui/gradient-button'
@@ -26,6 +27,8 @@ export default function PainelFuncionarios() {
   const [activeTab, setActiveTab] = useState<'hours' | 'blocks' | 'days_off' | 'profile'>('hours')
   const [loading, setLoading] = useState(true)
   const [userRole, setUserRole] = useState<string | null>(null)
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false)
+  const [actionLoading, setActionLoading] = useState(false)
 
   // Form inputs: Profile Data
   const [editBio, setEditBio] = useState('')
@@ -238,6 +241,29 @@ export default function PainelFuncionarios() {
         // Refresh list
         loadData()
       }
+    })
+  }
+
+  const handleDeleteBarber = () => {
+    if (!selectedBarber) return
+    setErrorMsg('')
+    setSuccessMsg('')
+    setActionLoading(true)
+
+    startTransition(async () => {
+      const res = await deleteBarberAction(selectedBarber.id)
+      if (!res.success) {
+        setErrorMsg(res.message)
+      } else {
+        setSuccessMsg(res.message)
+        setShowConfirmDelete(false)
+        
+        // Remove from list and clear selection
+        const deletedId = selectedBarber.id
+        setBarbers(prev => prev.filter(b => b.id !== deletedId))
+        setSelectedBarber(null)
+      }
+      setActionLoading(false)
     })
   }
 
@@ -560,39 +586,54 @@ export default function PainelFuncionarios() {
                 )}
 
                 {/* Tabs */}
-                <div className="flex gap-2 border-b border-border pb-2 text-xs overflow-x-auto">
-                  <button
-                    onClick={() => setActiveTab('hours')}
-                    className={`px-3 py-1.5 font-bold rounded-md transition-all shrink-0 cursor-pointer ${
-                      activeTab === 'hours' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    Horários de Expediente
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('blocks')}
-                    className={`px-3 py-1.5 font-bold rounded-md transition-all shrink-0 cursor-pointer ${
-                      activeTab === 'blocks' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    Bloqueios (Pausas)
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('days_off')}
-                    className={`px-3 py-1.5 font-bold rounded-md transition-all shrink-0 cursor-pointer ${
-                      activeTab === 'days_off' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    Folgas / Férias
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('profile')}
-                    className={`px-3 py-1.5 font-bold rounded-md transition-all shrink-0 cursor-pointer ${
-                      activeTab === 'profile' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    Dados do Perfil
-                  </button>
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-2 text-xs">
+                  <div className="flex gap-2 overflow-x-auto pb-1 sm:pb-0">
+                    <button
+                      onClick={() => setActiveTab('hours')}
+                      className={`px-3 py-1.5 font-bold rounded-md transition-all shrink-0 cursor-pointer ${
+                        activeTab === 'hours' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      Horários de Expediente
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('blocks')}
+                      className={`px-3 py-1.5 font-bold rounded-md transition-all shrink-0 cursor-pointer ${
+                        activeTab === 'blocks' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      Bloqueios (Pausas)
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('days_off')}
+                      className={`px-3 py-1.5 font-bold rounded-md transition-all shrink-0 cursor-pointer ${
+                        activeTab === 'days_off' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      Folgas / Férias
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('profile')}
+                      className={`px-3 py-1.5 font-bold rounded-md transition-all shrink-0 cursor-pointer ${
+                        activeTab === 'profile' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      Dados do Perfil
+                    </button>
+                  </div>
+                  {userRole === 'admin' && (
+                    <button
+                      onClick={() => {
+                        setErrorMsg('')
+                        setSuccessMsg('')
+                        setShowConfirmDelete(true)
+                      }}
+                      className="px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 hover:text-rose-400 font-bold border border-rose-500/20 rounded-md text-[11px] transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      Excluir Funcionário
+                    </button>
+                  )}
                 </div>
 
                 {/* TAB 1: WORKING HOURS FORM */}
@@ -1102,6 +1143,53 @@ export default function PainelFuncionarios() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* CONFIRM DELETE MODAL */}
+        {showConfirmDelete && (
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="glass max-w-sm w-full rounded-lg border border-border shadow-2xl p-6 relative flex flex-col space-y-6">
+              <button
+                onClick={() => setShowConfirmDelete(false)}
+                className="absolute top-4 right-4 text-muted-foreground hover:text-foreground cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="space-y-2 text-left">
+                <h3 className="text-lg font-serif font-bold text-rose-500 flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5 text-rose-500" />
+                  Confirmar Exclusão
+                </h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Tem certeza que deseja excluir permanentemente o cadastro de <strong>{selectedBarber?.full_name}</strong>?
+                </p>
+                <p className="text-[11px] text-rose-400/90 bg-rose-500/5 p-3 rounded border border-rose-500/10 leading-normal">
+                  <strong>Atenção:</strong> Esta ação é irreversível. A conta de login do barbeiro será deletada, e todas as suas configurações de horários de expediente, pausas de agenda, folgas e TODOS os agendamentos e registros de pagamentos associados a ele serão excluídos definitivamente do sistema.
+                </p>
+              </div>
+
+              <div className="flex gap-3 justify-end pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmDelete(false)}
+                  disabled={actionLoading || isPending}
+                  className="px-4 py-2 bg-secondary hover:bg-muted text-foreground border border-border font-bold rounded text-xs transition-all cursor-pointer disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeleteBarber}
+                  disabled={actionLoading || isPending}
+                  className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded text-xs transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  {(actionLoading || isPending) ? <Loader2 className="w-3.5 h-3.5 animate-spin text-white" /> : <Trash2 className="w-3.5 h-3.5 text-white" />}
+                  Excluir Permanentemente
+                </button>
+              </div>
             </div>
           </div>
         )}
