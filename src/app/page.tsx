@@ -61,22 +61,22 @@ export default async function Home() {
     }
 
     const { data: dbBarbers } = await supabase
-      .from('profiles')
-      .select('id, full_name, role, barbers(bio, avatar_url, is_active, about_quote, experience_years, specialties, photo_url)')
-      .eq('role', 'barber')
+      .from('barbers')
+      .select('id, bio, avatar_url, is_active, about_quote, experience_years, specialties, photo_url, profiles(full_name, role)')
+      .eq('is_active', true)
 
     if (dbBarbers && dbBarbers.length > 0) {
       const activeBarbers = dbBarbers
-        .filter(b => b.barbers && (b.barbers as any).is_active)
+        .filter(b => b.profiles)
         .map(b => ({
           id: b.id,
-          full_name: b.full_name,
-          bio: (b.barbers as any).bio || '',
-          avatar_url: (b.barbers as any).avatar_url || (b.full_name.includes('Sergio') ? '/barbers/sergio.jpg' : ''),
-          about_quote: (b.barbers as any).about_quote || null,
-          experience_years: (b.barbers as any).experience_years || null,
-          specialties: (b.barbers as any).specialties || null,
-          photo_url: (b.barbers as any).photo_url || null
+          full_name: (b.profiles as any).full_name,
+          bio: b.bio || '',
+          avatar_url: b.avatar_url || ((b.profiles as any).full_name.includes('Sergio') ? '/barbers/sergio.jpg' : ''),
+          about_quote: b.about_quote || null,
+          experience_years: b.experience_years || null,
+          specialties: b.specialties || null,
+          photo_url: b.photo_url || null
         }))
       if (activeBarbers.length > 0) {
         barbers = activeBarbers

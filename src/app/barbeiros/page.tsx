@@ -35,22 +35,22 @@ export default async function Barbeiros() {
   try {
     const supabase = await createServerSupabaseClient()
     const { data: dbBarbers } = await supabase
-      .from('profiles')
-      .select('id, full_name, role, barbers(bio, avatar_url, is_active, about_quote, experience_years, specialties, photo_url)')
-      .eq('role', 'barber')
+      .from('barbers')
+      .select('id, bio, avatar_url, is_active, about_quote, experience_years, specialties, photo_url, profiles(full_name, role)')
+      .eq('is_active', true)
 
     if (dbBarbers && dbBarbers.length > 0) {
       const activeBarbers = dbBarbers
-        .filter(b => b.barbers && (b.barbers as any).is_active)
+        .filter(b => b.profiles)
         .map(b => ({
           id: b.id,
-          name: b.full_name,
-          role: b.role === 'admin' ? 'Fundador & Barbeiro Master' : 'Barbeiro Especialista',
-          bio: (b.barbers as any).bio || 'Barbeiro profissional da equipe Osanchez.',
-          skills: (b.barbers as any).specialties && (b.barbers as any).specialties.length > 0
-            ? (b.barbers as any).specialties
-            : (b.full_name.includes('Sergio') ? ['Cortes Clássicos', 'Visagismo Facial', 'Barba Terapia'] : ['Fade / Degradê', 'Design de Barba', 'Corte Moderno']),
-          avatar_url: (b.barbers as any).photo_url || (b.barbers as any).avatar_url || (b.full_name.includes('Sergio') ? '/barbers/sergio.jpg' : '')
+          name: (b.profiles as any).full_name,
+          role: (b.profiles as any).role === 'admin' ? 'Fundador & Barbeiro Master' : 'Barbeiro Especialista',
+          bio: b.bio || 'Barbeiro profissional da equipe Osanchez.',
+          skills: b.specialties && b.specialties.length > 0
+            ? b.specialties
+            : ((b.profiles as any).full_name.includes('Sergio') ? ['Cortes Clássicos', 'Visagismo Facial', 'Barba Terapia'] : ['Fade / Degradê', 'Design de Barba', 'Corte Moderno']),
+          avatar_url: b.photo_url || b.avatar_url || ((b.profiles as any).full_name.includes('Sergio') ? '/barbers/sergio.jpg' : '')
         }))
       if (activeBarbers.length > 0) {
         barbers = activeBarbers

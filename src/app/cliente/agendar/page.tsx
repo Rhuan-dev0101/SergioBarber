@@ -80,9 +80,9 @@ function AgendarWizardInner() {
         
         // Fetch active barbers
         const { data: dbBarbers } = await supabase
-          .from('profiles')
-          .select('id, full_name, role, barbers(is_active)')
-          .eq('role', 'barber')
+          .from('barbers')
+          .select('id, is_active, profiles(full_name, role)')
+          .eq('is_active', true)
 
         if (dbServices && dbServices.length > 0) {
           setServices(dbServices)
@@ -92,11 +92,11 @@ function AgendarWizardInner() {
 
         if (dbBarbers && dbBarbers.length > 0) {
           const formatted = dbBarbers
-            .filter((b: any) => b.barbers && b.barbers.is_active)
+            .filter((b: any) => b.profiles)
             .map((b: any) => ({
               id: b.id,
-              name: b.full_name,
-              role: b.role === 'admin' ? 'Fundador & Master' : 'Especialista'
+              name: (b.profiles as any).full_name,
+              role: (b.profiles as any).role === 'admin' ? 'Fundador & Master' : 'Especialista'
             }))
           setBarbers(formatted)
 
