@@ -7,7 +7,6 @@ import { Footer } from '@/components/Footer'
 import { createServerSupabaseClient } from '@/lib/supabase'
 import { getBusinessSettings } from '@/lib/settings'
 import { GradientButton } from '@/components/ui/gradient-button'
-import { GlowCard } from '@/components/ui/spotlight-card'
 
 const SEED_SERVICES = [
   // Cabelo
@@ -169,11 +168,9 @@ export default async function Servicos() {
                       : `${service.duration} min`
 
                     return (
-                      <GlowCard 
+                      <div 
                         key={index}
-                        glowColor="gold"
-                        customSize={true}
-                        className="p-6 gap-4 justify-between flex flex-col"
+                        className="p-6 gap-4 justify-between flex flex-col glass rounded-xl border border-border/80 hover:border-primary/50 transition-all duration-300 hover:shadow-lg bg-card/60 relative"
                       >
                         <div className="space-y-2">
                           <div className="flex justify-between items-start gap-4">
@@ -217,7 +214,7 @@ export default async function Servicos() {
                             </Link>
                           </GradientButton>
                         </div>
-                      </GlowCard>
+                      </div>
                     )
                   })}
                 </div>
