@@ -6,7 +6,6 @@ import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { createServerSupabaseClient } from '@/lib/supabase'
 import { GradientButton } from '@/components/ui/gradient-button'
-import { GlowCard } from '@/components/ui/spotlight-card'
 import { getBusinessSettings } from '@/lib/settings'
 
 const SEED_GALLERY = [
@@ -38,7 +37,7 @@ const SEED_GALLERY = [
     title: 'Luzes e Reflexo Platinado', 
     category: 'Química', 
     description: 'Clareamento capilar uniforme em tom loiro platinado.',
-    url: 'https://images.unsplash.com/photo-1605497746444-ac9dbd39f4a5?auto=format&fit=crop&w=600&q=80'
+    url: 'https://images.unsplash.com/photo-1620331311520-246422fd82f9?auto=format&fit=crop&w=600&q=80'
   },
   { 
     title: 'Cabelo Infantil Estilizado', 
@@ -90,11 +89,9 @@ export default async function Galeria() {
           {/* Grid Layout */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {images.map((item, index) => (
-              <GlowCard 
+              <div 
                 key={index}
-                glowColor="gold"
-                customSize={true}
-                className="overflow-hidden h-80 relative flex flex-col justify-between"
+                className="overflow-hidden h-80 relative flex flex-col justify-between glass rounded-xl border border-border/80 hover:border-primary/50 transition-all duration-300 hover:shadow-lg bg-card/60 relative group"
               >
                 {/* Visual Area */}
                 <div className="flex-grow bg-secondary/30 relative overflow-hidden">
@@ -123,7 +120,7 @@ export default async function Galeria() {
                     {item.description}
                   </p>
                 </div>
-              </GlowCard>
+              </div>
             ))}
           </div>
 
