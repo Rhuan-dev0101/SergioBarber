@@ -4,11 +4,11 @@ import React, { useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { 
   Scissors, Search, User, Mail, Phone, Edit, Calendar, Clock, 
-  AlertCircle, CheckCircle2, Loader2, Save, X, ArrowLeft, ChevronRight 
+  AlertCircle, CheckCircle2, Loader2, Save, X, ArrowLeft, ChevronRight, Trash2 
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
-import { updateCustomerPrivateNotesAction } from './actions'
+import { updateCustomerPrivateNotesAction, deleteCustomerAction } from './actions'
 
 export default function PainelClientes() {
   const router = useRouter()
@@ -22,6 +22,9 @@ export default function PainelClientes() {
   const [apptHistory, setApptHistory] = useState<any[]>([])
   const [loadingHistory, setLoadingHistory] = useState(false)
   const [privateNotes, setPrivateNotes] = useState('')
+  const [role, setRole] = useState<string | null>(null)
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false)
+  const [actionLoading, setActionLoading] = useState(false)
 
   const [errorMsg, setErrorMsg] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
@@ -48,6 +51,8 @@ export default function PainelClientes() {
         router.push('/cliente')
         return
       }
+      
+      setRole(profile.role)
 
       // Fetch profiles with role customer
       const { data: users, error } = await supabase
@@ -161,6 +166,29 @@ export default function PainelClientes() {
     })
   }
 
+  const handleDeleteCustomer = () => {
+    if (!selectedCustomer) return
+    setErrorMsg('')
+    setSuccessMsg('')
+    setActionLoading(true)
+
+    startTransition(async () => {
+      const res = await deleteCustomerAction(selectedCustomer.id)
+      if (!res.success) {
+        setErrorMsg(res.message)
+      } else {
+        setSuccessMsg(res.message)
+        setShowConfirmDelete(false)
+        
+        // Remove from list and clear selection
+        const deletedId = selectedCustomer.id
+        setCustomers(prev => prev.filter(c => c.id !== deletedId))
+        setSelectedCustomer(null)
+      }
+      setActionLoading(false)
+    })
+  }
+
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr)
     return d.toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -248,7 +276,21 @@ export default function PainelClientes() {
                 {/* Header Profile */}
                 <div className="flex justify-between items-start border-b border-border/40 pb-4">
                   <div className="space-y-1.5">
-                    <h2 className="text-xl font-serif font-bold text-foreground">{selectedCustomer.full_name}</h2>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <h2 className="text-xl font-serif font-bold text-foreground">{selectedCustomer.full_name}</h2>
+                      {role === 'admin' && (
+                        <button
+                          onClick={() => {
+                            setErrorMsg('')
+                            setSuccessMsg('')
+                            setShowConfirmDelete(true)
+                          }}
+                          className="px-2.5 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 hover:text-rose-400 font-bold border border-rose-500/20 rounded text-[9px] uppercase transition-all cursor-pointer flex items-center gap-1"
+                        >
+                          Excluir Cliente
+                        </button>
+                      )}
+                    </div>
                     <div className="text-xs text-muted-foreground space-y-1">
                       <p className="flex items-center gap-1.5"><Mail className="w-3.5 h-3.5 text-primary" /> {selectedCustomer.email}</p>
                       <p className="flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 text-primary" /> {selectedCustomer.phone || 'Telefone não informado'}</p>
@@ -352,6 +394,53 @@ export default function PainelClientes() {
           </div>
 
         </div>
+
+        {/* CONFIRM DELETE MODAL */}
+        {showConfirmDelete && (
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="glass max-w-sm w-full rounded-lg border border-border shadow-2xl p-6 relative flex flex-col space-y-6">
+              <button
+                onClick={() => setShowConfirmDelete(false)}
+                className="absolute top-4 right-4 text-muted-foreground hover:text-foreground cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="space-y-2 text-left">
+                <h3 className="text-lg font-serif font-bold text-rose-500 flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5 text-rose-500" />
+                  Confirmar Exclusão
+                </h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Tem certeza que deseja excluir permanentemente o cadastro de <strong>{selectedCustomer?.full_name}</strong>?
+                </p>
+                <p className="text-[11px] text-rose-400/90 bg-rose-500/5 p-3 rounded border border-rose-500/10 leading-normal">
+                  <strong>Atenção:</strong> Esta ação é irreversível. A conta de login do usuário será deletada e todas as informações pessoais, ficha de anotações e termos de aceitação legal serão removidos de forma definitiva.
+                </p>
+              </div>
+
+              <div className="flex gap-3 justify-end pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmDelete(false)}
+                  disabled={actionLoading || isPending}
+                  className="px-4 py-2 bg-secondary hover:bg-muted text-foreground border border-border font-bold rounded text-xs transition-all cursor-pointer disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeleteCustomer}
+                  disabled={actionLoading || isPending}
+                  className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded text-xs transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  {(actionLoading || isPending) ? <Loader2 className="w-3.5 h-3.5 animate-spin text-white" /> : <Trash2 className="w-3.5 h-3.5 text-white" />}
+                  Excluir Permanentemente
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
       </main>
     </div>
