@@ -63,3 +63,15 @@ FOR ALL
 TO authenticated
 USING (bucket_id = 'barber-photos')
 WITH CHECK (bucket_id = 'barber-photos');
+
+-- =======================================================
+-- 6. Create public read policy on profiles table (so guest users can load names and roles)
+-- =======================================================
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow public read access to profiles" ON public.profiles;
+CREATE POLICY "Allow public read access to profiles"
+ON public.profiles
+FOR SELECT
+TO public
+USING (true);
+

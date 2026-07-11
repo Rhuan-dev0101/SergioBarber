@@ -24,7 +24,7 @@ const STATIC_SERVICES = [
 
 const STATIC_BARBERS = [
   { id: 'sergio-uuid', name: 'Sergio Sanchez', role: 'Barbeiro Master' },
-  { id: 'kauan-uuid', name: 'Kauan Soares', role: 'Especialista' }
+  { id: 'enzo-uuid', name: 'Enzo', role: 'Especialista' }
 ]
 
 function AgendarWizardInner() {

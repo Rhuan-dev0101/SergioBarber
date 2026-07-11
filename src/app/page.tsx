@@ -21,7 +21,7 @@ const FALLBACK_SERVICES = [
 
 const FALLBACK_BARBERS = [
   { id: 'sergio-uuid', full_name: 'Sergio Sanchez', bio: 'Fundador e barbeiro master com mais de 10 anos de experiência em cortes clássicos e visagismo.', avatar_url: '/barbers/sergio.jpg' },
-  { id: 'kauan-uuid', full_name: 'Kauan Soares', bio: 'Especialista em cortes modernos, freestyle e barba terapia de alta precisão.', avatar_url: '/barbers/kauan.jpg' }
+  { id: 'enzo-uuid', full_name: 'Enzo', bio: 'Profissional dedicado da equipe Osanchez, especialista em cortes contemporâneos e design de barba.', avatar_url: '' }
 ]
 
 const FALLBACK_GALLERY = [
@@ -72,7 +72,7 @@ export default async function Home() {
           id: b.id,
           full_name: b.full_name,
           bio: (b.barbers as any).bio || '',
-          avatar_url: (b.barbers as any).avatar_url || (b.full_name.includes('Sergio') ? '/barbers/sergio.jpg' : b.full_name.includes('Kauan') ? '/barbers/kauan.jpg' : ''),
+          avatar_url: (b.barbers as any).avatar_url || (b.full_name.includes('Sergio') ? '/barbers/sergio.jpg' : ''),
           about_quote: (b.barbers as any).about_quote || null,
           experience_years: (b.barbers as any).experience_years || null,
           specialties: (b.barbers as any).specialties || null,

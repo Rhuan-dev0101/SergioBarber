@@ -30,11 +30,6 @@ const BARBER_RICH_DETAILS: Record<string, {
     history: 'Iniciou sua trajetória nas barbearias clássicas de Londres, trazendo para o Brasil o refinamento do visagismo italiano de alta performance.',
     experience: '12 anos esculpindo detalhes',
     specialties: 'Visagismo Facial sob medida, Cortes Clássicos Executivos, Barba Terapia Premium.'
-  },
-  'Kauan Soares': {
-    history: 'Mestre em tendências contemporâneas urbanas. Especializou-se em técnicas americanas de degradê de alta definição e pigmentações capilares.',
-    experience: '6 anos inovando no estilo',
-    specialties: 'High Fade (Degradê Americano), Freestyle Artístico, Platinados e Química Capilar.'
   }
 }
 
@@ -69,8 +64,12 @@ export function BarbersSection({ initialBarbers }: BarbersSectionProps) {
         const id = barber.id || barber.full_name
         const isActive = activeBarberId === id
         
-        // Grab rich details or fall back to default Sergio data format
-        const rich = BARBER_RICH_DETAILS[barber.full_name] || BARBER_RICH_DETAILS['Sergio Sanchez']
+        // Grab rich details or fall back to generic data
+        const rich = BARBER_RICH_DETAILS[barber.full_name] || {
+          history: 'Profissional dedicado da equipe Osanchez, focado em oferecer a melhor experiência e estilo para cada cliente.',
+          experience: 'Profissional da equipe',
+          specialties: 'Corte Clássico, Degradê, Barba'
+        }
 
         return (
           <div

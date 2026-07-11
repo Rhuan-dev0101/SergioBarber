@@ -16,15 +16,15 @@ const SEED_BARBERS = [
     role: 'Fundador & Barbeiro Master',
     bio: 'Mais de 10 anos de experiência lapidando visuais clássicos e modernos. Sergio é especialista em visagismo facial, garantindo que cada corte seja planejado de acordo com o formato e estrutura óssea do rosto do cliente.',
     skills: ['Cortes Clássicos', 'Visagismo Facial', 'Barba Terapia', 'Penteados Sociais'],
-    avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80'
+    avatar_url: '/barbers/sergio.jpg'
   },
   {
-    id: 'kauan-uuid',
-    name: 'Kauan Soares',
-    role: 'Barbeiro Especialista & Designer',
-    bio: 'Kauan é focado em tendências urbanas contemporâneas. Especialista em técnicas de degradê (Fade), pigmentação, freestyle (riscos personalizados) e platinados, ele traz inovação e detalhes marcantes para o seu corte.',
-    skills: ['Low/Mid/High Fade', 'Freestyle / Desenhos', 'Platinados e Mechas', 'Alinhamento de Barba'],
-    avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80'
+    id: 'enzo-uuid',
+    name: 'Enzo',
+    role: 'Barbeiro Especialista',
+    bio: 'Profissional dedicado da equipe Osanchez, especialista em cortes contemporâneos e design de barba.',
+    skills: ['Corte Masculino', 'Degradê / Fade', 'Design de Sobrancelha', 'Barba Terapia'],
+    avatar_url: ''
   }
 ]
 
@@ -46,11 +46,11 @@ export default async function Barbeiros() {
           id: b.id,
           name: b.full_name,
           role: b.role === 'admin' ? 'Fundador & Barbeiro Master' : 'Barbeiro Especialista',
-          bio: (b.barbers as any).bio || 'Barbeiro professional da equipe Osanchez.',
+          bio: (b.barbers as any).bio || 'Barbeiro profissional da equipe Osanchez.',
           skills: (b.barbers as any).specialties && (b.barbers as any).specialties.length > 0
             ? (b.barbers as any).specialties
-            : (b.full_name.includes('Sergio') ? ['Cortes Clássicos', 'Visagismo Facial', 'Barba Terapia'] : ['Fade / Degradê', 'Química e Selante', 'Desenhos Freestyle']),
-          avatar_url: (b.barbers as any).photo_url || (b.barbers as any).avatar_url || (b.full_name.includes('Sergio') ? '/barbers/sergio.jpg' : b.full_name.includes('Kauan') ? '/barbers/kauan.jpg' : '')
+            : (b.full_name.includes('Sergio') ? ['Cortes Clássicos', 'Visagismo Facial', 'Barba Terapia'] : ['Fade / Degradê', 'Design de Barba', 'Corte Moderno']),
+          avatar_url: (b.barbers as any).photo_url || (b.barbers as any).avatar_url || (b.full_name.includes('Sergio') ? '/barbers/sergio.jpg' : '')
         }))
       if (activeBarbers.length > 0) {
         barbers = activeBarbers
