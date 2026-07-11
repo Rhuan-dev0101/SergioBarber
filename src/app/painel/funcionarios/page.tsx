@@ -611,93 +611,110 @@ export default function PainelFuncionarios() {
                             key={dayNum}
                             type="button"
                             onClick={() => handleLoadDayForm(dayNum)}
-                            className={`p-2 rounded text-center border text-[11px] font-semibold transition-all cursor-pointer ${
-                              selectedDayOfWeek === dayNum
-                                ? 'border-primary bg-primary text-primary-foreground'
-                                : workingHours.find(h => h.day_of_week === dayNum)?.is_closed
-                                ? 'border-destructive bg-destructive/5 text-destructive'
-                                : 'border-border bg-secondary/20 text-foreground'
-                            }`}
+                            className={`p-2 rounded text-center border text-[11px] font-semibold cursor-pointer
+                              motion-safe:transition-all motion-safe:duration-300 ease-in-out
+                              hover:brightness-110 motion-safe:hover:scale-[1.06] motion-safe:active:scale-90
+                              ${
+                                selectedDayOfWeek === dayNum
+                                  ? 'border-primary bg-primary text-primary-foreground shadow-md'
+                                  : workingHours.find(h => h.day_of_week === dayNum)?.is_closed
+                                  ? 'border-destructive bg-destructive/5 text-destructive hover:bg-destructive/10'
+                                  : 'border-border bg-secondary/20 text-foreground hover:bg-secondary/40'
+                              }`}
                           >
                             {getDayName(dayNum).substring(0, 3)}
                           </button>
                         ))}
                       </div>
 
-                      {isClosed ? (
-                        <div className="p-6 bg-rose-500/5 border border-rose-500/10 rounded-md flex flex-col items-center justify-center py-8 space-y-4 text-center">
-                          <div className="space-y-1">
-                            <span className="text-xs font-semibold text-rose-500 uppercase block">{getDayName(selectedDayOfWeek)}</span>
-                            <span className="text-xs text-muted-foreground block">Este dia está marcado como FECHADO (sem expediente).</span>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setIsClosed(false)
-                              if (!morningStart || morningStart === '00:00') setMorningStart('09:00')
-                              if (!morningEnd || morningEnd === '00:00') setMorningEnd('13:00')
-                              if (!afternoonStart || afternoonStart === '00:00') setAfternoonStart('14:00')
-                              if (!afternoonEnd || afternoonEnd === '00:00') setAfternoonEnd('22:00')
-                            }}
-                            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded text-xs transition-all flex items-center gap-1.5 shadow cursor-pointer"
-                          >
-                            <Play className="w-3.5 h-3.5" />
-                            Abrir este dia
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="p-4 bg-secondary/20 border border-border/60 rounded-md space-y-4">
-                          <div className="flex justify-between items-center border-b border-border/40 pb-3">
-                            <div className="space-y-0.5">
-                              <span className="text-xs font-semibold text-foreground uppercase block">{getDayName(selectedDayOfWeek)}</span>
-                              <span className="text-[10px] text-emerald-500 font-bold uppercase tracking-wider block">Expediente Aberto</span>
+                      {/* CLOSED STATE WRAPPER (animates when isClosed goes true/false) */}
+                      <div 
+                        className="transition-[grid-template-rows,opacity] duration-300 ease-in-out motion-reduce:transition-none grid"
+                        style={{ gridTemplateRows: isClosed ? '1fr' : '0fr', opacity: isClosed ? 1 : 0 }}
+                      >
+                        <div className="overflow-hidden">
+                          <div className="p-6 bg-rose-500/5 border border-rose-500/10 rounded-md flex flex-col items-center justify-center py-8 space-y-4 text-center">
+                            <div className="space-y-1">
+                              <span className="text-xs font-semibold text-rose-500 uppercase block">{getDayName(selectedDayOfWeek)}</span>
+                              <span className="text-xs text-muted-foreground block">Este dia está marcado como FECHADO (sem expediente).</span>
                             </div>
-                            
                             <button
                               type="button"
                               onClick={() => {
-                                setIsClosed(true)
+                                setIsClosed(false)
+                                if (!morningStart || morningStart === '00:00') setMorningStart('09:00')
+                                if (!morningEnd || morningEnd === '00:00') setMorningEnd('13:00')
+                                if (!afternoonStart || afternoonStart === '00:00') setAfternoonStart('14:00')
+                                if (!afternoonEnd || afternoonEnd === '00:00') setAfternoonEnd('22:00')
                               }}
-                              className="px-3 py-1.5 bg-destructive/10 hover:bg-destructive/20 text-destructive font-bold border border-destructive/20 rounded text-[10px] uppercase transition-all cursor-pointer flex items-center gap-1"
+                              className="group px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded text-xs transition-all duration-300 ease-in-out hover:brightness-110 motion-safe:hover:scale-[1.03] motion-safe:active:scale-95 flex items-center gap-1.5 shadow cursor-pointer"
                             >
-                              <Pause className="w-3.5 h-3.5" />
-                              Fechar este dia
+                              <Play className="w-3.5 h-3.5 transition-transform duration-300 motion-safe:group-hover:rotate-12 motion-safe:group-active:scale-90" />
+                              Abrir este dia
                             </button>
                           </div>
+                        </div>
+                      </div>
 
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            {/* Morning Shift */}
-                            <div className="space-y-2 border border-border/40 p-3 rounded">
-                              <h5 className="text-[10px] uppercase font-bold text-primary">Turno Manhã</h5>
-                              <div className="grid grid-cols-2 gap-2 text-xs">
-                                <label className="space-y-1">
-                                  <span className="text-[10px] text-muted-foreground">Início</span>
-                                  <input type="time" value={morningStart} onChange={(e) => setMorningStart(e.target.value)} className="w-full p-2 bg-secondary border border-border rounded outline-none text-foreground" />
-                                </label>
-                                <label className="space-y-1">
-                                  <span className="text-[10px] text-muted-foreground">Término</span>
-                                  <input type="time" value={morningEnd} onChange={(e) => setMorningEnd(e.target.value)} className="w-full p-2 bg-secondary border border-border rounded outline-none text-foreground" />
-                                </label>
+                      {/* OPEN STATE WRAPPER (animates when isClosed goes true/false) */}
+                      <div 
+                        className="transition-[grid-template-rows,opacity] duration-300 ease-in-out motion-reduce:transition-none grid"
+                        style={{ gridTemplateRows: !isClosed ? '1fr' : '0fr', opacity: !isClosed ? 1 : 0 }}
+                      >
+                        <div className="overflow-hidden">
+                          <div className="p-4 bg-secondary/20 border border-border/60 rounded-md space-y-4">
+                            <div className="flex justify-between items-center border-b border-border/40 pb-3">
+                              <div className="space-y-0.5">
+                                <span className="text-xs font-semibold text-foreground uppercase block">{getDayName(selectedDayOfWeek)}</span>
+                                <span className="text-[10px] text-emerald-500 font-bold uppercase tracking-wider block">Expediente Aberto</span>
                               </div>
+                              
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIsClosed(true)
+                                }}
+                                className="group px-3 py-1.5 bg-destructive/10 hover:bg-destructive/20 text-destructive font-bold border border-destructive/20 rounded text-[10px] uppercase transition-all duration-300 ease-in-out hover:brightness-110 motion-safe:hover:scale-[1.03] motion-safe:active:scale-95 cursor-pointer flex items-center gap-1"
+                              >
+                                <Pause className="w-3.5 h-3.5 transition-transform duration-300 motion-safe:group-hover:scale-110 motion-safe:group-active:scale-90" />
+                                Fechar este dia
+                              </button>
                             </div>
 
-                            {/* Afternoon/Evening Shift */}
-                            <div className="space-y-2 border border-border/40 p-3 rounded">
-                              <h5 className="text-[10px] uppercase font-bold text-primary">Turno Tarde</h5>
-                              <div className="grid grid-cols-2 gap-2 text-xs">
-                                <label className="space-y-1">
-                                  <span className="text-[10px] text-muted-foreground">Início</span>
-                                  <input type="time" value={afternoonStart} onChange={(e) => setAfternoonStart(e.target.value)} className="w-full p-2 bg-secondary border border-border rounded outline-none text-foreground" />
-                                </label>
-                                <label className="space-y-1">
-                                  <span className="text-[10px] text-muted-foreground">Término</span>
-                                  <input type="time" value={afternoonEnd} onChange={(e) => setAfternoonEnd(e.target.value)} className="w-full p-2 bg-secondary border border-border rounded outline-none text-foreground" />
-                                </label>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              {/* Morning Shift */}
+                              <div className="space-y-2 border border-border/40 p-3 rounded">
+                                <h5 className="text-[10px] uppercase font-bold text-primary">Turno Manhã</h5>
+                                <div className="grid grid-cols-2 gap-2 text-xs">
+                                  <label className="space-y-1">
+                                    <span className="text-[10px] text-muted-foreground">Início</span>
+                                    <input type="time" value={morningStart} onChange={(e) => setMorningStart(e.target.value)} className="w-full p-2 bg-secondary border border-border rounded outline-none text-foreground focus:border-primary transition-colors duration-200" />
+                                  </label>
+                                  <label className="space-y-1">
+                                    <span className="text-[10px] text-muted-foreground">Término</span>
+                                    <input type="time" value={morningEnd} onChange={(e) => setMorningEnd(e.target.value)} className="w-full p-2 bg-secondary border border-border rounded outline-none text-foreground focus:border-primary transition-colors duration-200" />
+                                  </label>
+                                </div>
+                              </div>
+
+                              {/* Afternoon/Evening Shift */}
+                              <div className="space-y-2 border border-border/40 p-3 rounded">
+                                <h5 className="text-[10px] uppercase font-bold text-primary">Turno Tarde</h5>
+                                <div className="grid grid-cols-2 gap-2 text-xs">
+                                  <label className="space-y-1">
+                                    <span className="text-[10px] text-muted-foreground">Início</span>
+                                    <input type="time" value={afternoonStart} onChange={(e) => setAfternoonStart(e.target.value)} className="w-full p-2 bg-secondary border border-border rounded outline-none text-foreground focus:border-primary transition-colors duration-200" />
+                                  </label>
+                                  <label className="space-y-1">
+                                    <span className="text-[10px] text-muted-foreground">Término</span>
+                                    <input type="time" value={afternoonEnd} onChange={(e) => setAfternoonEnd(e.target.value)} className="w-full p-2 bg-secondary border border-border rounded outline-none text-foreground focus:border-primary transition-colors duration-200" />
+                                  </label>
+                                </div>
                               </div>
                             </div>
                           </div>
                         </div>
-                      )}
+                      </div>
 
                       <button
                         type="submit"
