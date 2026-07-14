@@ -129,3 +129,231 @@ export async function createAppointmentAction(
     return { success: false, message: 'Ocorreu um erro interno no servidor ao realizar o agendamento.' }
   }
 }
+
+// Helper to convert time "HH:MM" to minutes from midnight
+function timeToMinutesLocal(timeStr: string): number {
+  const [h, m] = timeStr.split(':').map(Number)
+  return h * 60 + m
+}
+
+export type DayAvailability = {
+  isClosed: boolean
+  isFullyBooked: boolean
+  hasSlots: boolean
+}
+
+export type MonthAvailabilityResponse = {
+  success: boolean
+  message: string
+  availability: Record<string, DayAvailability>
+}
+
+/**
+ * Server Action to load availability for all days of a month in a single batch.
+ */
+export async function getBarberMonthAvailabilityAction(
+  barberId: string,
+  year: number,
+  month: number, // 1-indexed (1 = Jan, 12 = Dec)
+  serviceDuration: number
+): Promise<MonthAvailabilityResponse> {
+  if (!barberId || !year || !month || !serviceDuration) {
+    return { success: false, message: 'Parâmetros ausentes.', availability: {} }
+  }
+
+  try {
+    const supabase = await createServerSupabaseClient()
+
+    // 1. Fetch working hours for the selected barber
+    const { data: workingHoursList } = await supabase
+      .from('barber_working_hours')
+      .select('*')
+      .eq('barber_id', barberId)
+
+    const workingHoursMap = new Map<number, any>()
+    if (workingHoursList) {
+      workingHoursList.forEach(wh => {
+        workingHoursMap.set(wh.day_of_week, wh)
+      })
+    }
+
+    // Last day of target month
+    const lastDay = new Date(year, month, 0).getDate()
+    
+    const formattedMonth = String(month).padStart(2, '0')
+    const startOfMonthStr = `${year}-${formattedMonth}-01T00:00:00-03:00`
+    const endOfMonthStr = `${year}-${formattedMonth}-${String(lastDay).padStart(2, '0')}T23:59:59-03:00`
+
+    // 2. Fetch days off for the month
+    const { data: daysOff } = await supabase
+      .from('days_off')
+      .select('date')
+      .eq('barber_id', barberId)
+      .gte('date', `${year}-${formattedMonth}-01`)
+      .lte('date', `${year}-${formattedMonth}-${String(lastDay).padStart(2, '0')}`)
+
+    const daysOffSet = new Set(daysOff?.map(d => d.date) || [])
+
+    // 3. Fetch active appointments for the month
+    const { data: appointments } = await supabase
+      .from('appointments')
+      .select('start_time, end_time')
+      .eq('barber_id', barberId)
+      .neq('status', 'cancelled')
+      .gte('start_time', startOfMonthStr)
+      .lte('end_time', endOfMonthStr)
+
+    // 4. Fetch blocked times for the month
+    const { data: blockedTimes } = await supabase
+      .from('blocked_times')
+      .select('start_time, end_time')
+      .eq('barber_id', barberId)
+      .gte('start_time', startOfMonthStr)
+      .lte('end_time', endOfMonthStr)
+
+    // Group busy local minutes by date (YYYY-MM-DD)
+    const parseToLocalMinutes = (isoString: string): number => {
+      const localTime = new Date(isoString).toLocaleTimeString('pt-BR', {
+        timeZone: 'America/Sao_Paulo',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      })
+      return timeToMinutesLocal(localTime)
+    }
+
+    const parseToLocalDateStr = (isoString: string): string => {
+      const localDate = new Date(isoString).toLocaleDateString('pt-BR', {
+        timeZone: 'America/Sao_Paulo',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      })
+      return localDate.split('/').reverse().join('-') // YYYY-MM-DD
+    }
+
+    const busyIntervalsByDate = new Map<string, Array<{ start: number; end: number }>>()
+
+    const addInterval = (dateStr: string, interval: { start: number; end: number }) => {
+      if (!busyIntervalsByDate.has(dateStr)) {
+        busyIntervalsByDate.set(dateStr, [])
+      }
+      busyIntervalsByDate.get(dateStr)!.push(interval)
+    }
+
+    appointments?.forEach(appt => {
+      const dStr = parseToLocalDateStr(appt.start_time)
+      addInterval(dStr, {
+        start: parseToLocalMinutes(appt.start_time),
+        end: parseToLocalMinutes(appt.end_time)
+      })
+    })
+
+    blockedTimes?.forEach(bt => {
+      const dStr = parseToLocalDateStr(bt.start_time)
+      addInterval(bt.start_time.startsWith(dStr) ? dStr : parseToLocalDateStr(bt.start_time), {
+        start: parseToLocalMinutes(bt.start_time),
+        end: parseToLocalMinutes(bt.end_time)
+      })
+    })
+
+    // Local today string to check past dates
+    const now = new Date()
+    const todayLocalStr = now.toLocaleDateString('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).split('/').reverse().join('-')
+
+    const currentLocalTime = now.toLocaleTimeString('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    })
+    const currentMinutes = timeToMinutesLocal(currentLocalTime)
+
+    const availability: Record<string, DayAvailability> = {}
+
+    for (let dayVal = 1; dayVal <= lastDay; dayVal++) {
+      const dateStr = `${year}-${formattedMonth}-${String(dayVal).padStart(2, '0')}`
+      
+      // In JS, new Date(year, monthIndex, day) creates date in local machine timezone
+      // We will parse it carefully to get the correct day of week
+      const dateObj = new Date(year, month - 1, dayVal)
+      const dayOfWeek = dateObj.getDay()
+
+      // 1. Check if date is in the past
+      if (dateStr < todayLocalStr) {
+        availability[dateStr] = { isClosed: false, isFullyBooked: false, hasSlots: false }
+        continue
+      }
+
+      // 2. Check days off
+      if (daysOffSet.has(dateStr)) {
+        availability[dateStr] = { isClosed: true, isFullyBooked: false, hasSlots: false }
+        continue
+      }
+
+      // 3. Check working hours
+      const workingHours = workingHoursMap.get(dayOfWeek)
+      if (!workingHours || workingHours.is_closed) {
+        availability[dateStr] = { isClosed: true, isFullyBooked: false, hasSlots: false }
+        continue
+      }
+
+      const slotsRanges = workingHours.slots as Array<{ start: string; end: string }>
+      if (!slotsRanges || slotsRanges.length === 0) {
+        availability[dateStr] = { isClosed: true, isFullyBooked: false, hasSlots: false }
+        continue
+      }
+
+      // 4. Calculate slots
+      const busyIntervals = busyIntervalsByDate.get(dateStr) || []
+      let totalSlotsCount = 0
+      let availableSlotsCount = 0
+      const timeStep = 30 // Check slots every 30 minutes
+
+      for (const range of slotsRanges) {
+        const rangeStart = timeToMinutesLocal(range.start)
+        const rangeEnd = timeToMinutesLocal(range.end)
+
+        let current = rangeStart
+        while (current + serviceDuration <= rangeEnd) {
+          const slotStart = current
+          const slotEnd = current + serviceDuration
+          totalSlotsCount++
+
+          // Overlap check
+          const overlaps = busyIntervals.some(busy => {
+            return slotStart < busy.end && busy.start < slotEnd
+          })
+
+          if (!overlaps) {
+            // Filter out past slots for today
+            if (dateStr !== todayLocalStr || slotStart > currentMinutes) {
+              availableSlotsCount++
+            }
+          }
+
+          current += timeStep
+        }
+      }
+
+      if (totalSlotsCount === 0) {
+        availability[dateStr] = { isClosed: true, isFullyBooked: false, hasSlots: false }
+      } else if (availableSlotsCount === 0) {
+        availability[dateStr] = { isClosed: false, isFullyBooked: true, hasSlots: false }
+      } else {
+        availability[dateStr] = { isClosed: false, isFullyBooked: false, hasSlots: true }
+      }
+    }
+
+    return { success: true, message: 'Sucesso', availability }
+  } catch (error) {
+    console.error('Error calculating month availability:', error)
+    return { success: false, message: 'Erro interno no servidor.', availability: {} }
+  }
+}
+

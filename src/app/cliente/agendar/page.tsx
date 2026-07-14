@@ -9,7 +9,7 @@ import {
   MessageSquare, User, CheckCircle2 
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
-import { createAppointmentAction } from './actions'
+import { createAppointmentAction, getBarberMonthAvailabilityAction } from './actions'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { formatWhatsAppLink } from '@/lib/settings'
@@ -42,6 +42,11 @@ function AgendarWizardInner() {
   // Profile check state
   const [profile, setProfile] = useState<any>(null)
   const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false)
+
+  // Calendar UI State
+  const [currentMonth, setCurrentMonth] = useState<Date>(() => new Date())
+  const [monthAvailability, setMonthAvailability] = useState<Record<string, any>>({})
+  const [loadingCalendar, setLoadingCalendar] = useState(false)
 
   const isProfileIncomplete = (prof: any) => {
     if (!prof) return false
@@ -231,31 +236,101 @@ function AgendarWizardInner() {
     loadSlots()
   }, [selectedBarber, selectedService, selectedDate])
 
-  // Helper to generate the next 10 calendar days
-  const getNextDays = () => {
-    const days = []
-    const today = new Date()
-    
-    for (let i = 0; i < 14; i++) {
-      const d = new Date()
-      d.setDate(today.getDate() + i)
-      
-      const dayOfWeek = d.getDay()
-      // Exclude Sunday (0) and Monday (1)
-      if (dayOfWeek !== 0 && dayOfWeek !== 1) {
-        const year = d.getFullYear()
-        const month = String(d.getMonth() + 1).padStart(2, '0')
-        const day = String(d.getDate()).padStart(2, '0')
-        const dateStrStr = `${year}-${month}-${day}`
-        
-        const label = d.toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' })
-        days.push({ dateStr: dateStrStr, label })
-      }
-      
-      if (days.length >= 10) break
+  // Load month availability dynamically
+  useEffect(() => {
+    if (!selectedBarber || !selectedService) {
+      setMonthAvailability({})
+      return
     }
+
+    async function loadMonthAvailability() {
+      setLoadingCalendar(true)
+      try {
+        const year = currentMonth.getFullYear()
+        const month = currentMonth.getMonth() + 1 // 1-indexed
+        
+        const res = await getBarberMonthAvailabilityAction(
+          selectedBarber.id,
+          year,
+          month,
+          selectedService.duration
+        )
+
+        if (res.success) {
+          setMonthAvailability(res.availability)
+        } else {
+          setMonthAvailability({})
+        }
+      } catch (err) {
+        console.error('Error loading month availability:', err)
+        setMonthAvailability({})
+      } finally {
+        setLoadingCalendar(false)
+      }
+    }
+
+    loadMonthAvailability()
+  }, [selectedBarber, selectedService, currentMonth])
+
+  // Helper to generate calendar days for month grid
+  const getCalendarDays = () => {
+    const year = currentMonth.getFullYear()
+    const month = currentMonth.getMonth() // 0-indexed
+    
+    const firstDay = new Date(year, month, 1)
+    const firstDayOfWeek = firstDay.getDay() // 0 = Sunday, ..., 6 = Saturday
+    const totalDays = new Date(year, month + 1, 0).getDate()
+
+    const days = []
+
+    for (let i = 0; i < firstDayOfWeek; i++) {
+      days.push({ blank: true, dateStr: '', dayNum: 0 })
+    }
+
+    for (let d = 1; d <= totalDays; d++) {
+      const formattedMonth = String(month + 1).padStart(2, '0')
+      const formattedDay = String(d).padStart(2, '0')
+      const dateStr = `${year}-${formattedMonth}-${formattedDay}`
+      days.push({ blank: false, dateStr, dayNum: d })
+    }
+
     return days
   }
+
+  const monthNames = [
+    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+  ]
+
+  const handlePrevMonth = () => {
+    const today = new Date()
+    const firstOfCurrentView = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1)
+    const firstOfToday = new Date(today.getFullYear(), today.getMonth(), 1)
+    
+    if (firstOfCurrentView <= firstOfToday) {
+      return
+    }
+    
+    setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))
+  }
+
+  const handleNextMonth = () => {
+    setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))
+  }
+
+  const isPrevMonthDisabled = () => {
+    const today = new Date()
+    return currentMonth.getFullYear() <= today.getFullYear() && currentMonth.getMonth() <= today.getMonth()
+  }
+
+  // São Paulo local today string to check past dates and today styling
+  const now = new Date()
+  const todayLocalStr = now.toLocaleDateString('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).split('/').reverse().join('-')
 
   const handleConfirmBooking = () => {
     setErrorMsg('')
@@ -497,25 +572,119 @@ function AgendarWizardInner() {
             {/* STEP 3: Select Date */}
             {step === 3 && (
               <div className="space-y-4">
-                <h3 className="font-serif font-semibold text-lg text-foreground">Selecione a Data</h3>
-                <p className="text-xs text-muted-foreground">Escolha um dos próximos dias disponíveis para agendamento (Domingo e Segunda fechados)</p>
+                <div className="border-b border-border/40 pb-2">
+                  <h3 className="font-serif font-semibold text-lg text-foreground">Selecione a Data</h3>
+                  <p className="text-xs text-muted-foreground">Escolha um dos próximos dias disponíveis para agendamento (Domingo e Segunda fechados)</p>
+                </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                  {getNextDays().map((day) => (
+                {/* Calendar Header with Navigation */}
+                <div className="flex items-center justify-between bg-secondary/40 border border-border/50 rounded-t-lg p-4">
+                  <span className="font-serif font-bold text-sm text-foreground uppercase tracking-wider">
+                    {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
+                  </span>
+                  
+                  <div className="flex items-center gap-2">
                     <button
-                      key={day.dateStr}
-                      onClick={() => setSelectedDate(day.dateStr)}
-                      className={`p-4 rounded-lg border flex flex-col items-center justify-center text-center gap-1.5 transition-all cursor-pointer ${
-                        selectedDate === day.dateStr
-                          ? 'border-primary bg-primary/5'
-                          : 'border-border hover:border-muted-foreground/35 bg-secondary/35'
-                      }`}
+                      type="button"
+                      disabled={isPrevMonthDisabled() || loadingCalendar}
+                      onClick={handlePrevMonth}
+                      className="p-1.5 rounded bg-secondary border border-border hover:bg-muted text-foreground disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                      aria-label="Mês anterior"
                     >
-                      <span className="text-xs font-semibold uppercase text-muted-foreground">{day.label.split(' ')[0]}</span>
-                      <span className="text-base font-serif font-bold text-foreground">{day.label.split(' ')[1]}</span>
-                      <span className="text-[10px] text-primary">{day.label.split(' ')[2]}</span>
+                      <ChevronLeft className="w-4 h-4" />
                     </button>
-                  ))}
+                    <button
+                      type="button"
+                      disabled={loadingCalendar}
+                      onClick={handleNextMonth}
+                      className="p-1.5 rounded bg-secondary border border-border hover:bg-muted text-foreground disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                      aria-label="Próximo mês"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Calendar Grid Container */}
+                <div className="glass border-x border-b border-border/50 rounded-b-lg p-4 relative min-h-[280px]">
+                  
+                  {loadingCalendar && (
+                    <div className="absolute inset-0 bg-background/60 backdrop-blur-[1px] flex flex-col items-center justify-center gap-1.5 z-10 rounded-b-lg">
+                      <Loader2 className="w-7 h-7 animate-spin text-primary" />
+                      <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Carregando Calendário...</span>
+                    </div>
+                  )}
+
+                  {/* Weekdays header */}
+                  <div className="grid grid-cols-7 gap-1 text-center mb-2">
+                    {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((wd) => (
+                      <span key={wd} className="text-[10px] uppercase font-bold text-muted-foreground py-1">
+                        {wd}
+                      </span>
+                    ))}
+                  </div>
+
+                  {/* Days grid */}
+                  <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
+                    {getCalendarDays().map((day, idx) => {
+                      if (day.blank) {
+                        return <div key={`blank-${idx}`} className="aspect-square" />
+                      }
+
+                      const dateStr = day.dateStr
+                      const dayVal = day.dayNum
+                      const isToday = dateStr === todayLocalStr
+                      const isSelected = selectedDate === dateStr
+                      
+                      const avail = monthAvailability[dateStr]
+                      const isPast = dateStr < todayLocalStr
+                      
+                      const isClosed = isPast ? false : (avail?.isClosed ?? false)
+                      const isFullyBooked = isPast ? false : (avail?.isFullyBooked ?? false)
+                      const hasSlots = isPast ? false : (avail?.hasSlots ?? false)
+                      
+                      const isDisabled = isPast || isClosed || isFullyBooked
+
+                      let btnClasses = "aspect-square rounded-lg border text-center flex flex-col items-center justify-center gap-0.5 text-xs font-semibold relative transition-all "
+                      let statusText = null
+
+                      if (isSelected) {
+                        btnClasses += "border-primary bg-primary text-primary-foreground shadow-lg scale-105 z-10 cursor-pointer font-bold"
+                      } else if (isDisabled) {
+                        btnClasses += "border-border/30 bg-secondary/10 text-muted-foreground/30 opacity-40 cursor-not-allowed "
+                        if (isClosed) {
+                          btnClasses += "line-through"
+                        }
+                      } else {
+                        btnClasses += "border-border hover:border-primary/60 bg-secondary/35 text-foreground cursor-pointer hover:bg-primary/5 active:scale-95"
+                      }
+
+                      if (isClosed && !isPast) {
+                        statusText = <span className="text-[7px] text-muted-foreground/45 uppercase font-bold block scale-75 truncate max-w-full">Folga</span>
+                      } else if (isFullyBooked && !isPast) {
+                        statusText = <span className="text-[7px] text-rose-500/60 uppercase font-bold block scale-75 truncate max-w-full font-sans">Lotado</span>
+                      } else if (hasSlots && !isPast && !isSelected) {
+                        statusText = <span className="text-[7px] text-primary/70 uppercase font-bold block scale-75 truncate max-w-full">Livre</span>
+                      }
+
+                      return (
+                        <button
+                          key={dateStr}
+                          type="button"
+                          disabled={isDisabled}
+                          onClick={() => setSelectedDate(dateStr)}
+                          className={btnClasses}
+                        >
+                          <span className="text-xs sm:text-sm">{dayVal}</span>
+                          {statusText}
+                          
+                          {isToday && !isSelected && (
+                            <span className="absolute bottom-1 w-1 h-1 rounded-full bg-primary" />
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
                 </div>
               </div>
             )}
