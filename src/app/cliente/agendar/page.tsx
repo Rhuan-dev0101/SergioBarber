@@ -13,6 +13,7 @@ import { createAppointmentAction } from './actions'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { formatWhatsAppLink } from '@/lib/settings'
+import { CompleteProfileModal } from '@/components/CompleteProfileModal'
 
 // Local fallbacks in case database is empty
 const STATIC_SERVICES = [
@@ -38,6 +39,25 @@ function AgendarWizardInner() {
   const [services, setServices] = useState<any[]>([])
   const [loadingDb, setLoadingDb] = useState(true)
 
+  // Profile check state
+  const [profile, setProfile] = useState<any>(null)
+  const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false)
+
+  const isProfileIncomplete = (prof: any) => {
+    if (!prof) return false
+    const name = prof.full_name || ''
+    const hasMultipleWords = name.trim().split(/\s+/).length >= 2
+    const phone = prof.phone || ''
+    const isPhoneEmpty = !phone.trim()
+
+    return !name.trim() || !hasMultipleWords || isPhoneEmpty
+  }
+
+  const handleProfileComplete = (fullName: string, phone: string) => {
+    setIsCompleteModalOpen(false)
+    setProfile((prev: any) => prev ? { ...prev, full_name: fullName, phone } : null)
+  }
+
   // Selection states
   const [selectedBarber, setSelectedBarber] = useState<any>(null)
   const [selectedService, setSelectedService] = useState<any>(null)
@@ -62,6 +82,23 @@ function AgendarWizardInner() {
   useEffect(() => {
     async function loadData() {
       try {
+        // Fetch profile and check completeness
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.user) {
+          const { data: prof } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single()
+          
+          if (prof) {
+            setProfile(prof)
+            if (isProfileIncomplete(prof)) {
+              setIsCompleteModalOpen(true)
+            }
+          }
+        }
+
         // Fetch general settings
         const { data: config } = await supabase
           .from('business_settings')
@@ -644,6 +681,13 @@ function AgendarWizardInner() {
       </main>
 
       <Footer />
+
+      <CompleteProfileModal
+        isOpen={isCompleteModalOpen}
+        initialFullName={profile?.full_name || ''}
+        isBlocking={true}
+        onComplete={handleProfileComplete}
+      />
     </div>
   )
 }

@@ -12,6 +12,7 @@ import { cancelAppointmentAction } from './actions'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { formatWhatsAppLink } from '@/lib/settings'
+import { CompleteProfileModal } from '@/components/CompleteProfileModal'
 
 export default function ClientePanel() {
   const router = useRouter()
@@ -22,8 +23,32 @@ export default function ClientePanel() {
   const [successMsg, setSuccessMsg] = useState('')
   const [isPending, startTransition] = useTransition()
   const [settings, setSettings] = useState<any>(null)
+  const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false)
   
   const supabase = createClient()
+
+  const isProfileIncomplete = (prof: any) => {
+    if (!prof) return false
+    const name = prof.full_name || ''
+    const hasMultipleWords = name.trim().split(/\s+/).length >= 2
+    const phone = prof.phone || ''
+    const isPhoneEmpty = !phone.trim()
+
+    return !name.trim() || !hasMultipleWords || isPhoneEmpty
+  }
+
+  const handleAgendarClick = (e: React.MouseEvent) => {
+    if (profile && isProfileIncomplete(profile)) {
+      e.preventDefault()
+      setIsCompleteModalOpen(true)
+    }
+  }
+
+  const handleProfileComplete = async (fullName: string, phone: string) => {
+    setIsCompleteModalOpen(false)
+    await loadData()
+    router.push('/cliente/agendar')
+  }
 
   const loadData = async () => {
     try {
@@ -185,6 +210,7 @@ export default function ClientePanel() {
               </Link>
               <Link
                 href="/cliente/agendar"
+                onClick={handleAgendarClick}
                 className="flex-1 sm:flex-none text-center px-5 py-2.5 bg-primary hover:bg-primary-hover text-primary-foreground font-bold rounded text-xs flex items-center justify-center gap-1.5 transition-all shadow-md"
               >
                 <Calendar className="w-3.5 h-3.5 text-primary-foreground" />
@@ -282,6 +308,7 @@ export default function ClientePanel() {
                     <p>Você não possui agendamentos ativos no momento.</p>
                     <Link
                       href="/cliente/agendar"
+                      onClick={handleAgendarClick}
                       className="text-primary font-semibold hover:underline inline-flex items-center gap-1"
                     >
                       Agendar meu primeiro serviço <ArrowRight className="w-3.5 h-3.5" />
@@ -361,6 +388,14 @@ export default function ClientePanel() {
       </main>
 
       <Footer />
+
+      <CompleteProfileModal
+        isOpen={isCompleteModalOpen}
+        initialFullName={profile?.full_name || ''}
+        isBlocking={false}
+        onClose={() => setIsCompleteModalOpen(false)}
+        onComplete={handleProfileComplete}
+      />
     </div>
   )
 }
