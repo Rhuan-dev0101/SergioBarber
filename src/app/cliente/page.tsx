@@ -378,7 +378,7 @@ export default function ClientePanel() {
                 <ul className="list-disc pl-4 space-y-1.5 text-[11px] leading-normal">
                   <li>O cancelamento online livre expira <strong>2 horas</strong> antes da reserva.</li>
                   <li>Tolerância máxima a atrasos de <strong>10 minutos</strong>.</li>
-                  <li>Reservas sem sinal Pix em até 2 horas podem ser canceladas automaticamente.</li>
+                  <li>Reservas sem sinal Pix em até 2 horas podem ser canceladas pela barbearia.</li>
                 </ul>
               </div>
             </div>
