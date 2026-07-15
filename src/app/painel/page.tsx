@@ -55,6 +55,24 @@ export default async function PainelDashboard() {
 
   const apptsList = appointments || []
 
+  // 3.1 Query paid package subscriptions
+  let pkgQuery = supabase
+    .from('package_subscriptions')
+    .select('package_price, payment_status, barber_id')
+    .eq('payment_status', 'paid')
+
+  if (!isAdmin) {
+    pkgQuery = pkgQuery.eq('barber_id', user.id)
+  }
+
+  const { data: paidPackages, error: pkgError } = await pkgQuery
+
+  if (pkgError) {
+    console.error('Error fetching paid packages for dashboard:', pkgError)
+  }
+
+  const packagesList = paidPackages || []
+
   // 4. Calculate metrics
   const now = new Date()
   const todayStr = now.toLocaleDateString('pt-BR', {
@@ -112,6 +130,11 @@ export default async function PainelDashboard() {
     }
   })
 
+  // Add paid packages revenue to total revenue
+  packagesList.forEach((pkg: any) => {
+    totalRevenue += Number(pkg.package_price)
+  })
+
   // Fetch all barbers to map names
   const { data: barbersList } = await supabase
     .from('profiles')
@@ -138,6 +161,15 @@ export default async function PainelDashboard() {
         barberStats[barberName].revenue += Number(payment.total_amount)
       }
     }
+  })
+
+  // Add paid packages to barber workload stats
+  packagesList.forEach((pkg: any) => {
+    const barberName = barberMap[pkg.barber_id] || 'Outros'
+    if (!barberStats[barberName]) {
+      barberStats[barberName] = { count: 0, revenue: 0 }
+    }
+    barberStats[barberName].revenue += Number(pkg.package_price)
   })
 
   // Get top services
