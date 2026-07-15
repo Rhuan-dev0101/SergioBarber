@@ -86,7 +86,7 @@ export async function getAvailableSlots(barberId: string, dateStr: string, servi
   if (!slotsRanges || slotsRanges.length === 0) return []
 
   const availableSlots: string[] = []
-  const timeStep = 30 // Check slots every 30 minutes
+  const timeStep = 60 // Check slots every 60 minutes
 
   // Calculate current minutes if date is today to filter out past slots
   const now = new Date()

@@ -14,6 +14,7 @@ import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { formatWhatsAppLink } from '@/lib/settings'
 import { CompleteProfileModal } from '@/components/CompleteProfileModal'
+import { BookingErrorBoundary } from '@/components/BookingErrorBoundary'
 
 // Local fallbacks in case database is empty
 const STATIC_SERVICES = [
@@ -496,9 +497,10 @@ function AgendarWizardInner() {
               </div>
             )}
 
-            {/* STEP 1: Select Barber */}
-            {step === 1 && (
-              <div className="space-y-4">
+            <BookingErrorBoundary>
+              {/* STEP 1: Select Barber */}
+              {step === 1 && (
+              <div key="step-1" className="space-y-4">
                 <h3 className="font-serif font-semibold text-lg text-foreground">Escolha o Profissional</h3>
                 <p className="text-xs text-muted-foreground">Selecione o barbeiro de sua preferência para realizar o serviço</p>
                 
@@ -531,7 +533,7 @@ function AgendarWizardInner() {
 
             {/* STEP 2: Select Service */}
             {step === 2 && (
-              <div className="space-y-4">
+              <div key="step-2" className="space-y-4">
                 <h3 className="font-serif font-semibold text-lg text-foreground">Selecione o Serviço</h3>
                 <p className="text-xs text-muted-foreground">Escolha qual serviço gostaria de fazer hoje</p>
 
@@ -571,7 +573,7 @@ function AgendarWizardInner() {
 
             {/* STEP 3: Select Date */}
             {step === 3 && (
-              <div className="space-y-4">
+              <div key="step-3" className="space-y-4">
                 <div className="border-b border-border/40 pb-2">
                   <h3 className="font-serif font-semibold text-lg text-foreground">Selecione a Data</h3>
                   <p className="text-xs text-muted-foreground">Escolha um dos próximos dias disponíveis para agendamento (Domingo e Segunda fechados)</p>
@@ -691,17 +693,17 @@ function AgendarWizardInner() {
 
             {/* STEP 4: Select Time Slot */}
             {step === 4 && (
-              <div className="space-y-4">
+              <div key="step-4" className="space-y-4">
                 <h3 className="font-serif font-semibold text-lg text-foreground">Escolha o Horário</h3>
                 <p className="text-xs text-muted-foreground">Horários disponíveis para {selectedBarber?.name} em {formatDateText(selectedDate)}</p>
 
                 {loadingSlots ? (
-                  <div className="py-8 flex flex-col items-center justify-center gap-2">
+                  <div key="loading-slots" className="py-8 flex flex-col items-center justify-center gap-2">
                     <Loader2 className="w-6 h-6 animate-spin text-primary" />
                     <span className="text-xs text-muted-foreground">Calculando horários livres...</span>
                   </div>
                 ) : slots.length > 0 ? (
-                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 max-h-60 overflow-y-auto pr-1">
+                  <div key="slots-grid" className="grid grid-cols-3 sm:grid-cols-6 gap-2 max-h-60 overflow-y-auto pr-1">
                     {slots.map((slot) => (
                       <button
                         key={slot}
@@ -717,7 +719,7 @@ function AgendarWizardInner() {
                     ))}
                   </div>
                 ) : (
-                  <div className="p-6 bg-secondary/20 rounded border border-border text-center text-xs text-muted-foreground">
+                  <div key="no-slots-fallback" className="p-6 bg-secondary/20 rounded border border-border text-center text-xs text-muted-foreground">
                     Infelizmente, todos os horários estão preenchidos para este profissional na data escolhida. Por favor, volte e escolha outro dia ou outro barbeiro.
                   </div>
                 )}
@@ -726,7 +728,7 @@ function AgendarWizardInner() {
 
             {/* STEP 5: Review & Confirm */}
             {step === 5 && (
-              <div className="space-y-4">
+              <div key="step-5" className="space-y-4">
                 <h3 className="font-serif font-semibold text-lg text-foreground">Revisar Agendamento</h3>
                 <p className="text-xs text-muted-foreground">Revise os detalhes da sua reserva antes de submeter</p>
 
@@ -788,6 +790,7 @@ function AgendarWizardInner() {
                 </label>
               </div>
             )}
+            </BookingErrorBoundary>
 
             {/* Navigation Buttons */}
             <div className="flex justify-between gap-4 border-t border-border/40 pt-4 mt-6">
@@ -831,15 +834,15 @@ function AgendarWizardInner() {
                   className="px-6 py-2.5 bg-primary hover:bg-primary-hover text-primary-foreground rounded text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed ml-auto"
                 >
                   {isPending ? (
-                    <>
+                    <span key="loading" className="flex items-center gap-1.5 justify-center">
                       <Loader2 className="w-4 h-4 animate-spin text-primary-foreground" />
                       Registrando...
-                    </>
+                    </span>
                   ) : (
-                    <>
+                    <span key="normal" className="flex items-center gap-1.5 justify-center">
                       Confirmar Agendamento
                       <Check className="w-4 h-4 text-primary-foreground" />
-                    </>
+                    </span>
                   )}
                 </button>
               )}

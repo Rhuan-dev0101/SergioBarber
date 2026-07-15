@@ -313,7 +313,7 @@ export async function getBarberMonthAvailabilityAction(
       const busyIntervals = busyIntervalsByDate.get(dateStr) || []
       let totalSlotsCount = 0
       let availableSlotsCount = 0
-      const timeStep = 30 // Check slots every 30 minutes
+      const timeStep = 60 // Check slots every 60 minutes
 
       for (const range of slotsRanges) {
         const rangeStart = timeToMinutesLocal(range.start)
