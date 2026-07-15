@@ -1,0 +1,23 @@
+{
+  "name": "Osanchez Barbearia",
+  "short_name": "Osanchez",
+  "description": "Agende seu horário na Osanchez Barbearia",
+  "theme_color": "#c5a880",
+  "background_color": "#09090b",
+  "display": "standalone",
+  "orientation": "portrait",
+  "scope": "/",
+  "start_url": "/",
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

@@ -18,6 +18,15 @@ export const metadata: Metadata = {
   title: "Osanchez Barbearia | Agendamento de Barbearia Premium",
   description: "Vivencie o estilo e cuidado premium na Osanchez Barbearia. Agende seu horário com os melhores profissionais de forma prática e rápida.",
   keywords: ["barbearia", "agendamento", "corte de cabelo", "barba", "Osanchez", "Premium"],
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Osanchez",
+  },
+  icons: {
+    apple: "/apple-touch-icon.png",
+  },
 }
 
 export default function RootLayout({
