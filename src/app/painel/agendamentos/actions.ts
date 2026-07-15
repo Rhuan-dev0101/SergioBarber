@@ -194,3 +194,49 @@ export async function createWalkInAppointmentAction(
     return { success: false, message: 'Erro interno no servidor.' }
   }
 }
+
+/**
+ * Permanently delete an appointment and its linked payment record.
+ * ADMIN ROLE ONLY — barbers are rejected server-side even if the UI is bypassed.
+ */
+export async function deleteAppointmentAction(apptId: string): Promise<ActionResponse> {
+  const staff = await verifyStaffSession()
+  if (!staff) {
+    return { success: false, message: 'Não autorizado.' }
+  }
+
+  // Hard-block: barbers may never delete appointments, even via direct API call
+  if (staff.role !== 'admin') {
+    return { success: false, message: 'Apenas administradores podem excluir agendamentos permanentemente.' }
+  }
+
+  if (!apptId) {
+    return { success: false, message: 'ID do agendamento inválido.' }
+  }
+
+  try {
+    const supabase = await createServerSupabaseClient()
+
+    // Delete payments first (in case ON DELETE CASCADE is not set on the FK)
+    await supabase
+      .from('payments')
+      .delete()
+      .eq('appointment_id', apptId)
+
+    // Delete the appointment itself
+    const { error } = await supabase
+      .from('appointments')
+      .delete()
+      .eq('id', apptId)
+
+    if (error) {
+      console.error('Error deleting appointment:', error)
+      return { success: false, message: 'Erro ao excluir agendamento.' }
+    }
+
+    return { success: true, message: 'Agendamento excluído permanentemente.' }
+  } catch (err) {
+    console.error('Error inside deleteAppointmentAction:', err)
+    return { success: false, message: 'Erro interno no servidor.' }
+  }
+}

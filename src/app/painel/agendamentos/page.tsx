@@ -4,14 +4,15 @@ import React, { useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { 
   Scissors, Calendar, Clock, Search, Edit2, Trash2, CheckCircle2, 
-  AlertCircle, Plus, Loader2, Save, X, User, Sparkles, Check 
+  AlertCircle, Plus, Loader2, Save, X, User, Sparkles, Check, AlertTriangle
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
 import { 
   updateAppointmentStatusAction, 
   updateAppointmentNotesAction, 
-  createWalkInAppointmentAction 
+  createWalkInAppointmentAction,
+  deleteAppointmentAction
 } from './actions'
 
 export default function PainelAgendamentos() {
@@ -54,6 +55,9 @@ export default function PainelAgendamentos() {
   const [errorMsg, setErrorMsg] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
   const [isPending, startTransition] = useTransition()
+
+  // Delete confirmation modal state (admin only)
+  const [deleteTarget, setDeleteTarget] = useState<any>(null)
 
   const supabase = createClient()
 
@@ -270,6 +274,26 @@ export default function PainelAgendamentos() {
         setWalkInTime('')
         setWalkInNotes('')
 
+        loadData()
+      }
+    })
+  }
+
+  const handleDelete = (appt: any) => {
+    setDeleteTarget(appt)
+  }
+
+  const handleConfirmDelete = () => {
+    if (!deleteTarget) return
+    setErrorMsg('')
+    setSuccessMsg('')
+    startTransition(async () => {
+      const res = await deleteAppointmentAction(deleteTarget.id)
+      setDeleteTarget(null)
+      if (!res.success) {
+        setErrorMsg(res.message)
+      } else {
+        setSuccessMsg(res.message)
         loadData()
       }
     })
@@ -526,6 +550,17 @@ export default function PainelAgendamentos() {
                             Confirmar
                           </button>
                         )}
+                        {/* Admin-only permanent delete */}
+                        {userRole === 'admin' && (
+                          <button
+                            onClick={() => handleDelete(appt)}
+                            disabled={isPending}
+                            title="Excluir permanentemente"
+                            className="p-1 bg-red-900/20 hover:bg-red-900/40 border border-red-800/40 text-red-400 hover:text-red-300 rounded cursor-pointer transition-all"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))
@@ -539,6 +574,86 @@ export default function PainelAgendamentos() {
             </tbody>
           </table>
         </div>
+
+        {/* ── Delete Confirmation Modal (admin only) ──────────────────────── */}
+        {deleteTarget && (
+          <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+            <div className="glass p-6 sm:p-8 rounded-lg border border-red-800/50 max-w-md w-full shadow-2xl space-y-5 relative">
+              
+              {/* Header */}
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full bg-red-900/30 border border-red-800/40 flex items-center justify-center shrink-0">
+                  <AlertTriangle className="w-5 h-5 text-red-400" />
+                </div>
+                <div>
+                  <h3 className="font-serif font-bold text-lg text-foreground">Excluir Agendamento</h3>
+                  <p className="text-[11px] text-red-400 font-semibold mt-0.5">Esta ação é permanente e irreversível</p>
+                </div>
+              </div>
+
+              {/* Warning text */}
+              <div className="p-4 bg-red-900/10 border border-red-800/30 rounded-lg space-y-2 text-xs text-muted-foreground leading-relaxed">
+                <p>
+                  Você está prestes a <strong className="text-red-400">excluir permanentemente</strong> este agendamento.
+                  Ao contrário de "Cancelar" (que apenas altera o status), a exclusão remove o registro do banco de dados completamente.
+                </p>
+                <p>
+                  O agendamento <strong className="text-foreground">desaparecerá</strong> tanto do painel administrativo quanto do histórico de agendamentos do cliente em sua conta. O registro de pagamento vinculado também será deletado.
+                </p>
+                <p className="font-semibold text-red-400">Esta operação não pode ser desfeita.</p>
+              </div>
+
+              {/* Appointment details */}
+              <div className="bg-secondary/40 border border-border/50 rounded-lg p-4 space-y-2 text-xs">
+                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-2">Agendamento a excluir</p>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Cliente:</span>
+                  <span className="font-semibold text-foreground">{deleteTarget.customerName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Serviço:</span>
+                  <span className="font-semibold text-foreground">{deleteTarget.services?.name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Data / Hora:</span>
+                  <span className="font-semibold text-foreground">
+                    {formatDate(deleteTarget.start_time)} às {formatTime(deleteTarget.start_time)}
+                  </span>
+                </div>
+                {userRole === 'admin' && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Profissional:</span>
+                    <span className="font-semibold text-foreground">{deleteTarget.barberName}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setDeleteTarget(null)}
+                  disabled={isPending}
+                  className="flex-1 px-4 py-2.5 bg-secondary hover:bg-muted border border-border text-foreground rounded text-xs font-semibold transition-all cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmDelete}
+                  disabled={isPending}
+                  className="flex-1 px-4 py-2.5 bg-red-700 hover:bg-red-800 text-white rounded text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isPending ? (
+                    <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Excluindo...</>
+                  ) : (
+                    <><Trash2 className="w-3.5 h-3.5" /> Sim, excluir permanentemente</>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Walk-in Modal overlay */}
         {showWalkInModal && (
