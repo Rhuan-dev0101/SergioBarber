@@ -82,6 +82,12 @@ function AgendarWizardInner() {
   const [successInfo, setSuccessInfo] = useState<any>(null)
   const [settings, setSettings] = useState<any>(null)
 
+  // Pix generation state
+  const [pixPayload, setPixPayload] = useState<string>('')
+  const [pixQrCode, setPixQrCode] = useState<string>('')
+  const [loadingPix, setLoadingPix] = useState<boolean>(false)
+  const [copiedPix, setCopiedPix] = useState<boolean>(false)
+
   const supabase = createClient()
 
   // Load general config and barbers
@@ -273,6 +279,57 @@ function AgendarWizardInner() {
     loadMonthAvailability()
   }, [selectedBarber, selectedService, currentMonth])
 
+  // Generate Pix data when appointment is pre-reserved
+  useEffect(() => {
+    if (!successInfo) return
+
+    async function generatePixData() {
+      setLoadingPix(true)
+      try {
+        const { QrCodePix } = await import('qrcode-pix')
+        
+        // Clean transaction ID (must be alphanumeric, max 25 chars for EMV)
+        const cleanTxId = (successInfo.appointmentId || '')
+          .replace(/[^a-zA-Z0-9]/g, '')
+          .slice(0, 25) || 'AGENDAMENTO'
+
+        const qrCodePix = QrCodePix({
+          version: '01',
+          key: settings?.pixKey || '11979739903',
+          name: settings?.pixName || 'Osanchez Barbearia',
+          city: 'SAO PAULO',
+          transactionId: cleanTxId,
+          value: successInfo.deposit,
+        })
+
+        const payload = qrCodePix.payload()
+        const base64 = await qrCodePix.base64()
+        
+        setPixPayload(payload)
+        setPixQrCode(base64)
+      } catch (err) {
+        console.error('Error generating Pix payload/QR code:', err)
+      } finally {
+        setLoadingPix(false)
+      }
+    }
+
+    generatePixData()
+  }, [successInfo, settings])
+
+  const handleCopyPix = async () => {
+    if (!pixPayload) return
+    try {
+      await navigator.clipboard.writeText(pixPayload)
+      setCopiedPix(true)
+      setTimeout(() => {
+        setCopiedPix(false)
+      }, 2000)
+    } catch (err) {
+      console.error('Failed to copy Pix payload:', err)
+    }
+  }
+
   // Helper to generate calendar days for month grid
   const getCalendarDays = () => {
     const year = currentMonth.getFullYear()
@@ -436,17 +493,71 @@ function AgendarWizardInner() {
             </div>
 
             {/* Pix Info */}
-            <div className="p-4 bg-primary/5 rounded border border-primary/20 text-xs text-left space-y-2">
-              <p className="font-semibold text-primary flex items-center gap-1.5">
+            <div className="p-5 bg-secondary/35 rounded-lg border border-border/60 text-xs text-left space-y-4 shadow-inner">
+              <p className="font-semibold text-primary flex items-center gap-1.5 text-sm">
                 <DollarSign className="w-4 h-4 text-primary" /> Instruções de Pagamento Pix
               </p>
-              <p className="text-muted-foreground">
-                Chave Pix {settings?.pixType === 'cnpj' ? 'CNPJ' : settings?.pixType === 'email' ? 'E-mail' : settings?.pixType === 'phone' ? 'Celular' : settings?.pixType === 'evp' ? 'Chave Aleatória (EVP)' : 'CNPJ'}:{' '}
-                <span className="font-mono text-foreground font-semibold">{settings?.pixKey || '12.345.678/0001-90'}</span>
-              </p>
-              <p className="text-[10px] text-muted-foreground leading-normal">
-                Efetue a transferência do sinal de 50% (R$ {successInfo.deposit.toFixed(2)}) e envie o comprovante pelo WhatsApp clicando no botão abaixo para aprovação manual.
-              </p>
+              
+              <div className="space-y-1">
+                <p className="text-muted-foreground">
+                  Chave Pix {settings?.pixType === 'cnpj' ? 'CNPJ' : settings?.pixType === 'email' ? 'E-mail' : settings?.pixType === 'phone' ? 'Celular' : settings?.pixType === 'evp' ? 'Chave Aleatória (EVP)' : 'CNPJ'}:{' '}
+                  <span className="font-mono text-foreground font-semibold text-sm">{settings?.pixKey || '12.345.678/0001-90'}</span>
+                </p>
+                <p className="text-[10px] text-muted-foreground leading-normal">
+                  Efetue a transferência do sinal de 50% (R$ {successInfo.deposit.toFixed(2)}) e envie o comprovante pelo WhatsApp clicando no botão abaixo para aprovação manual.
+                </p>
+              </div>
+
+              {/* QR Code and Copia e Cola */}
+              <div className="flex flex-col sm:flex-row items-center gap-4 p-4 bg-background/50 rounded-lg border border-border/40">
+                {loadingPix ? (
+                  <div className="w-32 h-32 flex flex-col items-center justify-center bg-secondary/50 rounded border border-border/30 gap-1.5 shrink-0">
+                    <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                    <span className="text-[8px] text-muted-foreground uppercase font-bold tracking-wider">Gerando QR...</span>
+                  </div>
+                ) : pixQrCode ? (
+                  <div className="bg-white p-2 rounded-lg shrink-0 border border-border shadow-md">
+                    <img 
+                      src={pixQrCode} 
+                      alt="QR Code Pix" 
+                      className="w-32 h-32 block"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-32 h-32 flex flex-col items-center justify-center bg-secondary/50 rounded border border-border/30 text-[9px] text-rose-500 shrink-0 text-center px-2">
+                    Falha ao gerar QR Code
+                  </div>
+                )}
+
+                <div className="flex-grow space-y-2.5 w-full text-center sm:text-left">
+                  <p className="text-[11px] font-semibold text-foreground">Pague com o Pix Copia e Cola ou QR Code</p>
+                  <p className="text-[10px] text-muted-foreground leading-normal font-sans">
+                    Você pode escanear o QR Code ao lado ou copiar o código Pix abaixo para realizar o pagamento no aplicativo do seu banco.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleCopyPix}
+                    disabled={!pixPayload}
+                    className={`w-full sm:w-auto px-4 py-2 rounded text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer ${
+                      copiedPix
+                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                        : 'bg-primary hover:bg-primary-hover text-primary-foreground'
+                    }`}
+                  >
+                    {copiedPix ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-white" />
+                        Copiado!
+                      </>
+                    ) : (
+                      <>
+                        <Clock className="w-3.5 h-3.5" />
+                        Copiar código Pix
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
             </div>
 
             {/* WA button */}
