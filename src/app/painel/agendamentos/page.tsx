@@ -105,6 +105,7 @@ export default function PainelAgendamentos() {
           end_time,
           status,
           notes,
+          package_subscription_id,
           services (name, price),
           payments (total_amount, status, method),
           customer_id,
@@ -465,7 +466,14 @@ export default function PainelAgendamentos() {
                         </div>
                       </td>
                       <td className="p-4 whitespace-nowrap">
-                        {appt.services?.name}
+                        <div className="flex items-center gap-1.5">
+                          {appt.services?.name}
+                          {appt.package_subscription_id && (
+                            <span className="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded bg-primary/15 text-primary border border-primary/25 tracking-wider">
+                              Pacote
+                            </span>
+                          )}
+                        </div>
                       </td>
                       {userRole === 'admin' && (
                         <td className="p-4 whitespace-nowrap text-muted-foreground">

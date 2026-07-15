@@ -92,6 +92,7 @@ export default function ClientePanel() {
           end_time,
           status,
           notes,
+          package_subscription_id,
           services (id, name, price, duration),
           payments (id, total_amount, deposit_amount, status, method),
           barber_id
@@ -261,6 +262,11 @@ export default function ClientePanel() {
                             <span className="text-[10px] bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded uppercase font-semibold">
                               {appt.status === 'confirmed' ? 'Confirmado' : 'Aguardando Sinal'}
                             </span>
+                            {appt.package_subscription_id && (
+                              <span className="text-[9px] bg-amber-500/10 text-amber-500 border border-amber-500/20 px-2 py-0.5 rounded uppercase font-bold tracking-wider">
+                                Pacote Mensal
+                              </span>
+                            )}
                             <span className="font-mono text-[10px] text-muted-foreground border border-border/60 bg-secondary/40 px-1.5 py-0.5 rounded tracking-widest">
                               {apptShortCode(appt.id)}
                             </span>

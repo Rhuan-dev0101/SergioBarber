@@ -1,11 +1,11 @@
 import React from 'react'
 export const dynamic = 'force-dynamic'
 import Link from 'next/link'
-import { Scissors, Clock, Award, Star, ChevronRight } from 'lucide-react'
+import { Scissors, Clock, Award, Star, ChevronRight, Crown, MessageCircle, Sparkles, Check } from 'lucide-react'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { createServerSupabaseClient } from '@/lib/supabase'
-import { getBusinessSettings } from '@/lib/settings'
+import { getBusinessSettings, formatWhatsAppLink } from '@/lib/settings'
 import { GradientButton } from '@/components/ui/gradient-button'
 
 const SEED_SERVICES = [
@@ -142,6 +142,126 @@ export default async function Servicos() {
             <div className="h-0.5 w-16 bg-primary mx-auto" />
             <p className="text-sm text-muted-foreground max-w-lg mx-auto">
               Descubra nossos serviços especializados e viva uma experiência premium. Todos os pacotes podem ser parcelados ou pagos via Pix com desconto.
+            </p>
+          </div>
+
+          {/* ── Planos Mensais — Premium Section ────────────────── */}
+          <div className="mb-20">
+            <div className="text-center space-y-3 mb-10">
+              <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-full px-4 py-1.5 text-xs font-bold text-primary uppercase tracking-widest">
+                <Crown className="w-3.5 h-3.5" />
+                Exclusivo
+              </div>
+              <h2 className="text-3xl font-serif font-bold text-foreground">Planos Mensais</h2>
+              <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                Garanta seu dia e horário fixo toda semana, com desconto especial.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+              {/* Package Card 1 — Corte */}
+              <div className="animated-gradient-card p-8 space-y-5 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl" />
+                <div className="relative">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2.5 rounded-lg bg-primary/10 border border-primary/20">
+                      <Scissors className="w-5 h-5 text-primary rotate-45" />
+                    </div>
+                    <div>
+                      <h3 className="font-serif font-bold text-lg text-foreground">4 Cortes por Mês</h3>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Pacote Semanal</p>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-muted-foreground leading-relaxed mb-5">
+                    Mesmo dia e horário reservados por 4 semanas consecutivas. Sua vaga é garantida — sem preocupação de agenda.
+                  </p>
+
+                  <div className="flex items-baseline gap-3 mb-4">
+                    <span className="text-3xl font-serif font-bold text-primary">R$ 180</span>
+                    <span className="text-sm text-muted-foreground line-through">R$ 200</span>
+                    <span className="text-[10px] font-bold text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full uppercase">
+                      Economize R$ 20
+                    </span>
+                  </div>
+
+                  <ul className="space-y-2 mb-6">
+                    {['4 cortes semanais garantidos', 'Mesmo dia e horário fixo', 'Prioridade na agenda', 'Desconto exclusivo mensal'].map((item, i) => (
+                      <li key={i} className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Check className="w-3.5 h-3.5 text-primary shrink-0" />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+
+                  <a
+                    href={formatWhatsAppLink(settings?.whatsapp || '5511999999999', 'Olá! Gostaria de saber mais sobre o Plano Mensal de 4 cortes.')}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-3 bg-primary/15 hover:bg-primary/25 border border-primary/30 text-primary text-xs font-bold rounded-lg flex items-center justify-center gap-2 transition-all"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    Consulte pelo WhatsApp
+                  </a>
+                </div>
+              </div>
+
+              {/* Package Card 2 — Corte + Barba */}
+              <div className="animated-gradient-card p-8 space-y-5 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl" />
+                <div className="absolute top-4 right-4">
+                  <span className="text-[8px] font-bold text-primary-foreground bg-primary px-2.5 py-1 rounded-full uppercase tracking-widest">
+                    Mais Popular
+                  </span>
+                </div>
+                <div className="relative">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2.5 rounded-lg bg-primary/10 border border-primary/20">
+                      <Sparkles className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="font-serif font-bold text-lg text-foreground">4 Cortes + Barba</h3>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Combo Completo</p>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-muted-foreground leading-relaxed mb-5">
+                    O pacote completo para quem quer cabelo e barba impecáveis toda semana. Atendimento VIP com horário exclusivo.
+                  </p>
+
+                  <div className="flex items-baseline gap-3 mb-4">
+                    <span className="text-3xl font-serif font-bold text-primary">R$ 320</span>
+                    <span className="text-sm text-muted-foreground line-through">R$ 340</span>
+                    <span className="text-[10px] font-bold text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full uppercase">
+                      Economize R$ 20
+                    </span>
+                  </div>
+
+                  <ul className="space-y-2 mb-6">
+                    {['4 sessões cabelo + barba', 'Mesmo dia e horário fixo', 'Toalha quente e acabamento premium', 'Desconto exclusivo mensal'].map((item, i) => (
+                      <li key={i} className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Check className="w-3.5 h-3.5 text-primary shrink-0" />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+
+                  <a
+                    href={formatWhatsAppLink(settings?.whatsapp || '5511999999999', 'Olá! Gostaria de saber mais sobre o Plano Mensal de Corte + Barba.')}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-3 bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-bold rounded-lg flex items-center justify-center gap-2 transition-all shadow-md"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    Consulte pelo WhatsApp
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-center text-[11px] text-muted-foreground mt-6 max-w-md mx-auto">
+              Os pacotes mensais são registrados diretamente na barbearia ou pelo WhatsApp.
+              Não é necessário criar conta para contratar.
             </p>
           </div>
 
