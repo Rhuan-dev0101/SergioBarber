@@ -74,8 +74,10 @@ export async function middleware(request: NextRequest) {
   // CORS Policy (non-wildcard reflection)
   const origin = request.headers.get('origin')
   const allowedOrigins = ['http://localhost:3000', 'https://osanchez-barbearia.vercel.app']
+  const isAllowed = origin && (allowedOrigins.includes(origin) || origin.endsWith('.vercel.app'))
+  
   if (origin) {
-    if (allowedOrigins.includes(origin)) {
+    if (isAllowed) {
       response.headers.set('Access-Control-Allow-Origin', origin)
       response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
       response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
