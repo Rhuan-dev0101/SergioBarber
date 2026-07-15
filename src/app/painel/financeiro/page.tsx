@@ -4,7 +4,7 @@ import React, { useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { 
   Scissors, DollarSign, Calendar, Clock, Check, X, 
-  AlertCircle, CheckCircle2, Loader2, ArrowUpRight, TrendingUp, Search 
+  AlertCircle, CheckCircle2, Loader2, ArrowUpRight, TrendingUp, Search, Crown
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
@@ -58,41 +58,82 @@ export default function PainelFinanceiro() {
         `)
         .order('created_at', { ascending: false })
 
-      if (payLogs && payLogs.length > 0) {
-        // Fetch profiles to map names of customers
-        const customerIds = Array.from(
-          new Set(payLogs.map(p => {
-            const appt: any = Array.isArray(p.appointments) ? p.appointments[0] : p.appointments
-            return appt?.customer_id
-          }).filter(Boolean))
-        )
+      // Fetch package subscriptions
+      const { data: pkgSubs } = await supabase
+        .from('package_subscriptions')
+        .select(`
+          id,
+          customer_id,
+          package_price,
+          payment_status,
+          created_at,
+          services (name)
+        `)
 
-        const { data: customers } = await supabase
-          .from('profiles')
-          .select('id, full_name')
-          .in('id', customerIds)
+      const paymentsList = payLogs || []
+      const packagesList = pkgSubs || []
 
-        const nameMap = (customers || []).reduce((acc: any, c: any) => {
-          acc[c.id] = c.full_name
-          return acc
-        }, {})
+      // Fetch profiles to map names of customers
+      const payCustomerIds = paymentsList.map(p => {
+        const appt: any = Array.isArray(p.appointments) ? p.appointments[0] : p.appointments
+        return appt?.customer_id
+      }).filter(Boolean)
 
-        const enriched = payLogs.map(p => {
-          let cName = 'Cliente Presencial'
-          const appt: any = Array.isArray(p.appointments) ? p.appointments[0] : p.appointments
-          if (appt?.customer_id) {
-            cName = nameMap[appt.customer_id] || 'Cliente'
-          }
-          return {
-            ...p,
-            customerName: cName,
-            serviceName: appt?.services?.name || 'Serviço'
-          }
-        })
-        setPayments(enriched)
-      } else {
-        setPayments([])
-      }
+      const pkgCustomerIds = packagesList.map(pkg => pkg.customer_id).filter(Boolean)
+
+      const customerIds = Array.from(new Set([...payCustomerIds, ...pkgCustomerIds]))
+
+      const { data: customers } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', customerIds)
+
+      const nameMap = (customers || []).reduce((acc: any, c: any) => {
+        acc[c.id] = c.full_name
+        return acc
+      }, {})
+
+      const enrichedPayments = paymentsList.map(p => {
+        let cName = 'Cliente Presencial'
+        const appt: any = Array.isArray(p.appointments) ? p.appointments[0] : p.appointments
+        if (appt?.customer_id) {
+          cName = nameMap[appt.customer_id] || 'Cliente'
+        }
+        return {
+          id: p.id,
+          appointment_id: p.appointment_id,
+          total_amount: Number(p.total_amount),
+          deposit_amount: Number(p.deposit_amount),
+          status: p.status,
+          method: p.method,
+          created_at: p.created_at,
+          customerName: cName,
+          serviceName: appt?.services?.name || 'Serviço',
+          isPackage: false
+        }
+      })
+
+      const enrichedPackages = packagesList.map(pkg => {
+        const cName = nameMap[pkg.customer_id] || 'Cliente'
+        return {
+          id: `pkg_${pkg.id}`,
+          appointment_id: null,
+          total_amount: Number(pkg.package_price),
+          deposit_amount: 0,
+          status: pkg.payment_status,
+          method: 'pix',
+          created_at: pkg.created_at,
+          customerName: cName,
+          serviceName: (pkg.services as any)?.name || 'Pacote Mensal',
+          isPackage: true
+        }
+      })
+
+      const merged = [...enrichedPayments, ...enrichedPackages].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      )
+
+      setPayments(merged)
     } catch (err) {
       console.error('Error fetching payments logs:', err)
     } finally {
@@ -139,11 +180,17 @@ export default function PainelFinanceiro() {
   let totalPending = 0
 
   payments.forEach(p => {
-    if (p.status === 'confirmed_manually' || p.status === 'paid') {
-      totalConfirmed += Number(p.total_amount)
-      totalDeposits += Number(p.deposit_amount)
-    } else if (p.status === 'pending') {
-      totalPending += Number(p.deposit_amount)
+    if (p.isPackage) {
+      if (p.status === 'paid') {
+        totalConfirmed += Number(p.total_amount)
+      }
+    } else {
+      if (p.status === 'confirmed_manually' || p.status === 'paid') {
+        totalConfirmed += Number(p.total_amount)
+        totalDeposits += Number(p.deposit_amount)
+      } else if (p.status === 'pending') {
+        totalPending += Number(p.deposit_amount)
+      }
     }
   })
 
@@ -266,7 +313,15 @@ export default function PainelFinanceiro() {
                       {formatDate(p.created_at)} às {formatTime(p.created_at)}
                     </td>
                     <td className="p-4 font-medium text-foreground">
-                      {p.customerName}
+                      <div className="flex items-center gap-2">
+                        {p.customerName}
+                        {p.isPackage && (
+                          <span className="inline-flex items-center gap-0.5 bg-primary/10 text-primary border border-primary/20 text-[9px] font-bold px-1.5 py-0.5 rounded tracking-wide">
+                            <Crown className="w-2.5 h-2.5" />
+                            PACOTE
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="p-4 whitespace-nowrap">
                       {p.serviceName}
@@ -275,7 +330,11 @@ export default function PainelFinanceiro() {
                       R$ {Number(p.total_amount).toFixed(2)}
                     </td>
                     <td className="p-4 whitespace-nowrap font-mono text-primary font-bold">
-                      R$ {Number(p.deposit_amount).toFixed(2)}
+                      {p.isPackage ? (
+                        <span className="text-muted-foreground font-sans text-[11px] font-normal">—</span>
+                      ) : (
+                        `R$ ${Number(p.deposit_amount).toFixed(2)}`
+                      )}
                     </td>
                     <td className="p-4 whitespace-nowrap uppercase text-muted-foreground">
                       {p.method}
@@ -284,40 +343,80 @@ export default function PainelFinanceiro() {
                       <span className={`text-[9px] uppercase font-bold px-2 py-0.5 rounded ${
                         p.status === 'confirmed_manually' || p.status === 'paid'
                           ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' 
-                          : p.status === 'refunded'
+                          : p.status === 'refunded' || p.status === 'cancelled'
                           ? 'bg-destructive/10 text-destructive border border-destructive/20'
                           : 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
                       }`}>
-                        {p.status === 'confirmed_manually' ? 'Confirmado' : p.status === 'paid' ? 'Pago' : p.status === 'refunded' ? 'Estornado' : 'Pendente'}
+                        {p.status === 'confirmed_manually'
+                          ? 'Confirmado'
+                          : p.status === 'paid'
+                          ? 'Pago'
+                          : p.status === 'refunded' || p.status === 'cancelled'
+                          ? 'Estornado/Cancelado'
+                          : 'Pendente'}
                       </span>
                     </td>
                     <td className="p-4 text-right whitespace-nowrap space-x-1">
-                      {p.status === 'pending' && (
+                      {p.isPackage ? (
                         <>
-                          <button
-                            onClick={() => handleConfirmPayment(p.id, 'confirmed_manually')}
-                            disabled={isPending}
-                            className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[10px] font-semibold cursor-pointer"
-                          >
-                            Confirmar Depósito
-                          </button>
-                          <button
-                            onClick={() => handleConfirmPayment(p.id, 'paid')}
-                            disabled={isPending}
-                            className="px-2 py-1 bg-primary hover:bg-primary-hover text-primary-foreground rounded text-[10px] font-semibold cursor-pointer"
-                          >
-                            Pago Total
-                          </button>
+                          {p.status === 'pending' && (
+                            <>
+                              <button
+                                onClick={() => handleConfirmPayment(p.id, 'paid')}
+                                disabled={isPending}
+                                className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[10px] font-semibold cursor-pointer"
+                              >
+                                Marcar como Pago
+                              </button>
+                              <button
+                                onClick={() => handleConfirmPayment(p.id, 'refunded')}
+                                disabled={isPending}
+                                className="px-2 py-1 bg-destructive/10 hover:bg-destructive/20 border border-destructive/20 text-destructive rounded text-[10px] font-semibold cursor-pointer"
+                              >
+                                Cancelar
+                              </button>
+                            </>
+                          )}
+                          {p.status === 'paid' && (
+                            <button
+                              onClick={() => handleConfirmPayment(p.id, 'refunded')}
+                              disabled={isPending}
+                              className="px-2 py-1 bg-destructive/10 hover:bg-destructive/20 border border-destructive/20 text-destructive rounded text-[10px] font-semibold cursor-pointer"
+                            >
+                              Estornar
+                            </button>
+                          )}
                         </>
-                      )}
-                      {(p.status === 'confirmed_manually' || p.status === 'paid') && (
-                        <button
-                          onClick={() => handleConfirmPayment(p.id, 'refunded')}
-                          disabled={isPending}
-                          className="px-2 py-1 bg-destructive/10 hover:bg-destructive/20 border border-destructive/20 text-destructive rounded text-[10px] font-semibold cursor-pointer"
-                        >
-                          Estornar
-                        </button>
+                      ) : (
+                        <>
+                          {p.status === 'pending' && (
+                            <>
+                              <button
+                                onClick={() => handleConfirmPayment(p.id, 'confirmed_manually')}
+                                disabled={isPending}
+                                className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[10px] font-semibold cursor-pointer"
+                              >
+                                Confirmar Depósito
+                              </button>
+                              <button
+                                onClick={() => handleConfirmPayment(p.id, 'paid')}
+                                disabled={isPending}
+                                className="px-2 py-1 bg-primary hover:bg-primary-hover text-primary-foreground rounded text-[10px] font-semibold cursor-pointer"
+                              >
+                                Pago Total
+                              </button>
+                            </>
+                          )}
+                          {(p.status === 'confirmed_manually' || p.status === 'paid') && (
+                            <button
+                              onClick={() => handleConfirmPayment(p.id, 'refunded')}
+                              disabled={isPending}
+                              className="px-2 py-1 bg-destructive/10 hover:bg-destructive/20 border border-destructive/20 text-destructive rounded text-[10px] font-semibold cursor-pointer"
+                            >
+                              Estornar
+                            </button>
+                          )}
+                        </>
                       )}
                     </td>
                   </tr>

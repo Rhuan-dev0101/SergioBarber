@@ -12,7 +12,9 @@ import { DashboardSidebar } from '@/components/DashboardSidebar'
 import {
   createPackageAction,
   cancelPackageAction,
-  validatePackageSlotsAction
+  validatePackageSlotsAction,
+  markPackageAsPaidAction,
+  deletePackageAction
 } from './actions'
 
 const WEEKDAY_NAMES = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado']
@@ -32,6 +34,7 @@ export default function PainelPacotes() {
   // Modal
   const [showModal, setShowModal] = useState(false)
   const [cancelTarget, setCancelTarget] = useState<any>(null)
+  const [deleteTarget, setDeleteTarget] = useState<any>(null)
 
   // Form state
   const [customerId, setCustomerId] = useState('')
@@ -111,6 +114,7 @@ export default function PainelPacotes() {
           total_sessions,
           package_price,
           status,
+          payment_status,
           created_at
         `)
         .order('created_at', { ascending: false })
@@ -316,6 +320,38 @@ export default function PainelPacotes() {
     })
   }
 
+  const handleMarkAsPaid = (packageId: string) => {
+    setErrorMsg('')
+    setSuccessMsg('')
+
+    startTransition(async () => {
+      const res = await markPackageAsPaidAction(packageId)
+      if (!res.success) {
+        setErrorMsg(res.message)
+      } else {
+        setSuccessMsg(res.message)
+        loadData()
+      }
+    })
+  }
+
+  const handleDeletePackage = () => {
+    if (!deleteTarget) return
+    setErrorMsg('')
+    setSuccessMsg('')
+
+    startTransition(async () => {
+      const res = await deletePackageAction(deleteTarget.id)
+      setDeleteTarget(null)
+      if (!res.success) {
+        setErrorMsg(res.message)
+      } else {
+        setSuccessMsg(res.message)
+        loadData()
+      }
+    })
+  }
+
   const resetForm = () => {
     setCustomerId('')
     setCustomerSearch('')
@@ -396,7 +432,7 @@ export default function PainelPacotes() {
                   {/* Header */}
                   <div className="flex justify-between items-start gap-3">
                     <div className="space-y-1">
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <span className="font-serif font-bold text-sm text-foreground">{pkg.customerName}</span>
                         <span className={`text-[9px] uppercase font-bold px-2 py-0.5 rounded ${
                           pkg.status === 'active'
@@ -407,21 +443,20 @@ export default function PainelPacotes() {
                         }`}>
                           {pkg.status === 'active' ? 'Ativo' : pkg.status === 'completed' ? 'Concluído' : 'Cancelado'}
                         </span>
+                        <span className={`text-[9px] uppercase font-bold px-2 py-0.5 rounded ${
+                          pkg.payment_status === 'paid'
+                            ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
+                            : pkg.payment_status === 'cancelled'
+                            ? 'bg-destructive/10 text-destructive border border-destructive/20'
+                            : 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
+                        }`}>
+                          {pkg.payment_status === 'paid' ? 'Pago' : pkg.payment_status === 'cancelled' ? 'Cancelado' : 'Pendente'}
+                        </span>
                       </div>
                       <p className="text-[10px] text-muted-foreground">
                         {pkg.serviceName} com {pkg.barberName}
                       </p>
                     </div>
-
-                    {pkg.status === 'active' && (
-                      <button
-                        onClick={() => setCancelTarget(pkg)}
-                        className="p-1.5 bg-destructive/10 hover:bg-destructive/20 border border-destructive/20 text-destructive rounded cursor-pointer transition-all"
-                        title="Cancelar pacote"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    )}
                   </div>
 
                   {/* Schedule summary */}
@@ -478,6 +513,41 @@ export default function PainelPacotes() {
                           </span>
                         )
                       })}
+                  </div>
+
+                  {/* Action buttons */}
+                  <div className="flex gap-2 justify-between border-t border-border/40 pt-3 mt-1">
+                    <div>
+                      {pkg.payment_status === 'pending' && pkg.status === 'active' && (
+                        <button
+                          onClick={() => handleMarkAsPaid(pkg.id)}
+                          disabled={isPending}
+                          className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[10px] font-bold cursor-pointer transition-all"
+                        >
+                          Marcar como Pago
+                        </button>
+                      )}
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      {pkg.status === 'active' && (
+                        <button
+                          onClick={() => setCancelTarget(pkg)}
+                          disabled={isPending}
+                          className="px-2.5 py-1.5 bg-destructive/10 hover:bg-destructive/20 border border-destructive/20 text-destructive rounded text-[10px] font-bold cursor-pointer transition-all"
+                        >
+                          Cancelar
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setDeleteTarget(pkg)}
+                        disabled={isPending}
+                        className="p-1.5 bg-red-950/20 hover:bg-red-950/40 border border-red-900/30 text-red-400 hover:text-red-300 rounded cursor-pointer transition-all"
+                        title="Excluir permanentemente"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               )
@@ -555,6 +625,66 @@ export default function PainelPacotes() {
                     <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Cancelando...</>
                   ) : (
                     <><Trash2 className="w-3.5 h-3.5" /> Sim, cancelar pacote</>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Delete Confirmation Modal (permanent delete) ──────── */}
+        {deleteTarget && (
+          <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+            <div className="glass p-6 sm:p-8 rounded-lg border border-red-800/50 max-w-md w-full shadow-2xl space-y-5 relative">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full bg-red-900/30 border border-red-800/40 flex items-center justify-center shrink-0">
+                  <AlertTriangle className="w-5 h-5 text-red-400" />
+                </div>
+                <div>
+                  <h3 className="font-serif font-bold text-lg text-foreground">Excluir Pacote</h3>
+                  <p className="text-[11px] text-red-400 font-semibold mt-0.5">Ação permanente e irreversível</p>
+                </div>
+              </div>
+
+              <div className="p-4 bg-red-900/10 border border-red-800/30 rounded-lg space-y-2 text-xs text-muted-foreground leading-relaxed">
+                <p>
+                  Você está prestes a <strong className="text-red-400">excluir permanentemente</strong> este pacote.
+                  Esta ação excluirá o registro do pacote, <strong className="text-red-400">todos os seus agendamentos</strong> (passados e futuros), e seus históricos de pagamentos vinculados.
+                </p>
+                <p className="font-semibold text-red-400">Esta operação não pode ser desfeita. Sumirá do painel e do cliente.</p>
+              </div>
+
+              <div className="bg-secondary/40 border border-border/50 rounded-lg p-4 space-y-2 text-xs">
+                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-2">Pacote a excluir</p>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Cliente:</span>
+                  <span className="font-semibold text-foreground">{deleteTarget.customerName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Serviço:</span>
+                  <span className="font-semibold text-foreground">{deleteTarget.serviceName}</span>
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setDeleteTarget(null)}
+                  disabled={isPending}
+                  className="flex-1 px-4 py-2.5 bg-secondary hover:bg-muted border border-border text-foreground rounded text-xs font-semibold transition-all cursor-pointer"
+                >
+                  Voltar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeletePackage}
+                  disabled={isPending}
+                  className="flex-1 px-4 py-2.5 bg-red-700 hover:bg-red-800 text-white rounded text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {isPending ? (
+                    <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Excluindo...</>
+                  ) : (
+                    <><Trash2 className="w-3.5 h-3.5" /> Sim, excluir permanentemente</>
                   )}
                 </button>
               </div>

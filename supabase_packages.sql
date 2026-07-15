@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS public.package_subscriptions (
   customer_id UUID NOT NULL REFERENCES public.profiles(id),
   barber_id UUID NOT NULL REFERENCES public.profiles(id),
   service_id UUID NOT NULL REFERENCES public.services(id),
+  created_by UUID NOT NULL REFERENCES public.profiles(id),
   day_of_week INTEGER NOT NULL CHECK (day_of_week BETWEEN 0 AND 6),
   time_slot TEXT NOT NULL,            -- e.g. '19:00'
   start_date DATE NOT NULL,

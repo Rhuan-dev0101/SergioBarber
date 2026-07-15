@@ -38,6 +38,57 @@ export async function confirmPaymentAction(
   try {
     const supabase = await createServerSupabaseClient()
 
+    // Handle package payments
+    if (paymentId.startsWith('pkg_')) {
+      const packageId = paymentId.replace('pkg_', '')
+      
+      if (newStatus === 'confirmed_manually' || newStatus === 'paid') {
+        const { error } = await supabase
+          .from('package_subscriptions')
+          .update({ payment_status: 'paid', updated_at: new Date().toISOString() })
+          .eq('id', packageId)
+          
+        if (error) {
+          console.error('Error marking package as paid:', error)
+          return { success: false, message: 'Erro ao liquidar o pagamento do pacote.' }
+        }
+        return { success: true, message: 'Pacote liquidado como pago!' }
+      } else if (newStatus === 'refunded') {
+        const { error: subError } = await supabase
+          .from('package_subscriptions')
+          .update({ status: 'cancelled', payment_status: 'cancelled', updated_at: new Date().toISOString() })
+          .eq('id', packageId)
+          
+        if (subError) {
+          console.error('Error cancelling package subscription:', subError)
+          return { success: false, message: 'Erro ao estornar/cancelar o pacote.' }
+        }
+        
+        const now = new Date().toISOString()
+        const { data: futureAppts } = await supabase
+          .from('appointments')
+          .select('id')
+          .eq('package_subscription_id', packageId)
+          .neq('status', 'completed')
+          .neq('status', 'cancelled')
+          .gte('start_time', now)
+          
+        if (futureAppts && futureAppts.length > 0) {
+          const ids = futureAppts.map(a => a.id)
+          await supabase
+            .from('appointments')
+            .update({ status: 'cancelled' })
+            .in('id', ids)
+            
+          await supabase
+            .from('payments')
+            .update({ status: 'refunded', notes: 'Pacote estornado pelo administrador.' })
+            .in('appointment_id', ids)
+        }
+        return { success: true, message: 'Pacote estornado e agendamentos futuros cancelados com sucesso.' }
+      }
+    }
+
     // 1. Fetch payment and linked appointment
     const { data: payment } = await supabase
       .from('payments')

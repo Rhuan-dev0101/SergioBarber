@@ -136,7 +136,9 @@ export async function createPackageAction(
         start_date: startDate,
         total_sessions: totalSessions,
         package_price: packagePrice,
-        status: 'active'
+        status: 'active',
+        created_by: admin.user.id,
+        payment_status: 'pending'
       })
       .select('id')
       .single()
@@ -217,10 +219,14 @@ export async function cancelPackageAction(packageId: string): Promise<PackageAct
   try {
     const supabase = await createServerSupabaseClient()
 
-    // 1. Update subscription status
+    // 1. Update subscription status and payment status
     const { error: subError } = await supabase
       .from('package_subscriptions')
-      .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+      .update({ 
+        status: 'cancelled', 
+        payment_status: 'cancelled',
+        updated_at: new Date().toISOString() 
+      })
       .eq('id', packageId)
 
     if (subError) {
@@ -328,5 +334,98 @@ export async function validatePackageSlotsAction(
   } catch (err) {
     console.error('Error in validatePackageSlotsAction:', err)
     return { success: false, dates: [] }
+  }
+}
+
+/**
+ * Mark a package subscription as paid.
+ */
+export async function markPackageAsPaidAction(packageId: string): Promise<PackageActionResponse> {
+  const admin = await verifyAdminSession()
+  if (!admin) {
+    return { success: false, message: 'Apenas administradores podem gerenciar pagamentos de pacotes.' }
+  }
+
+  if (!packageId) {
+    return { success: false, message: 'ID do pacote inválido.' }
+  }
+
+  try {
+    const supabase = await createServerSupabaseClient()
+    const { error } = await supabase
+      .from('package_subscriptions')
+      .update({ payment_status: 'paid', updated_at: new Date().toISOString() })
+      .eq('id', packageId)
+
+    if (error) {
+      console.error('Error marking package as paid:', error)
+      return { success: false, message: 'Erro ao marcar pacote como pago.' }
+    }
+
+    return { success: true, message: 'Pacote marcado como pago com sucesso.' }
+  } catch (err) {
+    console.error('Error in markPackageAsPaidAction:', err)
+    return { success: false, message: 'Erro interno no servidor.' }
+  }
+}
+
+/**
+ * Permanently delete a package, its appointments, and its payments.
+ */
+export async function deletePackageAction(packageId: string): Promise<PackageActionResponse> {
+  const admin = await verifyAdminSession()
+  if (!admin) {
+    return { success: false, message: 'Apenas administradores podem excluir pacotes permanentemente.' }
+  }
+
+  if (!packageId) {
+    return { success: false, message: 'ID do pacote inválido.' }
+  }
+
+  try {
+    const supabase = await createServerSupabaseClient()
+
+    // 1. Get all appointments linked to this package
+    const { data: appts } = await supabase
+      .from('appointments')
+      .select('id')
+      .eq('package_subscription_id', packageId)
+
+    if (appts && appts.length > 0) {
+      const apptIds = appts.map(a => a.id)
+
+      // 2. Delete payment records for these appointments
+      await supabase
+        .from('payments')
+        .delete()
+        .in('appointment_id', apptIds)
+
+      // 3. Delete appointments
+      const { error: apptError } = await supabase
+        .from('appointments')
+        .delete()
+        .in('id', apptIds)
+
+      if (apptError) {
+        console.error('Error deleting package appointments:', apptError)
+        return { success: false, message: 'Erro ao excluir agendamentos do pacote.' }
+      }
+    }
+
+    // 4. Delete the package subscription itself
+    const { error: pkgError } = await supabase
+      .from('package_subscriptions')
+      .delete()
+      .eq('id', packageId)
+
+    if (pkgError) {
+      console.error('Error deleting package subscription:', pkgError)
+      return { success: false, message: 'Erro ao excluir o pacote.' }
+    }
+
+    return { success: true, message: 'Pacote e todos os seus agendamentos foram excluídos permanentemente.' }
+  } catch (err) {
+    console.error('Error in deletePackageAction:', err)
+    return { success: false, message: 'Erro interno no servidor ao excluir pacote.' }
   }
 }
