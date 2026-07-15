@@ -293,11 +293,40 @@ function AgendarWizardInner() {
           .replace(/[^a-zA-Z0-9]/g, '')
           .slice(0, 25) || 'AGENDAMENTO'
 
+        // Format the Pix key based on key type
+        const rawKey = settings?.pixKey || '11979739903'
+        const rawType = settings?.pixType || 'phone'
+        
+        let formattedKey = rawKey.trim()
+        if (rawType === 'phone' || rawType === 'celular' || /^\d{10,11}$/.test(formattedKey.replace(/\D/g, ''))) {
+          // If it is a phone key, format it to international format with '+' sign: +55...
+          let digits = formattedKey.replace(/\D/g, '')
+          if (digits.length === 10 || digits.length === 11) {
+            digits = '55' + digits
+          }
+          formattedKey = `+${digits}`
+        } else if (rawType === 'cnpj' || rawType === 'cpf') {
+          // CNPJ/CPF keys should be digits only
+          formattedKey = formattedKey.replace(/\D/g, '')
+        }
+
+        // Clean beneficiary name to ASCII-only uppercase and enforce 25 char limit
+        const rawName = settings?.pixName || 'Osanchez Barbearia'
+        const cleanName = rawName
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^a-zA-Z0-9 ]/g, '')
+          .toUpperCase()
+          .slice(0, 25)
+          .trim() || 'OSANCHEZ BARBEARIA'
+
+        const cleanCity = 'SAO PAULO' // 9 characters (limit is 15)
+
         const qrCodePix = QrCodePix({
           version: '01',
-          key: settings?.pixKey || '11979739903',
-          name: settings?.pixName || 'Osanchez Barbearia',
-          city: 'SAO PAULO',
+          key: formattedKey,
+          name: cleanName,
+          city: cleanCity,
           transactionId: cleanTxId,
           value: successInfo.deposit,
         })
