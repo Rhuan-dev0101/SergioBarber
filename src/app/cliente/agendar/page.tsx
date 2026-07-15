@@ -472,14 +472,16 @@ function AgendarWizardInner() {
 
   // Render Success Screen
   if (successInfo) {
-    const waMessage = encodeURIComponent(
-      `Olá! Gostaria de confirmar meu agendamento na Osanchez Barbearia.\n` +
-      `Código: ${successInfo.appointmentId}\n` +
-      `Serviço: ${successInfo.service}\n` +
-      `Barbeiro: ${successInfo.barber}\n` +
-      `Data: ${formatDateText(successInfo.date)} às ${successInfo.time}\n` +
-      `Sinal de 50% via Pix: R$ ${successInfo.deposit.toFixed(2)} (Aguardando comprovante)`
-    )
+    // Plain-text message: formatWhatsAppLink calls encodeURIComponent() once internally.
+    // Do NOT pre-encode; double-encoding produces raw %20/%0A/%C3%A1 visible to the user.
+    const waMessage = [
+      'Olá! Gostaria de confirmar meu agendamento na Osanchez Barbearia.',
+      `Código: ${successInfo.appointmentId}`,
+      `Serviço: ${successInfo.service}`,
+      `Barbeiro: ${successInfo.barber}`,
+      `Data: ${formatDateText(successInfo.date)} às ${successInfo.time}`,
+      `Sinal de 50% via Pix: R$ ${successInfo.deposit.toFixed(2)} (Aguardando comprovante)`,
+    ].join('\n')
 
     return (
       <div className="min-h-screen bg-background flex flex-col">
