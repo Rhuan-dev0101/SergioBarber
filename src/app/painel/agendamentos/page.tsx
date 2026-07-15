@@ -276,12 +276,44 @@ export default function PainelAgendamentos() {
   }
 
   const formatTime = (dateStr: string) => {
-    return new Date(dateStr).toLocaleTimeString('pt-BR', {
-      timeZone: 'America/Sao_Paulo',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
-    })
+    try {
+      return new Date(dateStr).toLocaleTimeString('pt-BR', {
+        timeZone: 'America/Sao_Paulo',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      })
+    } catch (e) {
+      return '--:--'
+    }
+  }
+
+  const formatDate = (dateStr: string) => {
+    try {
+      const d = new Date(dateStr)
+      const formatter = new Intl.DateTimeFormat('pt-BR', {
+        timeZone: 'America/Sao_Paulo',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      })
+      const parts = formatter.formatToParts(d)
+      const day = parts.find(p => p.type === 'day')?.value || ''
+      const month = parts.find(p => p.type === 'month')?.value || ''
+      const year = parts.find(p => p.type === 'year')?.value || ''
+      
+      const currentYear = new Date().toLocaleDateString('pt-BR', {
+        timeZone: 'America/Sao_Paulo',
+        year: 'numeric'
+      })
+
+      if (year && currentYear && year !== currentYear) {
+        return `${day}/${month}/${year}`
+      }
+      return `${day}/${month}`
+    } catch (e) {
+      return '--/--'
+    }
   }
 
   if (loading) {
@@ -372,7 +404,7 @@ export default function PainelAgendamentos() {
           <table className="w-full text-left border-collapse min-w-[700px]">
             <thead>
               <tr className="bg-secondary/40 border-b border-border/60 text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
-                <th className="p-4">Hora</th>
+                <th className="p-4">Data / Hora</th>
                 <th className="p-4">Cliente</th>
                 <th className="p-4">Serviço</th>
                 {userRole === 'admin' && <th className="p-4">Profissional</th>}
@@ -385,12 +417,19 @@ export default function PainelAgendamentos() {
             <tbody className="divide-y divide-border/40 text-xs">
               {filteredAppointments.length > 0 ? (
                 filteredAppointments
-                  .sort((a, b) => a.start_time.localeCompare(b.start_time))
+                  .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
                   .map((appt) => (
                     <tr key={appt.id} className="hover:bg-secondary/15 transition-colors">
-                      <td className="p-4 whitespace-nowrap font-semibold flex items-center gap-1">
-                        <Clock className="w-3.5 h-3.5 text-primary" />
-                        {formatTime(appt.start_time)}
+                      <td className="p-4 whitespace-nowrap font-semibold">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-[10px] text-muted-foreground font-normal">
+                            {formatDate(appt.start_time)}
+                          </span>
+                          <span className="flex items-center gap-1 text-xs text-foreground font-bold">
+                            <Clock className="w-3 h-3 text-primary shrink-0" />
+                            {formatTime(appt.start_time)}
+                          </span>
+                        </div>
                       </td>
                       <td className="p-4 font-medium text-foreground">
                         {appt.customerName}
