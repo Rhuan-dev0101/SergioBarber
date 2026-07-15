@@ -12,6 +12,7 @@ import { cancelAppointmentAction } from './actions'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { formatWhatsAppLink } from '@/lib/settings'
+import { apptShortCode } from '@/lib/utils'
 import { CompleteProfileModal } from '@/components/CompleteProfileModal'
 
 export default function ClientePanel() {
@@ -260,6 +261,9 @@ export default function ClientePanel() {
                             <span className="text-[10px] bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded uppercase font-semibold">
                               {appt.status === 'confirmed' ? 'Confirmado' : 'Aguardando Sinal'}
                             </span>
+                            <span className="font-mono text-[10px] text-muted-foreground border border-border/60 bg-secondary/40 px-1.5 py-0.5 rounded tracking-widest">
+                              {apptShortCode(appt.id)}
+                            </span>
                           </div>
 
                           <div className="text-xs text-muted-foreground space-y-1">
@@ -329,7 +333,10 @@ export default function ClientePanel() {
                         className="p-4 rounded-lg bg-secondary/25 border border-border/50 flex justify-between items-center text-xs gap-4"
                       >
                         <div className="space-y-1">
-                          <p className="font-semibold text-foreground">{appt.services?.name || 'Serviço'}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold text-foreground">{appt.services?.name || 'Serviço'}</p>
+                            <span className="font-mono text-[9px] text-muted-foreground/70 tracking-widest">{apptShortCode(appt.id)}</span>
+                          </div>
                           <p className="text-[10px] text-muted-foreground">{formatDate(appt.start_time)} às {formatTime(appt.start_time)} | {appt.barberName}</p>
                         </div>
                         <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${

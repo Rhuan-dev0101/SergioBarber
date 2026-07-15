@@ -13,6 +13,7 @@ import { createAppointmentAction, getBarberMonthAvailabilityAction } from './act
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { formatWhatsAppLink } from '@/lib/settings'
+import { apptShortCode } from '@/lib/utils'
 import { CompleteProfileModal } from '@/components/CompleteProfileModal'
 import { BookingErrorBoundary } from '@/components/BookingErrorBoundary'
 
@@ -440,6 +441,7 @@ function AgendarWizardInner() {
       } else {
         setSuccessInfo({
           appointmentId: res.appointmentId,
+          customerName: profile?.full_name || '',
           barber: selectedBarber.name,
           service: selectedService.name,
           price: selectedService.price,
@@ -474,11 +476,12 @@ function AgendarWizardInner() {
   if (successInfo) {
     // Plain-text message: formatWhatsAppLink calls encodeURIComponent() once internally.
     // Do NOT pre-encode; double-encoding produces raw %20/%0A/%C3%A1 visible to the user.
+    const shortCode = apptShortCode(successInfo.appointmentId)
+    const senderName = successInfo.customerName || 'Cliente'
     const waMessage = [
-      'Olá! Gostaria de confirmar meu agendamento na Osanchez Barbearia.',
-      `Código: ${successInfo.appointmentId}`,
-      `Serviço: ${successInfo.service}`,
-      `Barbeiro: ${successInfo.barber}`,
+      `Olá! Sou ${senderName} e gostaria de confirmar meu agendamento na Osanchez Barbearia.`,
+      `Código: ${shortCode}`,
+      `Serviço: ${successInfo.service} — ${successInfo.barber}`,
       `Data: ${formatDateText(successInfo.date)} às ${successInfo.time}`,
       `Sinal de 50% via Pix: R$ ${successInfo.deposit.toFixed(2)} (Aguardando comprovante)`,
     ].join('\n')
@@ -501,6 +504,11 @@ function AgendarWizardInner() {
 
             {/* Price Details */}
             <div className="bg-secondary/40 p-5 rounded-lg border border-border/60 text-left space-y-3">
+              {/* Short reference code — prominently at top */}
+              <div className="flex justify-between items-center border-b border-border/40 pb-2">
+                <span className="text-xs text-muted-foreground">Ref. Agendamento:</span>
+                <span className="font-mono font-bold text-primary tracking-widest text-sm">{shortCode}</span>
+              </div>
               <div className="flex justify-between text-xs text-muted-foreground border-b border-border/40 pb-2">
                 <span>Serviço:</span>
                 <span className="font-semibold text-foreground">{successInfo.service}</span>

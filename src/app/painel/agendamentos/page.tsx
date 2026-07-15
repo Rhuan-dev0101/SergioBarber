@@ -14,6 +14,7 @@ import {
   createWalkInAppointmentAction,
   deleteAppointmentAction
 } from './actions'
+import { apptShortCode } from '@/lib/utils'
 
 export default function PainelAgendamentos() {
   const router = useRouter()
@@ -455,8 +456,13 @@ export default function PainelAgendamentos() {
                           </span>
                         </div>
                       </td>
-                      <td className="p-4 font-medium text-foreground">
-                        {appt.customerName}
+                      <td className="p-4">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="font-medium text-foreground">{appt.customerName}</span>
+                          <span className="font-mono text-[10px] text-primary/70 tracking-widest font-semibold">
+                            {apptShortCode(appt.id)}
+                          </span>
+                        </div>
                       </td>
                       <td className="p-4 whitespace-nowrap">
                         {appt.services?.name}
