@@ -310,7 +310,14 @@ export async function getBarberMonthAvailabilityAction(
       }
 
       // 4. Calculate slots
-      const busyIntervals = busyIntervalsByDate.get(dateStr) || []
+      const busyIntervals = [...(busyIntervalsByDate.get(dateStr) || [])]
+      if (workingHours.lunch_break_start && typeof workingHours.lunch_break_start === 'string') {
+        const lunchStartMin = timeToMinutesLocal(workingHours.lunch_break_start)
+        busyIntervals.push({
+          start: lunchStartMin,
+          end: lunchStartMin + 60
+        })
+      }
       let totalSlotsCount = 0
       let availableSlotsCount = 0
       const timeStep = 60 // Check slots every 60 minutes

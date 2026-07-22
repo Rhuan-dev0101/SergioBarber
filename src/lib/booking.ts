@@ -82,6 +82,14 @@ export async function getAvailableSlots(barberId: string, dateStr: string, servi
     }))
   ]
 
+  if (workingHours.lunch_break_start && typeof workingHours.lunch_break_start === 'string') {
+    const lunchStartMin = timeToMinutes(workingHours.lunch_break_start)
+    busyIntervals.push({
+      start: lunchStartMin,
+      end: lunchStartMin + 60
+    })
+  }
+
   const slotsRanges = workingHours.slots as Array<{ start: string; end: string }>
   if (!slotsRanges || slotsRanges.length === 0) return []
 

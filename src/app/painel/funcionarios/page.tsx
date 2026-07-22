@@ -46,10 +46,10 @@ export default function PainelFuncionarios() {
   // Form inputs: Working Hours
   const [selectedDayOfWeek, setSelectedDayOfWeek] = useState<number>(2) // Tuesday default
   const [isClosed, setIsClosed] = useState(false)
-  const [morningStart, setMorningStart] = useState('09:00')
-  const [morningEnd, setMorningEnd] = useState('13:00')
-  const [afternoonStart, setAfternoonStart] = useState('14:00')
-  const [afternoonEnd, setAfternoonEnd] = useState('22:00')
+  const [openTime, setOpenTime] = useState('09:00')
+  const [closeTime, setCloseTime] = useState('22:00')
+  const [hasLunchBreak, setHasLunchBreak] = useState(false)
+  const [lunchBreakStart, setLunchBreakStart] = useState('12:00')
 
   // Form inputs: Blocks
   const [blockStart, setBlockStart] = useState('')
@@ -185,22 +185,31 @@ export default function PainelFuncionarios() {
       setIsClosed(current.is_closed)
       const slots = current.slots as Array<{ start: string; end: string }>
       if (slots && slots.length > 0) {
-        setMorningStart(slots[0]?.start || '09:00')
-        setMorningEnd(slots[0]?.end || '13:00')
-        setAfternoonStart(slots[1]?.start || '14:00')
-        setAfternoonEnd(slots[1]?.end || '22:00')
+        setOpenTime(slots[0]?.start || '09:00')
+        setCloseTime(slots[slots.length - 1]?.end || '22:00')
+        
+        if (current.lunch_break_start) {
+          setHasLunchBreak(true)
+          setLunchBreakStart(String(current.lunch_break_start).slice(0, 5))
+        } else if (slots.length > 1 && slots[0]?.end && slots[1]?.start) {
+          setHasLunchBreak(true)
+          setLunchBreakStart(slots[0].end.slice(0, 5))
+        } else {
+          setHasLunchBreak(false)
+          setLunchBreakStart('12:00')
+        }
       } else {
-        setMorningStart('09:00')
-        setMorningEnd('13:00')
-        setAfternoonStart('14:00')
-        setAfternoonEnd('22:00')
+        setOpenTime('09:00')
+        setCloseTime('22:00')
+        setHasLunchBreak(false)
+        setLunchBreakStart('12:00')
       }
     } else {
       setIsClosed(false)
-      setMorningStart('09:00')
-      setMorningEnd('13:00')
-      setAfternoonStart('14:00')
-      setAfternoonEnd('22:00')
+      setOpenTime('09:00')
+      setCloseTime('22:00')
+      setHasLunchBreak(false)
+      setLunchBreakStart('12:00')
     }
   }
 
@@ -293,21 +302,19 @@ export default function PainelFuncionarios() {
     setSuccessMsg('')
 
     const slots: Array<{ start: string; end: string }> = []
-    if (!isClosed) {
-      if (morningStart && morningEnd) {
-        slots.push({ start: morningStart, end: morningEnd })
-      }
-      if (afternoonStart && afternoonEnd) {
-        slots.push({ start: afternoonStart, end: afternoonEnd })
-      }
+    if (!isClosed && openTime && closeTime) {
+      slots.push({ start: openTime, end: closeTime })
     }
+
+    const lunchToSave = (!isClosed && hasLunchBreak && lunchBreakStart) ? lunchBreakStart : null
 
     startTransition(async () => {
       const res = await updateBarberWorkingHoursAction(
         selectedBarber.id,
         selectedDayOfWeek,
         isClosed,
-        slots
+        slots,
+        lunchToSave
       )
 
       if (!res.success) {
@@ -683,10 +690,8 @@ export default function PainelFuncionarios() {
                               type="button"
                               onClick={() => {
                                 setIsClosed(false)
-                                if (!morningStart || morningStart === '00:00') setMorningStart('09:00')
-                                if (!morningEnd || morningEnd === '00:00') setMorningEnd('13:00')
-                                if (!afternoonStart || afternoonStart === '00:00') setAfternoonStart('14:00')
-                                if (!afternoonEnd || afternoonEnd === '00:00') setAfternoonEnd('22:00')
+                                if (!openTime || openTime === '00:00') setOpenTime('09:00')
+                                if (!closeTime || closeTime === '00:00') setCloseTime('22:00')
                               }}
                               className="group px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded text-xs transition-all duration-300 ease-in-out hover:brightness-110 motion-safe:hover:scale-[1.03] motion-safe:active:scale-95 flex items-center gap-1.5 shadow cursor-pointer"
                             >
@@ -712,9 +717,7 @@ export default function PainelFuncionarios() {
                               
                               <button
                                 type="button"
-                                onClick={() => {
-                                  setIsClosed(true)
-                                }}
+                                onClick={() => setIsClosed(true)}
                                 className="group px-3 py-1.5 bg-destructive/10 hover:bg-destructive/20 text-destructive font-bold border border-destructive/20 rounded text-[10px] uppercase transition-all duration-300 ease-in-out hover:brightness-110 motion-safe:hover:scale-[1.03] motion-safe:active:scale-95 cursor-pointer flex items-center gap-1"
                               >
                                 <Pause className="w-3.5 h-3.5 transition-transform duration-300 motion-safe:group-hover:scale-110 motion-safe:group-active:scale-90" />
@@ -722,35 +725,67 @@ export default function PainelFuncionarios() {
                               </button>
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                              {/* Morning Shift */}
-                              <div className="space-y-2 border border-border/40 p-3 rounded">
-                                <h5 className="text-[10px] uppercase font-bold text-primary">Turno Manhã</h5>
-                                <div className="grid grid-cols-2 gap-2 text-xs">
-                                  <label className="space-y-1">
-                                    <span className="text-[10px] text-muted-foreground">Início</span>
-                                    <input type="time" value={morningStart} onChange={(e) => setMorningStart(e.target.value)} className="w-full p-2 bg-secondary border border-border rounded outline-none text-foreground focus:border-primary transition-colors duration-200" />
+                            <div className="space-y-4">
+                              {/* Horário de Funcionamento */}
+                              <div className="space-y-2 border border-border/40 p-4 rounded bg-background/40">
+                                <h5 className="text-xs font-semibold uppercase text-primary tracking-wider">Horário de Funcionamento</h5>
+                                <div className="grid grid-cols-2 gap-4 text-xs">
+                                  <label className="space-y-1.5">
+                                    <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Abre às</span>
+                                    <input 
+                                      type="time" 
+                                      value={openTime} 
+                                      onChange={(e) => setOpenTime(e.target.value)} 
+                                      className="w-full p-2 bg-secondary border border-border rounded outline-none text-foreground focus:border-primary transition-colors duration-200" 
+                                      required
+                                    />
                                   </label>
-                                  <label className="space-y-1">
-                                    <span className="text-[10px] text-muted-foreground">Término</span>
-                                    <input type="time" value={morningEnd} onChange={(e) => setMorningEnd(e.target.value)} className="w-full p-2 bg-secondary border border-border rounded outline-none text-foreground focus:border-primary transition-colors duration-200" />
+                                  <label className="space-y-1.5">
+                                    <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Fecha às</span>
+                                    <input 
+                                      type="time" 
+                                      value={closeTime} 
+                                      onChange={(e) => setCloseTime(e.target.value)} 
+                                      className="w-full p-2 bg-secondary border border-border rounded outline-none text-foreground focus:border-primary transition-colors duration-200" 
+                                      required
+                                    />
                                   </label>
                                 </div>
                               </div>
 
-                              {/* Afternoon/Evening Shift */}
-                              <div className="space-y-2 border border-border/40 p-3 rounded">
-                                <h5 className="text-[10px] uppercase font-bold text-primary">Turno Tarde</h5>
-                                <div className="grid grid-cols-2 gap-2 text-xs">
-                                  <label className="space-y-1">
-                                    <span className="text-[10px] text-muted-foreground">Início</span>
-                                    <input type="time" value={afternoonStart} onChange={(e) => setAfternoonStart(e.target.value)} className="w-full p-2 bg-secondary border border-border rounded outline-none text-foreground focus:border-primary transition-colors duration-200" />
-                                  </label>
-                                  <label className="space-y-1">
-                                    <span className="text-[10px] text-muted-foreground">Término</span>
-                                    <input type="time" value={afternoonEnd} onChange={(e) => setAfternoonEnd(e.target.value)} className="w-full p-2 bg-secondary border border-border rounded outline-none text-foreground focus:border-primary transition-colors duration-200" />
+                              {/* Pausa para Almoço */}
+                              <div className="space-y-3 border border-border/40 p-4 rounded bg-background/40">
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <h5 className="text-xs font-semibold uppercase text-primary tracking-wider">Pausa para Almoço</h5>
+                                    <p className="text-[10px] text-muted-foreground">Bloqueia 1 hora na agenda para almoço/descanso</p>
+                                  </div>
+                                  <label className="relative inline-flex items-center cursor-pointer select-none">
+                                    <input
+                                      type="checkbox"
+                                      checked={hasLunchBreak}
+                                      onChange={(e) => setHasLunchBreak(e.target.checked)}
+                                      className="accent-primary w-4 h-4 cursor-pointer"
+                                    />
                                   </label>
                                 </div>
+
+                                {hasLunchBreak && (
+                                  <div className="pt-2 border-t border-border/30 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                                    <div className="space-y-1 flex-1">
+                                      <label className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider block">Início da pausa</label>
+                                      <input
+                                        type="time"
+                                        value={lunchBreakStart}
+                                        onChange={(e) => setLunchBreakStart(e.target.value)}
+                                        className="w-full sm:w-40 p-2 bg-secondary border border-border rounded outline-none text-foreground focus:border-primary transition-colors duration-200"
+                                      />
+                                    </div>
+                                    <span className="text-[11px] text-muted-foreground font-medium bg-secondary/60 px-3 py-2 rounded border border-border/40 shrink-0">
+                                      ⏱️ Duração fixa de 1 hora
+                                    </span>
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </div>

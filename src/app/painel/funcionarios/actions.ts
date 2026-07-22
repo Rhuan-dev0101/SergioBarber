@@ -57,7 +57,8 @@ export async function updateBarberWorkingHoursAction(
   barberId: string,
   dayOfWeek: number,
   isClosed: boolean,
-  slots: Array<{ start: string; end: string }>
+  slots: Array<{ start: string; end: string }>,
+  lunchBreakStart?: string | null
 ): Promise<StaffActionResponse> {
   const supabase = await createServerSupabaseClient()
   
@@ -85,7 +86,8 @@ export async function updateBarberWorkingHoursAction(
         barber_id: barberId,
         day_of_week: dayOfWeek,
         is_closed: isClosed,
-        slots: slots
+        slots: slots,
+        lunch_break_start: lunchBreakStart || null
       }, {
         onConflict: 'barber_id,day_of_week'
       })
@@ -135,17 +137,59 @@ export async function addBlockedTimeAction(
         barber_id: barberId,
         start_time: startTimeStr,
         end_time: endTimeStr,
-        reason: reason || null
+        reason: reason || 'Bloqueio manual'
       })
 
     if (error) {
       console.error('Error inserting blocked time:', error)
-      return { success: false, message: 'Erro ao agendar bloqueio.' }
+      return { success: false, message: 'Erro ao bloquear horário.' }
     }
 
-    return { success: true, message: 'Bloqueio de agenda criado com sucesso.' }
+    return { success: true, message: 'Horário bloqueado com sucesso!' }
   } catch (err) {
     console.error('Error inside addBlockedTimeAction:', err)
+    return { success: false, message: 'Erro interno no servidor.' }
+  }
+}
+
+/**
+ * Delete Blocked Time
+ */
+export async function deleteBlockedTimeAction(
+  id: string,
+  barberId: string
+): Promise<StaffActionResponse> {
+  const supabase = await createServerSupabaseClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { success: false, message: 'Não autenticado.' }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  const isSelf = user.id === barberId
+  const isAdmin = profile && profile.role === 'admin'
+
+  if (!isAdmin && !isSelf) {
+    return { success: false, message: 'Não autorizado.' }
+  }
+
+  try {
+    const { error } = await supabase
+      .from('blocked_times')
+      .delete()
+      .eq('id', id)
+
+    if (error) {
+      console.error('Error deleting blocked time:', error)
+      return { success: false, message: 'Erro ao remover bloqueio.' }
+    }
+
+    return { success: true, message: 'Bloqueio removido com sucesso!' }
+  } catch (err) {
+    console.error('Error inside deleteBlockedTimeAction:', err)
     return { success: false, message: 'Erro interno no servidor.' }
   }
 }
@@ -155,7 +199,7 @@ export async function addBlockedTimeAction(
  */
 export async function addDayOffAction(
   barberId: string,
-  dateStr: string, // yyyy-mm-dd
+  dateStr: string, // YYYY-MM-DD
   reason: string
 ): Promise<StaffActionResponse> {
   const supabase = await createServerSupabaseClient()
@@ -181,17 +225,59 @@ export async function addDayOffAction(
       .insert({
         barber_id: barberId,
         date: dateStr,
-        reason: reason || null
+        reason: reason || 'Folga'
       })
 
     if (error) {
       console.error('Error inserting day off:', error)
-      return { success: false, message: 'Erro ao salvar folga (certifique-se de não haver duplicados para o mesmo dia).' }
+      return { success: false, message: 'Erro ao adicionar folga.' }
     }
 
-    return { success: true, message: 'Folga/Férias registrada com sucesso.' }
+    return { success: true, message: 'Folga registrada com sucesso!' }
   } catch (err) {
     console.error('Error inside addDayOffAction:', err)
+    return { success: false, message: 'Erro interno no servidor.' }
+  }
+}
+
+/**
+ * Delete Day Off
+ */
+export async function deleteDayOffAction(
+  id: string,
+  barberId: string
+): Promise<StaffActionResponse> {
+  const supabase = await createServerSupabaseClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { success: false, message: 'Não autenticado.' }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  const isSelf = user.id === barberId
+  const isAdmin = profile && profile.role === 'admin'
+
+  if (!isAdmin && !isSelf) {
+    return { success: false, message: 'Não autorizado.' }
+  }
+
+  try {
+    const { error } = await supabase
+      .from('days_off')
+      .delete()
+      .eq('id', id)
+
+    if (error) {
+      console.error('Error deleting day off:', error)
+      return { success: false, message: 'Erro ao remover folga.' }
+    }
+
+    return { success: true, message: 'Folga removida com sucesso!' }
+  } catch (err) {
+    console.error('Error inside deleteDayOffAction:', err)
     return { success: false, message: 'Erro interno no servidor.' }
   }
 }
@@ -204,15 +290,9 @@ export async function createBarberAction(
   email: string,
   password: string
 ): Promise<StaffActionResponse> {
-  const isAdmin = await verifyAdminSession()
-  if (!isAdmin) return { success: false, message: 'Acesso restrito a administradores.' }
-
-  if (!fullName || !email || !password) {
-    return { success: false, message: 'Nome, e-mail e senha são obrigatórios.' }
-  }
-
-  if (password.length < 6) {
-    return { success: false, message: 'A senha deve conter no mínimo 6 caracteres.' }
+  const admin = await verifyAdminSession()
+  if (!admin) {
+    return { success: false, message: 'Acesso não autorizado. Apenas administradores podem cadastrar profissionais.' }
   }
 
   try {
@@ -228,43 +308,43 @@ export async function createBarberAction(
       }
     )
 
-    // a. Create auth user (auto-confirmed)
-    const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+    // a. Create user in Supabase Auth via admin API
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
-      email_confirm: true
+      email_confirm: true,
+      user_metadata: { full_name: fullName }
     })
 
-    if (createError || !newUser?.user) {
-      console.error('Error creating auth user:', createError)
-      return { success: false, message: `Erro ao cadastrar credenciais: ${createError?.message || 'E-mail inválido ou já existe.'}` }
+    if (authError || !authData.user) {
+      console.error('Error creating auth user:', authError)
+      return { success: false, message: `Erro ao criar conta de usuário: ${authError?.message}` }
     }
 
-    const barberUserId = newUser.user.id
+    const barberUserId = authData.user.id
 
-    // b. update profiles.role to 'barber' and profile.full_name
+    // b. Insert profile with role='barber'
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
-      .update({
-        role: 'barber',
-        full_name: fullName
+      .insert({
+        id: barberUserId,
+        full_name: fullName,
+        role: 'barber'
       })
-      .eq('id', barberUserId)
 
     if (profileError) {
-      console.error('Error updating profile role:', profileError)
-      // Attempt cleanup
+      console.error('Error inserting profile:', profileError)
+      // Cleanup auth user if profile creation fails
       await supabaseAdmin.auth.admin.deleteUser(barberUserId)
-      return { success: false, message: 'Erro ao configurar perfil de barbeiro.' }
+      return { success: false, message: 'Erro ao registrar perfil do funcionário.' }
     }
 
-    // d. Insert a row into public.barbers
+    // c. Insert barber row linked to profile
     const { error: barberError } = await supabaseAdmin
       .from('barbers')
       .insert({
         id: barberUserId,
-        is_active: true,
-        bio: null
+        is_active: true
       })
 
     if (barberError) {
@@ -276,13 +356,13 @@ export async function createBarberAction(
 
     // e. Insert default working hours into barber_working_hours
     const defaultWorkingHours = [
-      { barber_id: barberUserId, day_of_week: 0, is_closed: true, slots: [] },
-      { barber_id: barberUserId, day_of_week: 1, is_closed: true, slots: [] },
-      { barber_id: barberUserId, day_of_week: 2, is_closed: false, slots: [{ start: '10:00', end: '13:00' }, { start: '14:00', end: '20:00' }] },
-      { barber_id: barberUserId, day_of_week: 3, is_closed: false, slots: [{ start: '09:00', end: '13:00' }, { start: '14:00', end: '22:00' }] },
-      { barber_id: barberUserId, day_of_week: 4, is_closed: false, slots: [{ start: '09:00', end: '13:00' }, { start: '14:00', end: '22:00' }] },
-      { barber_id: barberUserId, day_of_week: 5, is_closed: false, slots: [{ start: '09:00', end: '13:00' }, { start: '14:00', end: '22:00' }] },
-      { barber_id: barberUserId, day_of_week: 6, is_closed: false, slots: [{ start: '09:00', end: '13:00' }, { start: '14:00', end: '17:00' }] }
+      { barber_id: barberUserId, day_of_week: 0, is_closed: true, slots: [], lunch_break_start: null },
+      { barber_id: barberUserId, day_of_week: 1, is_closed: true, slots: [], lunch_break_start: null },
+      { barber_id: barberUserId, day_of_week: 2, is_closed: false, slots: [{ start: '10:00', end: '20:00' }], lunch_break_start: '13:00' },
+      { barber_id: barberUserId, day_of_week: 3, is_closed: false, slots: [{ start: '09:00', end: '22:00' }], lunch_break_start: '13:00' },
+      { barber_id: barberUserId, day_of_week: 4, is_closed: false, slots: [{ start: '09:00', end: '22:00' }], lunch_break_start: '13:00' },
+      { barber_id: barberUserId, day_of_week: 5, is_closed: false, slots: [{ start: '09:00', end: '22:00' }], lunch_break_start: '13:00' },
+      { barber_id: barberUserId, day_of_week: 6, is_closed: false, slots: [{ start: '09:00', end: '17:00' }], lunch_break_start: '13:00' }
     ]
 
     const { error: hoursError } = await supabaseAdmin
