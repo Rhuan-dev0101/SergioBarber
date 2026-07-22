@@ -42,6 +42,7 @@ export default function MeusServicos() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editPrice, setEditPrice] = useState('50.00')
   const [editDuration, setEditDuration] = useState('60')
+  const [editDescription, setEditDescription] = useState('')
   const [editIsActive, setEditIsActive] = useState(true)
 
   const [errorMsg, setErrorMsg] = useState('')
@@ -100,7 +101,7 @@ export default function MeusServicos() {
       // 1. Load this barber's specific services
       const { data: dbBarberServices } = await supabase
         .from('barber_services')
-        .select('id, price, duration, is_active, service_id, services(id, name, description)')
+        .select('id, price, duration, is_active, service_id, description, services(id, name, description)')
         .eq('barber_id', barberId)
       
       if (dbBarberServices) {
@@ -204,7 +205,8 @@ export default function MeusServicos() {
         editingId,
         parseFloat(editPrice),
         parseInt(editDuration, 10),
-        editIsActive
+        editIsActive,
+        editDescription
       )
 
       if (!res.success) {
@@ -239,6 +241,7 @@ export default function MeusServicos() {
     setEditingId(bs.id)
     setEditPrice(Number(bs.price).toFixed(2))
     setEditDuration(String(bs.duration))
+    setEditDescription(bs.description || '')
     setEditIsActive(bs.is_active)
     setErrorMsg('')
     setSuccessMsg('')
@@ -349,7 +352,16 @@ export default function MeusServicos() {
                         {bs.services?.name}
                       </td>
                       <td className="p-4 text-muted-foreground max-w-xs truncate">
-                        {bs.services?.description || 'Nenhuma descrição no catálogo.'}
+                        {bs.description ? (
+                          <span title={bs.description}>
+                            <span className="inline-block bg-primary/10 text-primary border border-primary/20 text-[9px] font-bold px-1.5 py-0.5 rounded mr-1.5">
+                              Personalizada
+                            </span>
+                            {bs.description}
+                          </span>
+                        ) : (
+                          bs.services?.description || 'Nenhuma descrição no catálogo.'
+                        )}
                       </td>
                       <td className="p-4 whitespace-nowrap font-medium text-foreground">
                         <span className="flex items-center gap-1.5">
@@ -564,7 +576,7 @@ export default function MeusServicos() {
 
               <div className="space-y-1">
                 <h3 className="text-lg font-serif font-bold text-foreground">Editar Configurações</h3>
-                <p className="text-xs text-muted-foreground">Modifique preço, tempo e visibilidade deste serviço</p>
+                <p className="text-xs text-muted-foreground">Modifique preço, tempo, descrição e visibilidade deste serviço</p>
               </div>
 
               <form onSubmit={handleEditSubmit} className="space-y-4">
@@ -596,6 +608,21 @@ export default function MeusServicos() {
                       />
                     </div>
                   </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Descrição Personalizada
+                  </label>
+                  <textarea
+                    value={editDescription}
+                    onChange={(e) => setEditDescription(e.target.value)}
+                    placeholder="Ex: A partir de R$50 — valor pode variar conforme o tipo de corte"
+                    className="w-full bg-secondary border border-border text-foreground px-3 py-2 rounded text-xs focus:ring-1 focus:ring-primary focus:outline-none h-20 resize-none"
+                  />
+                  <p className="text-[10px] text-muted-foreground">
+                    Se deixado em branco, será exibida a descrição compartilhada do catálogo.
+                  </p>
                 </div>
 
                 <div className="space-y-1.5">

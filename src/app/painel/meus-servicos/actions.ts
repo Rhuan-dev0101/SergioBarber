@@ -173,7 +173,8 @@ export async function updateBarberServiceAction(
   id: string,
   price: number,
   duration: number,
-  isActive: boolean
+  isActive: boolean,
+  description?: string | null
 ): Promise<ServiceActionResponse> {
   const session = await verifySession()
   if (!session) return { success: false, message: 'Acesso negado.' }
@@ -202,7 +203,8 @@ export async function updateBarberServiceAction(
       .update({
         price,
         duration,
-        is_active: isActive
+        is_active: isActive,
+        description: description !== undefined ? (description?.trim() || null) : undefined
       })
       .eq('id', id)
 

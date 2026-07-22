@@ -189,7 +189,7 @@ function AgendarWizardInner() {
 
         const { data: dbBarberServices } = await supabase
           .from('barber_services')
-          .select('price, duration, is_active, service_id, services(id, name, description)')
+          .select('price, duration, is_active, service_id, description, services(id, name, description)')
           .eq('barber_id', selectedBarber.id)
           .eq('is_active', true)
 
@@ -199,7 +199,7 @@ function AgendarWizardInner() {
             .map((bs: any) => ({
               id: bs.service_id,
               name: bs.services.name,
-              description: bs.services.description || '',
+              description: (bs.description && bs.description.trim() !== '') ? bs.description.trim() : (bs.services.description || ''),
               duration: bs.duration,
               price: Number(bs.price)
             }))

@@ -48,7 +48,7 @@ export default async function Servicos() {
     const supabase = await createServerSupabaseClient()
     const { data: dbBarberServices } = await supabase
       .from('barber_services')
-      .select('price, duration, is_active, service_id, services(id, name, description), barbers(id, profiles(full_name))')
+      .select('price, duration, is_active, service_id, description, services(id, name, description), barbers(id, profiles(full_name))')
       .eq('is_active', true)
     
     if (dbBarberServices && dbBarberServices.length > 0) {
@@ -61,6 +61,7 @@ export default async function Servicos() {
           barberName: string
           price: number
           duration: number
+          customDescription?: string | null
         }>
       }> = {}
 
@@ -70,6 +71,8 @@ export default async function Servicos() {
         const barberName = bs.barbers?.profiles?.full_name || 'Profissional'
         const priceNum = Number(bs.price)
         const durationNum = Number(bs.duration)
+        const customDesc = (bs.description && bs.description.trim() !== '') ? bs.description.trim() : null
+        const effectiveDesc = customDesc || s.description || ''
 
         if (!serviceGroups[s.name]) {
           let category = 'Geral'
@@ -84,16 +87,19 @@ export default async function Servicos() {
           serviceGroups[s.name] = {
             id: bs.service_id,
             name: s.name,
-            description: s.description || '',
+            description: effectiveDesc,
             category,
             barberOfferings: []
           }
+        } else if (customDesc && !serviceGroups[s.name].description) {
+          serviceGroups[s.name].description = customDesc
         }
 
         serviceGroups[s.name].barberOfferings.push({
           barberName,
           price: priceNum,
-          duration: durationNum
+          duration: durationNum,
+          customDescription: customDesc
         })
       })
 
@@ -310,12 +316,18 @@ export default async function Servicos() {
                             <span className="text-[9px] uppercase font-bold text-muted-foreground tracking-wider block">Profissionais:</span>
                             <div className="flex flex-wrap gap-1.5">
                               {service.barberOfferings.map((offering: any, idx: number) => (
-                                <span 
-                                  key={idx}
-                                  className="inline-flex items-center bg-secondary/60 border border-border px-2 py-0.5 rounded text-[10px] text-foreground font-medium"
-                                >
-                                  {offering.barberName} <span className="text-primary font-bold font-mono ml-1">R$ {offering.price.toFixed(2)}</span>
-                                </span>
+                                <div key={idx} className="flex flex-col gap-0.5">
+                                  <span 
+                                    className="inline-flex items-center bg-secondary/60 border border-border px-2 py-0.5 rounded text-[10px] text-foreground font-medium"
+                                  >
+                                    {offering.barberName} <span className="text-primary font-bold font-mono ml-1">R$ {offering.price.toFixed(2)}</span>
+                                  </span>
+                                  {offering.customDescription && (
+                                    <span className="text-[10px] text-primary/90 font-medium italic pl-0.5">
+                                      "{offering.customDescription}"
+                                    </span>
+                                  )}
+                                </div>
                               ))}
                             </div>
                           </div>
