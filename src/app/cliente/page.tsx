@@ -374,7 +374,7 @@ export default function ClientePanel() {
                   Dúvidas sobre o Pix de sinal, reagendamentos urgentes ou alteração de serviço? Entre em contato diretamente com nossa recepção no WhatsApp.
                 </p>
                 <a
-                  href={formatWhatsAppLink(settings?.whatsapp || '5511999999999')}
+                  href={formatWhatsAppLink(settings?.whatsapp)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-full text-center py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded shadow-md block transition-all"

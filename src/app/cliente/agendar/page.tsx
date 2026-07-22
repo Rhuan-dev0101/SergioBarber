@@ -601,7 +601,7 @@ function AgendarWizardInner() {
 
             {/* WA button */}
             <a
-              href={formatWhatsAppLink(settings?.whatsapp || '5511999999999', waMessage)}
+              href={formatWhatsAppLink(settings?.whatsapp, waMessage)}
               target="_blank"
               rel="noopener noreferrer"
               className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded text-xs transition-all shadow-md flex items-center justify-center gap-2"
@@ -718,8 +718,37 @@ function AgendarWizardInner() {
                     </div>
                   )}
                 </div>
+
+                {/* ── Pacote Mensal compact banner ── */}
+                <div className="rounded-xl border border-primary/20 bg-gradient-to-r from-primary/5 via-background to-primary/3 p-4 relative overflow-hidden mt-4">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-xl pointer-events-none" />
+                  <div className="relative flex flex-col sm:flex-row sm:items-center gap-4">
+                    <div className="flex-1 space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[8px] font-bold text-primary-foreground bg-primary px-2 py-0.5 rounded-full uppercase tracking-widest">Mais Econômico</span>
+                      </div>
+                      <p className="font-serif font-semibold text-sm text-foreground">Prefere praticidade e economia?</p>
+                      <p className="text-[11px] text-muted-foreground leading-relaxed">
+                        Com o Pacote Mensal, você garante 4 cortes por{' '}
+                        <span className="font-bold text-primary">R$&nbsp;150</span>{' '}
+                        <span className="line-through text-muted-foreground/70">R$&nbsp;200</span>{' '}
+                        — economiza R$&nbsp;50 por mês e nunca mais precisa agendar toda vez. Seu horário fixo, toda semana.
+                      </p>
+                    </div>
+                    <a
+                      href={formatWhatsAppLink(settings?.whatsapp, 'Olá! Tenho interesse no Pacote Mensal (4 cortes por R$150). Gostaria de saber mais e agendar meu horário fixo!')}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="shrink-0 px-4 py-2.5 bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-all shadow-md hover:scale-[1.02] active:scale-[0.98] whitespace-nowrap"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5" />
+                      Conhecer o Pacote
+                    </a>
+                  </div>
+                </div>
               </div>
             )}
+
 
             {/* STEP 3: Select Date */}
             {step === 3 && (

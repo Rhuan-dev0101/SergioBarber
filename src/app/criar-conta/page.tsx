@@ -4,10 +4,11 @@ import React, { useState, useTransition, useEffect, useRef, Suspense } from 'rea
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { Scissors, User, Mail, Phone, Lock, ArrowRight, AlertCircle, CheckCircle, Loader2, Sun, Moon } from 'lucide-react'
+import { Scissors, User, Mail, Phone, Lock, ArrowRight, AlertCircle, CheckCircle, Loader2, Sun, Moon, Crown, Check, MessageCircle } from 'lucide-react'
 import { signUpAction } from '@/app/auth/actions'
 import { createClient } from '@/lib/supabase'
 import { useTheme } from '@/components/ThemeProvider'
+import { formatWhatsAppLink } from '@/lib/settings'
 
 function ParticlesBackground() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
@@ -404,6 +405,86 @@ function SignUpForm() {
   )
 }
 
+function PacoteMensalCard() {
+  const [settings, setSettings] = useState<any>(null)
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase
+      .from('business_settings')
+      .select('*')
+      .eq('key', 'general_settings')
+      .single()
+      .then(({ data }) => {
+        if (data?.value) setSettings(data.value)
+      })
+  }, [])
+
+  const waMessage = "Olá! Tenho interesse no Pacote Mensal (4 cortes por R$150). Gostaria de saber mais e agendar meu horário fixo!"
+  const waUrl = formatWhatsAppLink(settings?.whatsapp, waMessage)
+
+  return (
+    <div className="animated-gradient-card border border-primary/25 rounded-2xl overflow-hidden shadow-2xl relative">
+      <div className="absolute top-0 right-0 w-40 h-40 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl pointer-events-none" />
+
+      <div className="relative p-6 space-y-4">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
+              <Scissors className="w-4 h-4 text-primary rotate-45" />
+            </div>
+            <div>
+              <p className="text-[9px] text-primary uppercase font-bold tracking-widest">Plano Mensal</p>
+              <h3 className="font-serif font-bold text-base text-foreground leading-tight">Horário Fixo Toda Semana</h3>
+            </div>
+          </div>
+          <span className="shrink-0 text-[8px] font-bold text-primary-foreground bg-primary px-2.5 py-1 rounded-full uppercase tracking-widest">
+            Mais Econômico
+          </span>
+        </div>
+
+        {/* Price anchoring */}
+        <div className="flex items-baseline gap-2.5 flex-wrap">
+          <span className="text-2xl font-serif font-bold text-primary">R$ 150<span className="text-xs font-normal text-muted-foreground">/mês</span></span>
+          <span className="text-sm text-muted-foreground line-through decoration-2">R$ 200</span>
+          <span className="text-[10px] font-bold text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full uppercase">
+            Economize R$ 50
+          </span>
+        </div>
+        <p className="text-[11px] text-muted-foreground -mt-1">
+          4 cortes avulsos custariam R$ 200 — no plano, apenas R$ 150 por mês.
+        </p>
+
+        {/* Benefit bullets */}
+        <ul className="space-y-1.5">
+          {[
+            'Mesmo dia e horário garantidos pelas 4 semanas',
+            'Sem precisar agendar toda semana — vaga reservada',
+            'Prioridade na agenda em dias concorridos',
+          ].map((item, i) => (
+            <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
+              <Check className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
+              {item}
+            </li>
+          ))}
+        </ul>
+
+        {/* WhatsApp CTA */}
+        <a
+          href={waUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full py-3 bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-md hover:scale-[1.01] active:scale-[0.99]"
+        >
+          <MessageCircle className="w-4 h-4" />
+          Saber mais pelo WhatsApp
+        </a>
+      </div>
+    </div>
+  )
+}
+
 export default function CriarConta() {
   const { theme, toggleTheme } = useTheme()
 
@@ -451,8 +532,11 @@ export default function CriarConta() {
           <SignUpForm />
         </Suspense>
 
+        {/* Standalone Pacote Mensal Card */}
+        <PacoteMensalCard />
+
         {/* Small footer back to site */}
-        <div className="text-center">
+        <div className="text-center pt-2">
           <Link href="/" className="text-xs text-muted-foreground hover:text-foreground hover:underline transition-all">
             ← Voltar para a página inicial
           </Link>

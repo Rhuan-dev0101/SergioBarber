@@ -7,7 +7,7 @@ import { getBusinessSettings, formatPhoneNumber } from '@/lib/settings'
 
 export default async function Localizacao() {
   const settings = await getBusinessSettings()
-  const rawWhatsapp = settings?.whatsapp || '5511999999999'
+  const rawWhatsapp = settings?.whatsapp || ''
   const address = settings?.address || 'Rua da Barbearia, 123 - Centro, São Paulo - SP'
   const formattedPhone = formatPhoneNumber(rawWhatsapp)
   const telUrl = `tel:+${rawWhatsapp.replace(/\D/g, '')}`

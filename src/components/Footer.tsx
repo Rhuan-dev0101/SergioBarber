@@ -43,7 +43,7 @@ export function Footer({ initialSettings }: { initialSettings?: BusinessSettings
   }, [initialSettings])
 
   const address = settings?.address || 'Rua da Barbearia, 123 - Centro, São Paulo - SP'
-  const rawWhatsapp = settings?.whatsapp || '5511999999999'
+  const rawWhatsapp = settings?.whatsapp || ''
   const instagramUrl = settings?.instagram || 'https://instagram.com/osanchezbarbearia/'
   
   const whatsappUrl = formatWhatsAppLink(rawWhatsapp)

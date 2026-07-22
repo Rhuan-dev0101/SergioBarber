@@ -64,20 +64,17 @@ export function formatPhoneNumber(phone: string): string {
 /**
  * Build a valid WhatsApp link (wa.me) dynamically from settings
  */
-export function formatWhatsAppLink(phone: string, text?: string): string {
-  if (!phone) return 'https://wa.me/5511999999999'
-  
-  // Clean all non-digits
-  let cleaned = phone.replace(/\D/g, '')
+export function formatWhatsAppLink(phone?: string | null, text?: string): string {
+  const raw = phone || ''
+  let cleaned = raw.replace(/\D/g, '')
 
-  // If length is 10 or 11, prepend Brazilian country code 55
   if (cleaned.length === 10 || cleaned.length === 11) {
     if (!cleaned.startsWith('55')) {
       cleaned = '55' + cleaned
     }
   }
 
-  const baseUrl = `https://wa.me/${cleaned}`
+  const baseUrl = cleaned ? `https://wa.me/${cleaned}` : `https://wa.me/`
   if (text) {
     return `${baseUrl}?text=${encodeURIComponent(text)}`
   }

@@ -1,7 +1,7 @@
 import React from 'react'
 export const dynamic = 'force-dynamic'
 import Link from 'next/link'
-import { Scissors, Calendar, MapPin, Phone, MessageSquare, Star, Award, Sparkles, Check, ChevronRight, CreditCard, Wifi, Heart } from 'lucide-react'
+import { Scissors, Calendar, MapPin, Phone, MessageSquare, Star, Award, Sparkles, Check, ChevronRight, CreditCard, Wifi, Heart, Crown } from 'lucide-react'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { createServerSupabaseClient } from '@/lib/supabase'
@@ -15,7 +15,6 @@ const FALLBACK_SERVICES = [
   { name: 'Cabelo + Barba', duration: 90, price: 85.00, description: 'Serviço completo de corte e barba com toalha quente.' },
   { name: 'Infantil', duration: 40, price: 50.00, description: 'Corte infantil com paciência e estilo para os pequenos.' },
   { name: 'Barba', duration: 30, price: 45.00, description: 'Alinhamento de barba com terapia de toalha quente.' },
-  { name: 'Plano Mensal (4 cortes)', duration: 60, price: 150.00, description: 'Assinatura mensal para manter seu estilo sempre alinhado.' },
   { name: 'Sobrancelha', duration: 15, price: 20.00, description: 'Design de sobrancelha com pinça ou navalha.' },
 ]
 
@@ -33,11 +32,14 @@ const FALLBACK_GALLERY = [
 
 export default async function Home() {
   const settings = await getBusinessSettings()
-  const rawWhatsapp = settings?.whatsapp || '5511999999999'
+  const rawWhatsapp = settings?.whatsapp || ''
   const address = settings?.address || 'Rua da Barbearia, 123 - Centro, São Paulo - SP'
   const whatsappUrl = formatWhatsAppLink(rawWhatsapp)
   const formattedPhone = formatPhoneNumber(rawWhatsapp)
-  const telUrl = `tel:+${rawWhatsapp.replace(/\D/g, '')}`
+  const telUrl = rawWhatsapp ? `tel:+${rawWhatsapp.replace(/\D/g, '')}` : '#'
+
+  const packageWaMessage = "Olá! Tenho interesse no Pacote Mensal (4 cortes por R$150). Gostaria de saber mais e agendar meu horário fixo!"
+  const packageWaUrl = formatWhatsAppLink(rawWhatsapp, packageWaMessage)
 
   let services = FALLBACK_SERVICES
   let barbers = FALLBACK_BARBERS
@@ -52,12 +54,21 @@ export default async function Home() {
       .limit(6)
     
     if (dbServices && dbServices.length > 0) {
-      services = dbServices.map(s => ({
-        name: s.name,
-        duration: s.duration,
-        price: Number(s.price),
-        description: s.description || ''
-      }))
+      const filteredDbServices = dbServices
+        .filter(s => {
+          const lower = (s.name || '').toLowerCase()
+          return !lower.includes('plano') && !lower.includes('pacote')
+        })
+        .map(s => ({
+          name: s.name,
+          duration: s.duration,
+          price: Number(s.price),
+          description: s.description || ''
+        }))
+
+      if (filteredDbServices.length > 0) {
+        services = filteredDbServices
+      }
     }
 
     const { data: dbBarbers } = await supabase
@@ -101,7 +112,7 @@ export default async function Home() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen relative">
       <Header />
 
       <main className="flex-grow">
@@ -153,9 +164,50 @@ export default async function Home() {
           </div>
         </section>
 
+        {/* ── Dedicated Pacote Mensal Banner Section ────────────────── */}
+        <section className="py-14 bg-gradient-to-r from-primary/10 via-background to-primary/5 border-y border-primary/25 relative overflow-hidden">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+            <div className="animated-gradient-card p-8 sm:p-10 rounded-2xl border border-primary/30 max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8 shadow-2xl">
+              <div className="space-y-4 flex-1 text-center md:text-left">
+                <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold uppercase tracking-wider">
+                  <Crown className="w-3.5 h-3.5" />
+                  Destaque da Barbearia
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-serif font-bold text-foreground">
+                  Pacote Mensal — 4 Cortes por Mês
+                </h2>
+                <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-xl">
+                  Corte toda semana no mesmo dia e horário garantido. Sem precisar agendar toda vez — economize R$ 50 todo mês.
+                </p>
+
+                {/* Price anchoring */}
+                <div className="flex items-baseline justify-center md:justify-start gap-3 flex-wrap pt-1">
+                  <span className="text-3xl sm:text-4xl font-serif font-bold text-primary">R$ 150<span className="text-xs font-normal text-muted-foreground">/mês</span></span>
+                  <span className="text-base text-muted-foreground line-through decoration-2">R$ 200</span>
+                  <span className="text-xs font-bold text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full uppercase">
+                    Economize R$ 50 todo mês
+                  </span>
+                </div>
+              </div>
+
+              <div className="shrink-0 flex flex-col items-center gap-3 w-full md:w-auto">
+                <a
+                  href={packageWaUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full md:w-auto px-6 py-4 bg-primary hover:bg-primary-hover text-primary-foreground text-sm font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] whitespace-nowrap"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  Garantir Horário no WhatsApp
+                </a>
+                <span className="text-[10px] text-muted-foreground">Sem necessidade de cadastro prévio</span>
+              </div>
+            </div>
+          </div>
+        </section>
 
         {/* Barbers Section */}
-        <section className="py-20 section-dark-alt border-y border-border/40 transition-colors">
+        <section className="py-20 section-dark-alt border-b border-border/40 transition-colors">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center space-y-4 mb-16">
               <h2 className="text-3xl font-serif font-bold text-foreground">Mestres Barbeiros</h2>
@@ -251,15 +303,17 @@ export default async function Home() {
                     <p className="text-xs text-muted-foreground">{address}</p>
                   </div>
                 </div>
-                <div className="flex gap-3">
-                  <div className="p-2 rounded bg-primary/10 text-primary h-max shrink-0">
-                    <Phone className="w-5 h-5" />
+                {formattedPhone && (
+                  <div className="flex gap-3">
+                    <div className="p-2 rounded bg-primary/10 text-primary h-max shrink-0">
+                      <Phone className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-sm text-foreground">Contato Direto</h4>
+                      <a href={telUrl} className="text-xs text-muted-foreground hover:text-primary transition-colors">{formattedPhone}</a>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="font-semibold text-sm text-foreground">Contato Direto</h4>
-                    <a href={telUrl} className="text-xs text-muted-foreground hover:text-primary transition-colors">{formattedPhone}</a>
-                  </div>
-                </div>
+                )}
               </div>
             </div>
 
@@ -277,6 +331,31 @@ export default async function Home() {
           </div>
         </section>
       </main>
+
+      {/* ── Persistent Floating Pacote Mensal Bubble (Bottom Right) ── */}
+      <div className="fixed bottom-6 right-6 z-50 animate-in fade-in slide-in-from-bottom-5 duration-500">
+        <a
+          href={packageWaUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group flex items-center gap-3 bg-card/95 hover:bg-card border border-primary/40 p-3 pr-4 rounded-full shadow-2xl backdrop-blur-md transition-all hover:scale-105 active:scale-95 hover:border-primary cursor-pointer"
+        >
+          <div className="w-10 h-10 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center text-primary relative shrink-0">
+            <Scissors className="w-5 h-5 rotate-45" />
+            <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full animate-ping" />
+            <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full" />
+          </div>
+          <div className="flex flex-col text-left">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[9px] font-bold text-primary uppercase tracking-wider">Pacote Mensal</span>
+              <span className="text-[8px] bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-1.5 py-0.2 rounded font-bold uppercase">-R$50</span>
+            </div>
+            <span className="text-xs font-serif font-bold text-foreground group-hover:text-primary transition-colors">
+              4 cortes por R$ 150/mês
+            </span>
+          </div>
+        </a>
+      </div>
 
       <Footer initialSettings={settings || undefined} />
     </div>
