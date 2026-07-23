@@ -40,9 +40,21 @@ WITH CHECK (
 );
 
 -- =======================================================
--- STORAGE BUCKET POLICIES FOR 'gallery-photos'
--- Make sure to create a public bucket named 'gallery-photos' first!
+-- STORAGE BUCKET POLICIES & SIZE LIMIT FOR 'gallery-photos'
+-- Make sure bucket 'gallery-photos' is configured with 20MB limit (20971520 bytes)
 -- =======================================================
+
+-- Create or update 'gallery-photos' bucket with 20MB max file size
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'gallery-photos', 
+  'gallery-photos', 
+  true, 
+  20971520, -- 20MB in bytes
+  ARRAY['image/jpeg', 'image/png', 'image/webp']
+)
+ON CONFLICT (id) DO UPDATE 
+SET file_size_limit = 20971520;
 
 -- Allow public read access to objects in gallery-photos
 CREATE POLICY "Allow public read access to gallery photos"

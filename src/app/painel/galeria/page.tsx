@@ -1,11 +1,11 @@
 'use client'
 
-import React, { useEffect, useState, useTransition } from 'react'
+import React, { useEffect, useState, useTransition, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { 
   Plus, Trash2, AlertCircle, CheckCircle2, 
-  Loader2, X, Camera, Edit2, ArrowLeft, Image as ImageIcon, Save 
+  Loader2, X, Camera, Edit2, ImageIcon, Save, Crop, Upload, Layers
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
@@ -15,26 +15,55 @@ import {
   deleteGalleryImageAction 
 } from './actions'
 import { GradientButton } from '@/components/ui/gradient-button'
+import { ImageCropModal } from '@/components/ImageCropModal'
+import { getCroppedImg, PixelCrop } from '@/lib/cropUtils'
+
+interface BatchQueueItem {
+  id: string
+  file: File
+  croppedFile?: File
+  previewUrl: string
+  croppedPreviewUrl?: string
+  title: string
+  category: string
+  description: string
+  crop: { x: number; y: number }
+  zoom: number
+  croppedAreaPixels: PixelCrop | null
+  status: 'pending' | 'uploading' | 'done' | 'error'
+  errorMessage?: string
+}
 
 export default function PainelGaleria() {
   const router = useRouter()
   const [images, setImages] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
-  // Form states
-  const [title, setTitle] = useState('')
-  const [category, setCategory] = useState('Corte')
-  const [imageUrl, setImageUrl] = useState('')
-  const [description, setDescription] = useState('')
-  const [uploading, setUploading] = useState(false)
+  // Batch Queue state
+  const [batchQueue, setBatchQueue] = useState<BatchQueueItem[]>([])
   const [showAddForm, setShowAddForm] = useState(false)
-  
-  // Edit states
+  const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState<string>('')
+
+  // Crop Modal state
+  const [croppingItem, setCroppingItem] = useState<{
+    type: 'batch' | 'edit'
+    id?: string
+    imageSrc: string
+    crop?: { x: number; y: number }
+    zoom?: number
+  } | null>(null)
+
+  // Edit single photo state
   const [editingImage, setEditingImage] = useState<any | null>(null)
+  const [editCroppedFile, setEditCroppedFile] = useState<File | null>(null)
 
   const [errorMsg, setErrorMsg] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
   const [isPending, startTransition] = useTransition()
+
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const editFileInputRef = useRef<HTMLInputElement>(null)
 
   const supabase = createClient()
 
@@ -65,7 +94,7 @@ export default function PainelGaleria() {
 
       setImages(dbImages || [])
     } catch (err) {
-      console.error('Error fetching gallery logs:', err)
+      console.error('Error fetching gallery:', err)
     } finally {
       setLoading(false)
     }
@@ -75,96 +104,268 @@ export default function PainelGaleria() {
     loadGallery()
   }, [])
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, isEditMode = false) => {
+  // Clean title from filename
+  const formatTitleFromFilename = (filename: string) => {
+    const nameWithoutExt = filename.replace(/\.[^/.]+$/, '')
+    return nameWithoutExt
+      .replace(/[-_]/g, ' ')
+      .replace(/\b\w/g, (char) => char.toUpperCase())
+  }
+
+  // Handle selecting multiple files for batch upload
+  const handleBatchFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     setErrorMsg('')
     setSuccessMsg('')
-    
-    if (!e.target.files || e.target.files.length === 0) return
-    const file = e.target.files[0]
+    const files = e.target.files
+    if (!files || files.length === 0) return
 
-    if (file.size > 5 * 1024 * 1024) {
-      setErrorMsg('A imagem deve ter no máximo 5MB.')
+    const newItems: BatchQueueItem[] = []
+    const oversizedFiles: string[] = []
+
+    Array.from(files).forEach((file) => {
+      // Limit check: 20MB
+      if (file.size > 20 * 1024 * 1024) {
+        oversizedFiles.push(file.name)
+        return
+      }
+
+      const id = `item-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`
+      const objectUrl = URL.createObjectURL(file)
+
+      newItems.push({
+        id,
+        file,
+        previewUrl: objectUrl,
+        croppedPreviewUrl: objectUrl,
+        title: formatTitleFromFilename(file.name),
+        category: 'Corte',
+        description: '',
+        crop: { x: 0, y: 0 },
+        zoom: 1,
+        croppedAreaPixels: null,
+        status: 'pending'
+      })
+    })
+
+    if (oversizedFiles.length > 0) {
+      setErrorMsg(`Algumas fotos excedem o limite máximo de 20MB e foram ignoradas: ${oversizedFiles.join(', ')}`)
+    }
+
+    if (newItems.length > 0) {
+      setBatchQueue((prev) => [...prev, ...newItems])
+      setShowAddForm(true)
+    }
+
+    // Reset input value
+    if (e.target) e.target.value = ''
+  }
+
+  // Remove single item from queue
+  const handleRemoveFromQueue = (id: string) => {
+    setBatchQueue((prev) => {
+      const filtered = prev.filter((item) => item.id !== id)
+      if (filtered.length === 0) {
+        setShowAddForm(false)
+      }
+      return filtered
+    })
+  }
+
+  // Update item field in queue
+  const handleUpdateQueueItem = (id: string, field: keyof BatchQueueItem, value: any) => {
+    setBatchQueue((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, [field]: value } : item))
+    )
+  }
+
+  // Open Crop Modal for a queue item or edit item
+  const openCropModalForBatch = (item: BatchQueueItem) => {
+    setCroppingItem({
+      type: 'batch',
+      id: item.id,
+      imageSrc: item.previewUrl,
+      crop: item.crop,
+      zoom: item.zoom
+    })
+  }
+
+  // Open Crop Modal for single edit photo
+  const openCropModalForEdit = () => {
+    if (!editingImage?.previewUrl && !editingImage?.url) return
+    setCroppingItem({
+      type: 'edit',
+      imageSrc: editingImage.previewUrl || editingImage.url,
+      crop: editingImage.crop || { x: 0, y: 0 },
+      zoom: editingImage.zoom || 1
+    })
+  }
+
+  // Confirm crop from ImageCropModal
+  const handleConfirmCrop = async (
+    pixelCrop: PixelCrop, 
+    crop: { x: number; y: number }, 
+    zoom: number
+  ) => {
+    if (!croppingItem) return
+
+    try {
+      // Generate cropped File using react-easy-crop's pixelCrop
+      const croppedFile = await getCroppedImg(
+        croppingItem.imageSrc, 
+        pixelCrop, 
+        'cropped-image.jpg'
+      )
+      const croppedUrl = URL.createObjectURL(croppedFile)
+
+      if (croppingItem.type === 'batch' && croppingItem.id) {
+        setBatchQueue((prev) =>
+          prev.map((item) => {
+            if (item.id === croppingItem.id) {
+              return {
+                ...item,
+                crop,
+                zoom,
+                croppedAreaPixels: pixelCrop,
+                croppedFile: croppedFile,
+                croppedPreviewUrl: croppedUrl
+              }
+            }
+            return item
+          })
+        )
+      } else if (croppingItem.type === 'edit') {
+        setEditCroppedFile(croppedFile)
+        setEditingImage((prev: any) => ({
+          ...prev,
+          crop,
+          zoom,
+          croppedAreaPixels: pixelCrop,
+          previewUrl: croppedUrl
+        }))
+      }
+    } catch (err) {
+      console.error('Error generating cropped preview:', err)
+    } finally {
+      setCroppingItem(null)
+    }
+  }
+
+  // Submit Batch Upload ("Salvar Todas")
+  const handleSaveAllBatch = async () => {
+    setErrorMsg('')
+    setSuccessMsg('')
+
+    if (batchQueue.length === 0) return
+
+    // Check if any title is missing
+    const missingTitle = batchQueue.find((item) => !item.title.trim())
+    if (missingTitle) {
+      setErrorMsg('Todas as fotos na fila precisam ter um Título preenchido antes de salvar.')
       return
     }
 
     setUploading(true)
+    let successCount = 0
+
     try {
-      const fileExt = file.name.split('.').pop()
-      const fileName = `gallery-${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${fileExt}`
-      const filePath = `images/${fileName}`
+      for (let i = 0; i < batchQueue.length; i++) {
+        const item = batchQueue[i]
+        setUploadProgress(`Enviando foto ${i + 1} de ${batchQueue.length}...`)
+        
+        handleUpdateQueueItem(item.id, 'status', 'uploading')
 
-      // Upload to Supabase Storage
-      const { data, error } = await supabase.storage
-        .from('gallery-photos')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: true
-        })
+        // 1. Obtain file to upload (use croppedFile if generated during modal confirm, else item.file)
+        let fileToUpload = item.croppedFile || item.file
+        if (!item.croppedFile && item.croppedAreaPixels) {
+          try {
+            fileToUpload = await getCroppedImg(
+              item.previewUrl, 
+              item.croppedAreaPixels, 
+              item.file.name
+            )
+          } catch (cropErr) {
+            console.warn('Could not crop image before upload, falling back to original:', cropErr)
+          }
+        }
 
-      if (error) {
-        console.error('Storage upload error details:', error)
-        throw new Error(`Erro ao enviar foto para o storage: ${error.message || 'Desconhecido'}`)
+        // 2. Upload to Supabase Storage
+        const fileExt = fileToUpload.name.split('.').pop() || 'jpg'
+        const fileName = `gallery-${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${fileExt}`
+        const filePath = `images/${fileName}`
+
+        const { error: storageError } = await supabase.storage
+          .from('gallery-photos')
+          .upload(filePath, fileToUpload, {
+            cacheControl: '3600',
+            upsert: true
+          })
+
+        if (storageError) {
+          console.error(`Error uploading ${item.title}:`, storageError)
+          handleUpdateQueueItem(item.id, 'status', 'error')
+          handleUpdateQueueItem(item.id, 'errorMessage', storageError.message)
+          continue
+        }
+
+        // 3. Get Public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('gallery-photos')
+          .getPublicUrl(filePath)
+
+        // 4. Save metadata to DB via Server Action
+        const dbRes = await addGalleryImageAction(publicUrl, item.title, item.category, item.description)
+
+        if (!dbRes.success) {
+          console.error(`Error adding DB record for ${item.title}:`, dbRes.message)
+          handleUpdateQueueItem(item.id, 'status', 'error')
+          handleUpdateQueueItem(item.id, 'errorMessage', dbRes.message)
+        } else {
+          handleUpdateQueueItem(item.id, 'status', 'done')
+          successCount++
+        }
       }
 
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('gallery-photos')
-        .getPublicUrl(filePath)
-
-      if (isEditMode) {
-        setEditingImage((prev: any) => ({ ...prev, url: publicUrl }))
+      if (successCount === batchQueue.length) {
+        setSuccessMsg(`Todas as ${successCount} fotos foram enviadas e cadastradas com sucesso!`)
+        setBatchQueue([])
+        setShowAddForm(false)
       } else {
-        setImageUrl(publicUrl)
+        setSuccessMsg(`${successCount} de ${batchQueue.length} fotos foram salvas com sucesso. Verifique os itens com erro na fila.`)
       }
-      setSuccessMsg('Imagem carregada com sucesso para o Supabase Storage!')
+
+      loadGallery()
     } catch (err: any) {
-      console.error('Error uploading photo:', err)
-      setErrorMsg(err.message || 'Erro ao carregar a imagem para o storage.')
+      console.error('Batch upload error:', err)
+      setErrorMsg(err.message || 'Erro durante o envio em lote.')
     } finally {
       setUploading(false)
+      setUploadProgress('')
     }
   }
 
-  const handleAddSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+  // Handle single photo upload for edit replacement
+  const handleEditFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     setErrorMsg('')
     setSuccessMsg('')
+    if (!e.target.files || e.target.files.length === 0) return
 
-    if (!imageUrl) {
-      setErrorMsg('Por favor, carregue uma imagem ou informe a URL.')
+    const file = e.target.files[0]
+    if (file.size > 20 * 1024 * 1024) {
+      setErrorMsg('A imagem excede o limite máximo de 20MB.')
       return
     }
-    if (!title) {
-      setErrorMsg('O título é obrigatório.')
-      return
-    }
 
-    startTransition(async () => {
-      const res = await addGalleryImageAction(imageUrl, title, category, description)
-      if (!res.success) {
-        setErrorMsg(res.message)
-        if (res.error) {
-          console.error('Database INSERT failed details:', res.error)
-        }
-      } else {
-        setSuccessMsg(res.message)
-        setImageUrl('')
-        setTitle('')
-        setCategory('Corte')
-        setDescription('')
-        setShowAddForm(false)
-        loadGallery()
-      }
-    })
+    const previewUrl = URL.createObjectURL(file)
+    setEditCroppedFile(file)
+    setEditingImage((prev: any) => ({
+      ...prev,
+      previewUrl,
+      newFile: file,
+      croppedAreaPixels: null
+    }))
   }
 
-  const handleEditClick = (img: any) => {
-    setEditingImage(img)
-    setShowAddForm(false)
-    setErrorMsg('')
-    setSuccessMsg('')
-  }
-
+  // Submit edit single image details
   const handleEditSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!editingImage) return
@@ -173,32 +374,78 @@ export default function PainelGaleria() {
     setSuccessMsg('')
 
     startTransition(async () => {
-      const res = await updateGalleryImageAction(
-        editingImage.id,
-        editingImage.url,
-        editingImage.title || '',
-        editingImage.category || 'Corte',
-        editingImage.description || ''
-      )
-      if (!res.success) {
-        setErrorMsg(res.message)
-        if (res.error) {
-          console.error('Database UPDATE failed details:', res.error)
+      try {
+        let finalUrl = editingImage.url
+
+        // Upload replacement image if new file/crop was provided
+        if (editingImage.newFile || editCroppedFile) {
+          setUploading(true)
+          let fileToUpload = editCroppedFile || editingImage.newFile
+
+          if (!editCroppedFile && editingImage.croppedAreaPixels && editingImage.previewUrl) {
+            try {
+              fileToUpload = await getCroppedImg(
+                editingImage.previewUrl, 
+                editingImage.croppedAreaPixels, 
+                fileToUpload.name
+              )
+            } catch (cErr) {
+              console.warn('Could not crop edit file, using original:', cErr)
+            }
+          }
+
+          const fileExt = fileToUpload.name.split('.').pop() || 'jpg'
+          const fileName = `gallery-${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${fileExt}`
+          const filePath = `images/${fileName}`
+
+          const { error: storageError } = await supabase.storage
+            .from('gallery-photos')
+            .upload(filePath, fileToUpload, {
+              cacheControl: '3600',
+              upsert: true
+            })
+
+          if (storageError) {
+            throw new Error(`Erro ao enviar foto: ${storageError.message}`)
+          }
+
+          const { data: { publicUrl } } = supabase.storage
+            .from('gallery-photos')
+            .getPublicUrl(filePath)
+
+          finalUrl = publicUrl
         }
-      } else {
-        setSuccessMsg(res.message)
-        setEditingImage(null)
-        loadGallery()
+
+        const res = await updateGalleryImageAction(
+          editingImage.id,
+          finalUrl,
+          editingImage.title || '',
+          editingImage.category || 'Corte',
+          editingImage.description || ''
+        )
+
+        if (!res.success) {
+          setErrorMsg(res.message)
+        } else {
+          setSuccessMsg(res.message)
+          setEditingImage(null)
+          setEditCroppedFile(null)
+          loadGallery()
+        }
+      } catch (err: any) {
+        setErrorMsg(err.message || 'Erro ao atualizar a imagem.')
+      } finally {
+        setUploading(false)
       }
     })
   }
 
+  // Delete image
   const handleDelete = (img: any) => {
     if (!confirm(`Deseja realmente excluir "${img.title || 'esta imagem'}" da galeria?`)) return
     setErrorMsg('')
     setSuccessMsg('')
 
-    // Try to extract storage filename if it came from our bucket
     let storagePath = undefined
     if (img.url && img.url.includes('gallery-photos/')) {
       storagePath = img.url.split('gallery-photos/')[1]
@@ -208,9 +455,6 @@ export default function PainelGaleria() {
       const res = await deleteGalleryImageAction(img.id, storagePath)
       if (!res.success) {
         setErrorMsg(res.message)
-        if (res.error) {
-          console.error('Database DELETE failed details:', res.error)
-        }
       } else {
         setSuccessMsg(res.message)
         loadGallery()
@@ -233,188 +477,288 @@ export default function PainelGaleria() {
 
       <main className="flex-grow p-6 sm:p-8 space-y-6 overflow-y-auto">
         
-        {/* Title */}
+        {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border/40 pb-4">
           <div>
             <h1 className="text-2xl font-serif font-bold text-foreground">Gerenciar Galeria</h1>
-            <p className="text-xs text-muted-foreground">Adicione, edite ou exclua fotos de cortes exibidas na página pública e portfólio</p>
+            <p className="text-xs text-muted-foreground">Adicione fotos em lote, edite títulos/descrições e ajuste o enquadramento de corte.</p>
           </div>
-          {!showAddForm && !editingImage && (
-            <button
-              onClick={() => {
-                setShowAddForm(true)
-                setEditingImage(null)
-              }}
-              className="w-full sm:w-auto px-4 py-2.5 bg-primary hover:bg-primary-hover text-primary-foreground font-bold rounded text-xs flex items-center justify-center gap-1.5 shadow cursor-pointer transition-all"
-            >
-              <Plus className="w-4 h-4 text-primary-foreground" />
-              Adicionar Nova Foto
-            </button>
-          )}
+
+          <div className="flex gap-2 w-full sm:w-auto">
+            {/* Hidden Multiple File Input */}
+            <input 
+              ref={fileInputRef}
+              type="file" 
+              accept="image/*" 
+              multiple 
+              onChange={handleBatchFileSelect}
+              className="hidden" 
+            />
+
+            {!editingImage && (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="w-full sm:w-auto px-4 py-2.5 bg-primary hover:bg-primary-hover text-primary-foreground font-bold rounded text-xs flex items-center justify-center gap-2 shadow cursor-pointer transition-all disabled:opacity-50"
+              >
+                <Upload className="w-4 h-4 text-primary-foreground" />
+                Adicionar Fotos (Lote)
+              </button>
+            )}
+          </div>
         </div>
 
+        {/* Notifications */}
         {errorMsg && (
-          <div className="p-3 bg-destructive/10 border border-destructive/20 rounded flex items-start gap-2 text-xs text-destructive max-w-2xl">
-            <AlertCircle className="w-4.5 h-4.5 shrink-0" />
+          <div className="p-3.5 bg-destructive/10 border border-destructive/20 rounded-lg flex items-start gap-2.5 text-xs text-destructive max-w-4xl shadow-sm">
+            <AlertCircle className="w-4.5 h-4.5 shrink-0 mt-0.5" />
             <span>{errorMsg}</span>
           </div>
         )}
 
         {successMsg && (
-          <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded flex items-start gap-2 text-xs text-emerald-500 max-w-2xl">
-            <CheckCircle2 className="w-4.5 h-4.5 shrink-0" />
+          <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/20 rounded-lg flex items-start gap-2.5 text-xs text-emerald-500 max-w-4xl shadow-sm">
+            <CheckCircle2 className="w-4.5 h-4.5 shrink-0 mt-0.5" />
             <span>{successMsg}</span>
           </div>
         )}
 
-        {/* Add image form */}
-        {showAddForm && (
-          <form onSubmit={handleAddSubmit} className="p-6 bg-secondary/15 rounded-lg border border-border space-y-4 max-w-2xl shadow-xl animate-in slide-in-from-top duration-200">
-            <div className="flex justify-between items-center pb-2 border-b border-border/40">
-              <h3 className="font-semibold text-xs text-foreground uppercase tracking-wider">Nova Foto da Galeria</h3>
-              <button type="button" onClick={() => setShowAddForm(false)} className="text-muted-foreground hover:text-foreground">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
-              {/* Photo Upload Area */}
-              <div className="md:col-span-4 flex flex-col items-center justify-center">
-                <div className="relative w-full aspect-square rounded-lg border border-border/80 bg-secondary/30 flex items-center justify-center overflow-hidden group select-none">
-                  {imageUrl ? (
-                    <Image 
-                      src={imageUrl} 
-                      alt="Preview" 
-                      width={200} 
-                      height={200} 
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="text-center p-4 text-muted-foreground flex flex-col items-center">
-                      <ImageIcon className="w-8 h-8 text-primary/30 mb-2" />
-                      <span className="text-[10px] uppercase font-bold">Sem imagem</span>
-                    </div>
-                  )}
-
-                  <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col items-center justify-center cursor-pointer text-white text-[10px] font-semibold">
-                    <Camera size={18} className="text-primary mb-1" />
-                    <span>Upload Foto</span>
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      onChange={(e) => handleFileUpload(e, false)} 
-                      disabled={uploading} 
-                      className="hidden" 
-                    />
-                  </label>
-
-                  {uploading && (
-                    <div className="absolute inset-0 bg-black/75 flex items-center justify-center">
-                      <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                    </div>
-                  )}
+        {/* BATCH UPLOAD QUEUE PANEL */}
+        {showAddForm && batchQueue.length > 0 && (
+          <div className="p-6 bg-secondary/15 rounded-xl border border-border space-y-6 max-w-4xl shadow-2xl animate-in slide-in-from-top duration-300">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-4 border-b border-border/40 gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Layers className="w-5 h-5 text-primary" />
+                  <h3 className="font-serif font-bold text-base text-foreground">Fila de Envio Em Lote ({batchQueue.length} {batchQueue.length === 1 ? 'foto' : 'fotos'})</h3>
                 </div>
-                <p className="text-[9px] text-muted-foreground mt-1.5 text-center">Clique na imagem para enviar (JPEG/PNG, máx. 5MB)</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Preencha o título e detalhes individuais para cada foto e clique em "Ajustar Corte" para reposicionar a imagem no quadrado.</p>
               </div>
 
-              {/* Data Fields */}
-              <div className="md:col-span-8 space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label htmlFor="imgTitle" className="text-[10px] font-bold text-foreground uppercase tracking-wider">Título da Foto</label>
-                    <input
-                      id="imgTitle"
-                      type="text"
-                      placeholder="Ex: Degradê Texturizado"
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      disabled={isPending}
-                      className="w-full px-3.5 py-2.5 bg-secondary/30 border border-border/80 focus:border-primary rounded text-xs text-foreground outline-none transition-colors"
-                      required
-                    />
-                  </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="px-3 py-1.5 bg-secondary hover:bg-muted text-foreground text-xs font-semibold rounded flex items-center gap-1.5 border border-border/60 transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Adicionar Mais
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBatchQueue([])
+                    setShowAddForm(false)
+                  }}
+                  disabled={uploading}
+                  className="text-muted-foreground hover:text-foreground p-1.5 rounded"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
 
-                  <div className="space-y-1.5">
-                    <label htmlFor="imgCategory" className="text-[10px] font-bold text-foreground uppercase tracking-wider">Categoria</label>
-                    <select
-                      id="imgCategory"
-                      value={category}
-                      onChange={(e) => setCategory(e.target.value)}
-                      disabled={isPending}
-                      className="w-full px-3.5 py-2.5 bg-secondary/30 border border-border/80 focus:border-primary rounded text-xs text-foreground outline-none transition-colors"
+            {/* Queue List Items */}
+            <div className="space-y-4 max-h-[600px] overflow-y-auto pr-1">
+              {batchQueue.map((item, index) => (
+                <div 
+                  key={item.id}
+                  className="p-4 bg-background/60 rounded-lg border border-border/80 grid grid-cols-1 md:grid-cols-12 gap-4 items-start relative group"
+                >
+                  {/* Item Image Preview & Interactive Crop Trigger */}
+                  <div className="md:col-span-3 flex flex-col items-center">
+                    <div className="relative w-full aspect-square rounded-lg border border-border overflow-hidden bg-secondary/40 group/img select-none">
+                      <Image 
+                        src={item.croppedPreviewUrl || item.previewUrl} 
+                        alt="Preview" 
+                        fill
+                        className="object-cover"
+                      />
+
+                      {/* Interactive Crop Button Overlay */}
+                      <button
+                        type="button"
+                        onClick={() => openCropModalForBatch(item)}
+                        disabled={uploading}
+                        className="absolute inset-0 bg-black/60 opacity-0 group-hover/img:opacity-100 transition-opacity duration-200 flex flex-col items-center justify-center text-white text-[11px] font-semibold gap-1.5 cursor-pointer"
+                      >
+                        <Crop className="w-5 h-5 text-primary" />
+                        <span>Ajustar Corte</span>
+                      </button>
+
+                      {/* Status indicator */}
+                      {item.status === 'uploading' && (
+                        <div className="absolute inset-0 bg-black/75 flex items-center justify-center">
+                          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                        </div>
+                      )}
+                      {item.status === 'done' && (
+                        <div className="absolute top-2 right-2 bg-emerald-500 text-white rounded-full p-1 shadow">
+                          <CheckCircle2 className="w-4 h-4" />
+                        </div>
+                      )}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => openCropModalForBatch(item)}
+                      disabled={uploading}
+                      className="mt-2 text-[11px] text-primary hover:underline flex items-center gap-1 font-semibold"
                     >
-                      <option value="Corte">Corte</option>
-                      <option value="Barba">Barba</option>
-                      <option value="Cabelo">Cabelo</option>
-                      <option value="Química">Química</option>
-                      <option value="Outros">Outros</option>
-                    </select>
+                      <Crop className="w-3 h-3" /> Reposicionar / Cortar
+                    </button>
+                  </div>
+
+                  {/* Item Fields */}
+                  <div className="md:col-span-8 space-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
+                      <div className="sm:col-span-7 space-y-1">
+                        <label className="text-[10px] font-bold text-foreground uppercase tracking-wider">
+                          Título da Foto <span className="text-destructive">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={item.title}
+                          onChange={(e) => handleUpdateQueueItem(item.id, 'title', e.target.value)}
+                          disabled={uploading}
+                          placeholder="Ex: Corte Fade com Barba Desenhada"
+                          className="w-full px-3 py-2 bg-secondary/30 border border-border/80 focus:border-primary rounded text-xs text-foreground outline-none transition-colors"
+                          required
+                        />
+                      </div>
+
+                      <div className="sm:col-span-5 space-y-1">
+                        <label className="text-[10px] font-bold text-foreground uppercase tracking-wider">Categoria</label>
+                        <select
+                          value={item.category}
+                          onChange={(e) => handleUpdateQueueItem(item.id, 'category', e.target.value)}
+                          disabled={uploading}
+                          className="w-full px-3 py-2 bg-secondary/30 border border-border/80 focus:border-primary rounded text-xs text-foreground outline-none transition-colors"
+                        >
+                          <option value="Corte">Corte</option>
+                          <option value="Barba">Barba</option>
+                          <option value="Cabelo">Cabelo</option>
+                          <option value="Química">Química</option>
+                          <option value="Outros">Outros</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-foreground uppercase tracking-wider">Descrição / Detalhes (Opcional)</label>
+                      <textarea
+                        rows={2}
+                        value={item.description}
+                        onChange={(e) => handleUpdateQueueItem(item.id, 'description', e.target.value)}
+                        disabled={uploading}
+                        placeholder="Ex: Degradê limpo com tesoura no topo e barba alinhada."
+                        className="w-full px-3 py-2 bg-secondary/30 border border-border/80 focus:border-primary rounded text-xs text-foreground outline-none transition-colors"
+                      />
+                    </div>
+
+                    {item.errorMessage && (
+                      <p className="text-[11px] text-destructive font-medium">{item.errorMessage}</p>
+                    )}
+                  </div>
+
+                  {/* Remove Button */}
+                  <div className="md:col-span-1 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveFromQueue(item.id)}
+                      disabled={uploading}
+                      className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded transition-colors"
+                      title="Remover foto da fila"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
+              ))}
+            </div>
 
-                <div className="space-y-1.5">
-                  <label htmlFor="imgDesc" className="text-[10px] font-bold text-foreground uppercase tracking-wider">Descrição / Detalhes (Opcional)</label>
-                  <textarea
-                    id="imgDesc"
-                    rows={2}
-                    placeholder="Ex: Transição limpa da pele ao cabelo, perfeita para rostos quadrados."
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    disabled={isPending}
-                    className="w-full px-3.5 py-2.5 bg-secondary/30 border border-border/80 focus:border-primary rounded text-xs text-foreground outline-none transition-colors"
-                  />
-                </div>
+            {/* Bottom Actions: Single "Salvar Todas" button */}
+            <div className="flex flex-col sm:flex-row justify-between items-center pt-4 border-t border-border/40 gap-4">
+              <div className="text-xs text-muted-foreground">
+                {uploading ? (
+                  <span className="flex items-center gap-2 text-primary font-semibold">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    {uploadProgress || 'Processando fotos...'}
+                  </span>
+                ) : (
+                  <span>Fotos na fila: <strong>{batchQueue.length}</strong> (Limite máximo: 20MB cada)</span>
+                )}
+              </div>
 
-                <div className="flex gap-2 justify-end">
-                  <GradientButton type="button" variant="variant" onClick={() => setShowAddForm(false)} className="text-xs h-9 px-4">
-                    Cancelar
-                  </GradientButton>
-                  <GradientButton type="submit" disabled={isPending || uploading} className="text-xs h-9 px-4 gap-1.5">
-                    {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
-                    Confirmar Cadastro
-                  </GradientButton>
-                </div>
+              <div className="flex gap-2 w-full sm:w-auto">
+                <GradientButton
+                  type="button"
+                  variant="variant"
+                  onClick={() => {
+                    setBatchQueue([])
+                    setShowAddForm(false)
+                  }}
+                  disabled={uploading}
+                  className="text-xs h-9 px-4"
+                >
+                  Cancelar Tudo
+                </GradientButton>
+
+                <GradientButton
+                  type="button"
+                  onClick={handleSaveAllBatch}
+                  disabled={uploading || batchQueue.length === 0}
+                  className="text-xs h-9 px-6 gap-2 font-bold"
+                >
+                  {uploading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4" />
+                  )}
+                  Salvar Todas ({batchQueue.length})
+                </GradientButton>
               </div>
             </div>
-          </form>
+          </div>
         )}
 
-        {/* Edit image form */}
+        {/* EDIT SINGLE PHOTO MODAL/FORM */}
         {editingImage && (
-          <form onSubmit={handleEditSubmit} className="p-6 bg-secondary/15 rounded-lg border border-border space-y-4 max-w-2xl shadow-xl animate-in slide-in-from-top duration-200">
+          <form onSubmit={handleEditSubmit} className="p-6 bg-secondary/15 rounded-xl border border-border space-y-4 max-w-2xl shadow-2xl animate-in slide-in-from-top duration-200">
             <div className="flex justify-between items-center pb-2 border-b border-border/40">
-              <h3 className="font-semibold text-xs text-foreground uppercase tracking-wider">Editar Detalhes da Foto</h3>
-              <button type="button" onClick={() => setEditingImage(null)} className="text-muted-foreground hover:text-foreground">
+              <h3 className="font-serif font-bold text-sm text-foreground uppercase tracking-wider">Editar Detalhes da Foto</h3>
+              <button 
+                type="button" 
+                onClick={() => {
+                  setEditingImage(null)
+                  setEditCroppedFile(null)
+                }} 
+                className="text-muted-foreground hover:text-foreground"
+              >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
-              {/* Photo Upload Area */}
-              <div className="md:col-span-4 flex flex-col items-center justify-center">
+              {/* Photo Area */}
+              <div className="md:col-span-4 flex flex-col items-center">
                 <div className="relative w-full aspect-square rounded-lg border border-border/80 bg-secondary/30 flex items-center justify-center overflow-hidden group select-none">
-                  {editingImage.url ? (
-                    <Image 
-                      src={editingImage.url} 
-                      alt="Preview" 
-                      width={200} 
-                      height={200} 
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="text-center p-4 text-muted-foreground flex flex-col items-center">
-                      <ImageIcon className="w-8 h-8 text-primary/30 mb-2" />
-                      <span className="text-[10px] uppercase font-bold">Sem imagem</span>
-                    </div>
-                  )}
+                  <Image 
+                    src={editingImage.previewUrl || editingImage.url} 
+                    alt="Preview" 
+                    fill 
+                    className="object-cover"
+                  />
 
-                  <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col items-center justify-center cursor-pointer text-white text-[10px] font-semibold">
-                    <Camera size={18} className="text-primary mb-1" />
+                  <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col items-center justify-center cursor-pointer text-white text-[10px] font-semibold gap-1">
+                    <Camera size={18} className="text-primary" />
                     <span>Substituir Foto</span>
                     <input 
+                      ref={editFileInputRef}
                       type="file" 
                       accept="image/*" 
-                      onChange={(e) => handleFileUpload(e, true)} 
+                      onChange={handleEditFileSelect} 
                       disabled={uploading} 
                       className="hidden" 
                     />
@@ -426,7 +770,26 @@ export default function PainelGaleria() {
                     </div>
                   )}
                 </div>
-                <p className="text-[9px] text-muted-foreground mt-1.5 text-center">Clique na imagem para enviar (JPEG/PNG, máx. 5MB)</p>
+
+                <div className="flex gap-2 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => editFileInputRef.current?.click()}
+                    disabled={uploading}
+                    className="text-[10px] text-muted-foreground hover:text-foreground underline"
+                  >
+                    Substituir (máx. 20MB)
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={openCropModalForEdit}
+                    disabled={uploading}
+                    className="text-[10px] text-primary hover:underline flex items-center gap-0.5 font-semibold"
+                  >
+                    <Crop className="w-3 h-3" /> Cortar
+                  </button>
+                </div>
               </div>
 
               {/* Data Fields */}
@@ -439,7 +802,7 @@ export default function PainelGaleria() {
                       type="text"
                       value={editingImage.title || ''}
                       onChange={(e) => setEditingImage({ ...editingImage, title: e.target.value })}
-                      disabled={isPending}
+                      disabled={isPending || uploading}
                       className="w-full px-3.5 py-2.5 bg-secondary/30 border border-border/80 focus:border-primary rounded text-xs text-foreground outline-none transition-colors"
                       required
                     />
@@ -451,7 +814,7 @@ export default function PainelGaleria() {
                       id="editCategory"
                       value={editingImage.category || 'Corte'}
                       onChange={(e) => setEditingImage({ ...editingImage, category: e.target.value })}
-                      disabled={isPending}
+                      disabled={isPending || uploading}
                       className="w-full px-3.5 py-2.5 bg-secondary/30 border border-border/80 focus:border-primary rounded text-xs text-foreground outline-none transition-colors"
                     >
                       <option value="Corte">Corte</option>
@@ -470,17 +833,25 @@ export default function PainelGaleria() {
                     rows={2}
                     value={editingImage.description || ''}
                     onChange={(e) => setEditingImage({ ...editingImage, description: e.target.value })}
-                    disabled={isPending}
+                    disabled={isPending || uploading}
                     className="w-full px-3.5 py-2.5 bg-secondary/30 border border-border/80 focus:border-primary rounded text-xs text-foreground outline-none transition-colors"
                   />
                 </div>
 
                 <div className="flex gap-2 justify-end">
-                  <GradientButton type="button" variant="variant" onClick={() => setEditingImage(null)} className="text-xs h-9 px-4">
+                  <GradientButton 
+                    type="button" 
+                    variant="variant" 
+                    onClick={() => {
+                      setEditingImage(null)
+                      setEditCroppedFile(null)
+                    }} 
+                    className="text-xs h-9 px-4"
+                  >
                     Cancelar
                   </GradientButton>
                   <GradientButton type="submit" disabled={isPending || uploading} className="text-xs h-9 px-4 gap-1.5">
-                    {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                    {isPending || uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
                     Salvar Alterações
                   </GradientButton>
                 </div>
@@ -489,7 +860,7 @@ export default function PainelGaleria() {
           </form>
         )}
 
-        {/* Gallery Grid */}
+        {/* GALLERY GRID */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 pt-2">
           {images.length > 0 ? (
             images.map((img) => (
@@ -528,15 +899,20 @@ export default function PainelGaleria() {
 
                   <div className="flex gap-2 items-center pt-1 border-t border-border/20 mt-1">
                     <button
-                      onClick={() => handleEditClick(img)}
-                      disabled={isPending}
+                      onClick={() => {
+                        setEditingImage(img)
+                        setShowAddForm(false)
+                        setErrorMsg('')
+                        setSuccessMsg('')
+                      }}
+                      disabled={isPending || uploading}
                       className="flex-1 py-1.5 bg-secondary hover:bg-muted text-foreground text-[10px] font-semibold rounded flex items-center justify-center gap-1 shadow cursor-pointer transition-all"
                     >
                       <Edit2 className="w-3 h-3" /> Editar
                     </button>
                     <button
                       onClick={() => handleDelete(img)}
-                      disabled={isPending}
+                      disabled={isPending || uploading}
                       className="p-1.5 bg-destructive/80 hover:bg-destructive text-white rounded shadow cursor-pointer transition-all"
                       title="Excluir imagem"
                     >
@@ -549,12 +925,22 @@ export default function PainelGaleria() {
           ) : (
             <div className="col-span-full p-12 text-center text-muted-foreground italic bg-secondary/10 border border-border rounded-lg shadow flex flex-col items-center justify-center gap-2">
               <ImageIcon className="w-12 h-12 text-primary/10" />
-              <p className="text-xs">A galeria de fotos está vazia. Adicione novas imagens para exibição.</p>
+              <p className="text-xs">A galeria de fotos está vazia. Clique em "Adicionar Fotos (Lote)" para cadastrar imagens.</p>
             </div>
           )}
         </div>
 
       </main>
+
+      {/* REUSABLE IMAGE CROP MODAL */}
+      <ImageCropModal
+        isOpen={!!croppingItem}
+        imageSrc={croppingItem?.imageSrc || ''}
+        initialCrop={croppingItem?.crop}
+        initialZoom={croppingItem?.zoom}
+        onClose={() => setCroppingItem(null)}
+        onConfirm={handleConfirmCrop}
+      />
     </div>
   )
 }
