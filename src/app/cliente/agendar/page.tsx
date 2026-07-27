@@ -858,66 +858,139 @@ function AgendarWizardInner() {
 
             {/* STEP 2: Select Service */}
             {step === 2 && (
-              <div key="step-2" className="space-y-4">
-                <h3 className="font-serif font-semibold text-lg text-foreground">Selecione o Serviço</h3>
-                <p className="text-xs text-muted-foreground">Escolha qual serviço gostaria de fazer hoje</p>
+              <div key="step-2" className="space-y-6 animate-in fade-in-50 duration-300">
+                <div className="space-y-1.5 text-left border-b border-border/40 pb-4">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2.5 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary font-semibold text-[10px] uppercase tracking-wider flex items-center gap-1">
+                        <Scissors className="w-3 h-3 text-primary" /> Passo 2 de 6
+                      </span>
+                      <span className="text-xs text-muted-foreground">• Seleção de Serviço</span>
+                    </div>
 
-                <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
+                    {/* Selected Barber Chip */}
+                    {selectedBarber && (
+                      <div className="flex items-center gap-2 bg-secondary/60 border border-border/60 px-3 py-1 rounded-full text-xs">
+                        <span className="text-[11px] text-muted-foreground">Barbeiro:</span>
+                        <span className="font-semibold text-foreground flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                          {selectedBarber.name}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  <h3 className="font-serif font-bold text-xl sm:text-2xl text-foreground">Selecione o Serviço</h3>
+                  <p className="text-xs text-muted-foreground">Escolha o serviço desejado com a garantia de atendimento de excelência e produtos premium.</p>
+                </div>
+
+                <div className="space-y-3.5 max-h-[380px] overflow-y-auto pr-1">
                   {services.length > 0 ? (
-                    services.map((service) => (
-                      <button
-                        key={service.id}
-                        onClick={() => setSelectedService(service)}
-                        className={`w-full p-4 rounded-lg border text-left flex items-start justify-between transition-all cursor-pointer ${
-                          selectedService?.id === service.id
-                            ? 'border-primary bg-primary/5'
-                            : 'border-border hover:border-muted-foreground/35 bg-secondary/35'
-                        }`}
-                      >
-                        <div className="space-y-1 pr-4">
-                          <h4 className="font-serif font-semibold text-sm text-foreground">{service.name}</h4>
-                          <p className="text-[11px] text-muted-foreground line-clamp-1">{service.description}</p>
-                          <span className="inline-block text-[10px] text-muted-foreground bg-secondary px-2 py-0.5 rounded font-mono uppercase mt-1">
-                            {service.duration} min
-                          </span>
+                    services.map((service) => {
+                      const isSelected = selectedService?.id === service.id
+                      
+                      return (
+                        <div
+                          key={service.id}
+                          onClick={() => setSelectedService(service)}
+                          className={`relative group p-5 rounded-xl border text-left transition-all duration-300 cursor-pointer overflow-hidden flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${
+                            isSelected
+                              ? 'border-primary bg-gradient-to-r from-primary/15 via-primary/5 to-transparent shadow-lg shadow-primary/10 ring-1 ring-primary/40'
+                              : 'border-border/70 hover:border-primary/50 bg-secondary/30 hover:bg-secondary/50 shadow-sm hover:shadow-md'
+                          }`}
+                        >
+                          {/* Glow when selected */}
+                          {isSelected && (
+                            <div className="absolute -top-10 -right-10 w-24 h-24 bg-primary/20 rounded-full blur-xl pointer-events-none" />
+                          )}
+
+                          <div className="flex items-start gap-4 flex-1 relative z-10">
+                            {/* Service Icon Badge */}
+                            <div className={`w-12 h-12 rounded-xl border flex items-center justify-center shrink-0 transition-all duration-300 ${
+                              isSelected 
+                                ? 'bg-primary text-primary-foreground border-primary/40 shadow-md scale-105' 
+                                : 'bg-primary/10 text-primary border-primary/20 group-hover:bg-primary/20'
+                            }`}>
+                              <Scissors className="w-5 h-5" />
+                            </div>
+
+                            <div className="space-y-1.5 flex-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <h4 className="font-serif font-bold text-base text-foreground group-hover:text-primary transition-colors">
+                                  {service.name}
+                                </h4>
+                              </div>
+
+                              {service.description && (
+                                <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                                  {service.description}
+                                </p>
+                              )}
+
+                              <div className="flex items-center gap-2 pt-0.5">
+                                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground bg-background/60 px-2.5 py-0.5 rounded-full border border-border/50">
+                                  <Clock className="w-3 h-3 text-primary" /> {service.duration} minutos
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Price and Checkmark */}
+                          <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto gap-4 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/40 relative z-10">
+                            <div className="text-left sm:text-right">
+                              <span className="text-xs text-muted-foreground block text-[10px] uppercase font-bold tracking-wider">Valor</span>
+                              <span className="text-lg sm:text-xl font-serif font-bold text-primary">
+                                R$&nbsp;{Number(service.price).toFixed(2)}
+                              </span>
+                            </div>
+
+                            {isSelected ? (
+                              <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md animate-in zoom-in-75 duration-200 shrink-0">
+                                <Check className="w-4 h-4 text-primary-foreground stroke-[3]" />
+                              </div>
+                            ) : (
+                              <div className="w-7 h-7 rounded-full border border-border/80 group-hover:border-primary/40 flex items-center justify-center shrink-0 transition-colors">
+                                <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-transform group-hover:translate-x-0.5" />
+                              </div>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex items-center gap-3 shrink-0">
-                          <span className="text-sm font-serif font-bold text-primary">R$ {Number(service.price).toFixed(2)}</span>
-                          {selectedService?.id === service.id && <Check className="w-4 h-4 text-primary" />}
-                        </div>
-                      </button>
-                    ))
+                      )
+                    })
                   ) : (
-                    <div className="p-6 bg-secondary/20 rounded border border-border text-center text-xs text-muted-foreground">
-                      Este profissional ainda não possui serviços cadastrados. Por favor, volte e escolha outro profissional.
+                    <div className="p-8 bg-secondary/20 rounded-xl border border-border/70 text-center space-y-3 text-xs text-muted-foreground">
+                      <p className="font-semibold text-foreground text-sm">Nenhum serviço encontrado</p>
+                      <p>Este profissional ainda não possui serviços cadastrados nesta categoria. Por favor, volte e escolha outro profissional.</p>
                     </div>
                   )}
                 </div>
 
-                {/* ── Pacote Mensal compact banner ── */}
-                <div className="rounded-xl border border-primary/20 bg-gradient-to-r from-primary/5 via-background to-primary/3 p-4 relative overflow-hidden mt-4">
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-xl pointer-events-none" />
+                {/* ── Pacote Mensal Banner ── */}
+                <div className="rounded-xl border border-primary/25 bg-gradient-to-r from-primary/10 via-secondary/30 to-background p-5 relative overflow-hidden shadow-sm hover:shadow-md transition-all mt-4">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl pointer-events-none" />
                   <div className="relative flex flex-col sm:flex-row sm:items-center gap-4">
-                    <div className="flex-1 space-y-1">
+                    <div className="flex-1 space-y-1.5">
                       <div className="flex items-center gap-2">
-                        <span className="text-[8px] font-bold text-primary-foreground bg-primary px-2 py-0.5 rounded-full uppercase tracking-widest">Mais Econômico</span>
+                        <span className="text-[9px] font-bold text-primary-foreground bg-primary px-2.5 py-0.5 rounded-full uppercase tracking-widest flex items-center gap-1 shadow-sm">
+                          <Sparkles className="w-3 h-3 text-primary-foreground" /> Plano VIP Mensal
+                        </span>
                       </div>
-                      <p className="font-serif font-semibold text-sm text-foreground">Prefere praticidade e economia?</p>
-                      <p className="text-[11px] text-muted-foreground leading-relaxed">
-                        Com o Pacote Mensal, você garante 4 cortes por{' '}
+                      <p className="font-serif font-bold text-base text-foreground">Prefere praticidade e máxima economia?</p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Com o Pacote Mensal, você garante 4 cortes por apenas{' '}
                         <span className="font-bold text-primary">R$&nbsp;150</span>{' '}
                         <span className="line-through text-muted-foreground/70">R$&nbsp;200</span>{' '}
-                        — economiza R$&nbsp;50 por mês e nunca mais precisa agendar toda vez. Seu horário fixo, toda semana.
+                        — economize R$&nbsp;50 por mês, garanta seu horário semanal fixo e esqueça a burocracia de agendar toda vez.
                       </p>
                     </div>
                     <a
                       href={formatWhatsAppLink(settings?.whatsapp, 'Olá! Tenho interesse no Pacote Mensal (4 cortes por R$150). Gostaria de saber mais e agendar meu horário fixo!')}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="shrink-0 px-4 py-2.5 bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-all shadow-md hover:scale-[1.02] active:scale-[0.98] whitespace-nowrap"
+                      className="shrink-0 px-5 py-3 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold rounded-lg flex items-center justify-center gap-2 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 cursor-pointer whitespace-nowrap group"
                     >
-                      <MessageSquare className="w-3.5 h-3.5" />
-                      Conhecer o Pacote
+                      <MessageSquare className="w-4 h-4 text-primary-foreground transition-transform group-hover:scale-110" />
+                      <span>Assinar no WhatsApp</span>
                     </a>
                   </div>
                 </div>
