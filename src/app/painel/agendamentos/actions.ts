@@ -3,6 +3,7 @@
 import { createServerSupabaseClient } from '@/lib/supabase'
 import { getAvailableSlots } from '@/lib/booking'
 import { addMinutes } from 'date-fns'
+import { resolveNoShowFeeForCustomer } from '@/lib/no-show'
 
 export type ActionResponse = {
   success: boolean
@@ -67,6 +68,17 @@ export async function updateAppointmentStatusAction(apptId: string, status: stri
         .from('payments')
         .update({ status: 'confirmed_manually' })
         .eq('appointment_id', apptId)
+
+      // Resolve outstanding no-show fee when appointment is completed
+      const { data: completedAppt } = await supabase
+        .from('appointments')
+        .select('customer_id')
+        .eq('id', apptId)
+        .single()
+
+      if (completedAppt?.customer_id) {
+        await resolveNoShowFeeForCustomer(completedAppt.customer_id)
+      }
     } else if (status === 'cancelled') {
       await supabase
         .from('payments')
@@ -77,6 +89,66 @@ export async function updateAppointmentStatusAction(apptId: string, status: stri
     return { success: true, message: 'Status atualizado com sucesso.' }
   } catch (err) {
     console.error('Error inside updateAppointmentStatusAction:', err)
+    return { success: false, message: 'Erro interno no servidor.' }
+  }
+}
+
+/**
+ * Mark an appointment as no-show.
+ * Only allowed for cash/card (presencial) payment methods — Pix no-shows
+ * already forfeit the deposit so no additional fee is needed.
+ */
+export async function markNoShowAction(apptId: string): Promise<ActionResponse> {
+  const staff = await verifyStaffSession()
+  if (!staff) {
+    return { success: false, message: 'Não autorizado.' }
+  }
+
+  try {
+    const supabase = await createServerSupabaseClient()
+
+    // Fetch appointment + payment method
+    const { data: appt } = await supabase
+      .from('appointments')
+      .select('id, barber_id, status, payments (method)')
+      .eq('id', apptId)
+      .single()
+
+    if (!appt) {
+      return { success: false, message: 'Agendamento não encontrado.' }
+    }
+
+    // Barber can only mark their own appointments
+    if (staff.role === 'barber' && appt.barber_id !== staff.user.id) {
+      return { success: false, message: 'Você só pode gerenciar seus próprios agendamentos.' }
+    }
+
+    // Check payment method — only cash/card allowed
+    const payment = Array.isArray(appt.payments) ? appt.payments[0] : appt.payments
+    const payMethod = (payment as any)?.method
+    if (payMethod === 'pix') {
+      return { success: false, message: 'Agendamentos com Pix já perdem o sinal — não é necessário marcar como no-show.' }
+    }
+
+    // Don't allow marking already completed/cancelled/no_show
+    if (appt.status === 'completed' || appt.status === 'cancelled' || appt.status === 'no_show') {
+      return { success: false, message: 'Este agendamento já foi finalizado e não pode ser marcado como no-show.' }
+    }
+
+    // Update appointment
+    const { error } = await supabase
+      .from('appointments')
+      .update({ status: 'no_show', no_show: true })
+      .eq('id', apptId)
+
+    if (error) {
+      console.error('Error marking no-show:', error)
+      return { success: false, message: 'Erro ao marcar como não compareceu.' }
+    }
+
+    return { success: true, message: 'Agendamento marcado como não compareceu. Taxa de 50% será aplicada no próximo agendamento do cliente.' }
+  } catch (err) {
+    console.error('Error inside markNoShowAction:', err)
     return { success: false, message: 'Erro interno no servidor.' }
   }
 }

@@ -4,7 +4,7 @@ import React, { useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { 
   Scissors, Calendar, Clock, Search, Edit2, Trash2, CheckCircle2, 
-  AlertCircle, Plus, Loader2, Save, X, User, Sparkles, Check, AlertTriangle
+  AlertCircle, Plus, Loader2, Save, X, User, Sparkles, Check, AlertTriangle, UserX
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
@@ -12,7 +12,8 @@ import {
   updateAppointmentStatusAction, 
   updateAppointmentNotesAction, 
   createWalkInAppointmentAction,
-  deleteAppointmentAction
+  deleteAppointmentAction,
+  markNoShowAction
 } from './actions'
 import { apptShortCode } from '@/lib/utils'
 
@@ -60,6 +61,9 @@ export default function PainelAgendamentos() {
   // Delete confirmation modal state (admin only)
   const [deleteTarget, setDeleteTarget] = useState<any>(null)
 
+  // No-show confirmation modal state
+  const [noShowTarget, setNoShowTarget] = useState<any>(null)
+
   const supabase = createClient()
 
   const loadData = async () => {
@@ -105,6 +109,8 @@ export default function PainelAgendamentos() {
           end_time,
           status,
           notes,
+          no_show,
+          no_show_fee_charged,
           package_subscription_id,
           services (name, price),
           payments (total_amount, status, method),
@@ -292,6 +298,22 @@ export default function PainelAgendamentos() {
     startTransition(async () => {
       const res = await deleteAppointmentAction(deleteTarget.id)
       setDeleteTarget(null)
+      if (!res.success) {
+        setErrorMsg(res.message)
+      } else {
+        setSuccessMsg(res.message)
+        loadData()
+      }
+    })
+  }
+
+  const handleConfirmNoShow = () => {
+    if (!noShowTarget) return
+    setErrorMsg('')
+    setSuccessMsg('')
+    startTransition(async () => {
+      const res = await markNoShowAction(noShowTarget.id)
+      setNoShowTarget(null)
       if (!res.success) {
         setErrorMsg(res.message)
       } else {
@@ -501,17 +523,26 @@ export default function PainelAgendamentos() {
                         </span>
                       </td>
                       <td className="p-4 whitespace-nowrap">
+                        <div className="flex flex-col gap-1">
                         <span className={`text-[9px] uppercase font-bold px-2 py-0.5 rounded ${
                           appt.status === 'completed' 
                             ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' 
                             : appt.status === 'cancelled'
                             ? 'bg-destructive/10 text-destructive border border-destructive/20'
+                            : appt.status === 'no_show'
+                            ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
                             : appt.status === 'confirmed'
                             ? 'bg-primary/10 text-primary border border-primary/20'
                             : 'bg-muted text-muted-foreground border border-border'
                         }`}>
-                          {appt.status === 'completed' ? 'Concluído' : appt.status === 'cancelled' ? 'Cancelado' : appt.status === 'confirmed' ? 'Confirmado' : 'Pendente'}
+                          {appt.status === 'completed' ? 'Concluído' : appt.status === 'cancelled' ? 'Cancelado' : appt.status === 'no_show' ? 'Não Compareceu' : appt.status === 'confirmed' ? 'Confirmado' : 'Pendente'}
                         </span>
+                        {appt.no_show_fee_charged && (
+                          <span className="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 tracking-wider inline-block w-fit">
+                            Taxa Cobrada ✓
+                          </span>
+                        )}
+                        </div>
                       </td>
                       <td className="p-4">
                         {editingNotesId === appt.id ? (
@@ -554,7 +585,7 @@ export default function PainelAgendamentos() {
                         )}
                       </td>
                       <td className="p-4 text-right whitespace-nowrap space-x-1">
-                        {appt.status !== 'completed' && appt.status !== 'cancelled' && (
+                        {appt.status !== 'completed' && appt.status !== 'cancelled' && appt.status !== 'no_show' && (
                           <>
                             <button
                               onClick={() => handleStatusUpdate(appt.id, 'completed')}
@@ -570,6 +601,17 @@ export default function PainelAgendamentos() {
                             >
                               Cancelar
                             </button>
+                            {/* No-show button — only for cash/card presencial payments */}
+                            {(payMethod === 'cash' || payMethod === 'card') && (
+                              <button
+                                onClick={() => setNoShowTarget(appt)}
+                                disabled={isPending}
+                                title="Marcar como não compareceu"
+                                className="px-2 py-1 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-500 rounded text-[10px] font-semibold cursor-pointer"
+                              >
+                                Não Compareceu
+                              </button>
+                            )}
                           </>
                         )}
                         {appt.status === 'pending' && (
@@ -680,6 +722,84 @@ export default function PainelAgendamentos() {
                     <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Excluindo...</>
                   ) : (
                     <><Trash2 className="w-3.5 h-3.5" /> Sim, excluir permanentemente</>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── No-Show Confirmation Modal ──────────────────────── */}
+        {noShowTarget && (
+          <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+            <div className="glass p-6 sm:p-8 rounded-lg border border-amber-700/50 max-w-md w-full shadow-2xl space-y-5 relative">
+              
+              {/* Header */}
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shrink-0">
+                  <UserX className="w-5 h-5 text-amber-500" />
+                </div>
+                <div>
+                  <h3 className="font-serif font-bold text-lg text-foreground">Marcar como Não Compareceu</h3>
+                  <p className="text-[11px] text-amber-500 font-semibold mt-0.5">Taxa de 50% será aplicada ao próximo agendamento</p>
+                </div>
+              </div>
+
+              {/* Warning text */}
+              <div className="p-4 bg-amber-500/5 border border-amber-500/20 rounded-lg space-y-2 text-xs text-muted-foreground leading-relaxed">
+                <p>
+                  Ao marcar este agendamento como <strong className="text-amber-500">não compareceu</strong>, o cliente
+                  receberá uma <strong className="text-foreground">taxa de 50% do valor do serviço</strong> somada automaticamente
+                  ao total do seu próximo agendamento.
+                </p>
+                <p>
+                  A taxa só será considerada quitada quando o próximo atendimento for concluído ou o pagamento for confirmado.
+                </p>
+              </div>
+
+              {/* Appointment details */}
+              <div className="bg-secondary/40 border border-border/50 rounded-lg p-4 space-y-2 text-xs">
+                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-2">Agendamento</p>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Cliente:</span>
+                  <span className="font-semibold text-foreground">{noShowTarget.customerName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Serviço:</span>
+                  <span className="font-semibold text-foreground">{noShowTarget.services?.name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Data / Hora:</span>
+                  <span className="font-semibold text-foreground">
+                    {formatDate(noShowTarget.start_time)} às {formatTime(noShowTarget.start_time)}
+                  </span>
+                </div>
+                <div className="flex justify-between border-t border-border/40 pt-2">
+                  <span className="text-muted-foreground">Taxa a cobrar (50%):</span>
+                  <span className="font-bold text-amber-500">R$ {(Number(noShowTarget.services?.price || 0) * 0.5).toFixed(2)}</span>
+                </div>
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setNoShowTarget(null)}
+                  disabled={isPending}
+                  className="flex-1 px-4 py-2.5 bg-secondary hover:bg-muted border border-border text-foreground rounded text-xs font-semibold transition-all cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmNoShow}
+                  disabled={isPending}
+                  className="flex-1 px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isPending ? (
+                    <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Processando...</>
+                  ) : (
+                    <><UserX className="w-3.5 h-3.5" /> Confirmar Não Compareceu</>
                   )}
                 </button>
               </div>

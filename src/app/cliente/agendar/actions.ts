@@ -3,11 +3,29 @@
 import { createServerSupabaseClient } from '@/lib/supabase'
 import { getAvailableSlots } from '@/lib/booking'
 import { addMinutes, format } from 'date-fns'
+import { getOutstandingNoShowFee, type NoShowFeeInfo } from '@/lib/no-show'
 
 export type BookingResponse = {
   success: boolean
   message: string
   appointmentId?: string
+}
+
+/**
+ * Check if the current user has an outstanding no-show fee.
+ * Called on the booking page to display the fee banner.
+ */
+export async function checkNoShowFeeAction(): Promise<NoShowFeeInfo | null> {
+  try {
+    const supabase = await createServerSupabaseClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return null
+
+    return await getOutstandingNoShowFee(user.id)
+  } catch (err) {
+    console.error('Error checking no-show fee:', err)
+    return null
+  }
 }
 
 export async function createAppointmentAction(
@@ -80,7 +98,11 @@ export async function createAppointmentAction(
     const endDate = addMinutes(startDate, duration)
     const endTimeStr = endDate.toISOString() // UTC format standard
 
-    // 5. Insert appointment
+    // 5. Check for outstanding no-show fee
+    const noShowFee = await getOutstandingNoShowFee(user.id)
+    const feeAmount = noShowFee?.fee || 0
+
+    // 6. Insert appointment
     const { data: appointment, error: apptError } = await supabase
       .from('appointments')
       .insert({
@@ -100,13 +122,18 @@ export async function createAppointmentAction(
       return { success: false, message: 'Erro ao registrar agendamento no banco de dados.' }
     }
 
-    // 6. Compute 50% signal setup & Insert payment entry
-    const totalAmount = Number(service.price)
+    // 7. Compute total with fee and insert payment entry
+    const servicePrice = Number(service.price)
+    const totalAmount = servicePrice + feeAmount
     const depositAmount = totalAmount * 0.5
 
+    const feeNote = feeAmount > 0
+      ? ` | Taxa no-show inclusa: R$ ${feeAmount.toFixed(2)}`
+      : ''
+
     const methodNote = paymentMethod === 'pix' 
-      ? `Sinal Pix de 50% gerado para o serviço: ${service.name}`
-      : `Pagamento presencial (${paymentMethod === 'cash' ? 'Dinheiro' : 'Cartão'}) para o serviço: ${service.name}`
+      ? `Sinal Pix de 50% gerado para o serviço: ${service.name}${feeNote}`
+      : `Pagamento presencial (${paymentMethod === 'cash' ? 'Dinheiro' : 'Cartão'}) para o serviço: ${service.name}${feeNote}`
 
     const { error: payError } = await supabase
       .from('payments')

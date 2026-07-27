@@ -1,6 +1,7 @@
 'use server'
 
 import { createServerSupabaseClient } from '@/lib/supabase'
+import { resolveNoShowFeeForCustomer } from '@/lib/no-show'
 
 export type PayActionResponse = {
   success: boolean
@@ -121,6 +122,17 @@ export async function confirmPaymentAction(
 
       if (apptError) {
         console.error('Error auto-confirming appointment:', apptError)
+      }
+
+      // Resolve outstanding no-show fees when payment is confirmed
+      const { data: paidAppt } = await supabase
+        .from('appointments')
+        .select('customer_id')
+        .eq('id', payment.appointment_id)
+        .single()
+
+      if (paidAppt?.customer_id) {
+        await resolveNoShowFeeForCustomer(paidAppt.customer_id)
       }
     } else if (newStatus === 'refunded') {
       const { error: apptError } = await supabase

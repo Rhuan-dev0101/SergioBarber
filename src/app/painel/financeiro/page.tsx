@@ -53,6 +53,7 @@ export default function PainelFinanceiro() {
           deposit_amount,
           status,
           method,
+          notes,
           created_at,
           appointments (customer_id, services (name))
         `)
@@ -109,7 +110,8 @@ export default function PainelFinanceiro() {
           created_at: p.created_at,
           customerName: cName,
           serviceName: appt?.services?.name || 'Serviço',
-          isPackage: false
+          isPackage: false,
+          hasNoShowFee: typeof p.notes === 'string' && p.notes.includes('Taxa no-show')
         }
       })
 
@@ -327,7 +329,14 @@ export default function PainelFinanceiro() {
                       {p.serviceName}
                     </td>
                     <td className="p-4 whitespace-nowrap font-mono text-foreground">
-                      R$ {Number(p.total_amount).toFixed(2)}
+                      <div className="flex flex-col gap-1">
+                        <span>R$ {Number(p.total_amount).toFixed(2)}</span>
+                        {p.hasNoShowFee && (
+                          <span className="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 border border-amber-500/20 tracking-wider inline-block w-fit">
+                            Inclui Taxa No-Show
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="p-4 whitespace-nowrap font-mono text-primary font-bold">
                       {p.isPackage ? (

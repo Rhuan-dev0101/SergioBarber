@@ -9,7 +9,8 @@ import {
   MessageSquare, User, CheckCircle2, QrCode, Banknote, CreditCard 
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
-import { createAppointmentAction, getBarberMonthAvailabilityAction } from './actions'
+import { createAppointmentAction, getBarberMonthAvailabilityAction, checkNoShowFeeAction } from './actions'
+import type { NoShowFeeInfo } from '@/lib/no-show'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { formatWhatsAppLink } from '@/lib/settings'
@@ -90,6 +91,9 @@ function AgendarWizardInner() {
   const [loadingPix, setLoadingPix] = useState<boolean>(false)
   const [copiedPix, setCopiedPix] = useState<boolean>(false)
 
+  // No-show fee state
+  const [noShowFeeInfo, setNoShowFeeInfo] = useState<NoShowFeeInfo | null>(null)
+
   const supabase = createClient()
 
   // Load general config and barbers
@@ -110,6 +114,12 @@ function AgendarWizardInner() {
             if (isProfileIncomplete(prof)) {
               setIsCompleteModalOpen(true)
             }
+          }
+
+          // Check for outstanding no-show fee
+          const feeInfo = await checkNoShowFeeAction()
+          if (feeInfo) {
+            setNoShowFeeInfo(feeInfo)
           }
         }
 
@@ -441,13 +451,15 @@ function AgendarWizardInner() {
       if (!res.success) {
         setErrorMsg(res.message)
       } else {
+        const feeAmount = noShowFeeInfo?.fee || 0
+        const totalPrice = selectedService.price + feeAmount
         setSuccessInfo({
           appointmentId: res.appointmentId,
           customerName: profile?.full_name || '',
           barber: selectedBarber.name,
           service: selectedService.name,
-          price: selectedService.price,
-          deposit: selectedService.price * 0.5,
+          price: totalPrice,
+          deposit: totalPrice * 0.5,
           date: selectedDate,
           time: selectedTime,
           method: paymentMethod
@@ -1030,6 +1042,21 @@ function AgendarWizardInner() {
                 <h3 className="font-serif font-semibold text-lg text-foreground">Revisar Agendamento</h3>
                 <p className="text-xs text-muted-foreground">Revise os detalhes da sua reserva antes de submeter</p>
 
+                {/* No-show fee warning banner */}
+                {noShowFeeInfo && (
+                  <div className="p-4 bg-amber-500/10 border border-amber-500/25 rounded-lg flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                    <div className="space-y-1.5 text-xs">
+                      <p className="font-bold text-amber-500">Taxa por não comparecimento</p>
+                      <p className="text-muted-foreground leading-relaxed">
+                        Identificamos que você não compareceu ao seu agendamento anterior
+                        (<strong className="text-foreground">{noShowFeeInfo.date}</strong>, {noShowFeeInfo.serviceName}).
+                        Uma taxa de <strong className="text-amber-500">R$ {noShowFeeInfo.fee.toFixed(2)}</strong> (50% do valor daquele serviço) será adicionada ao pagamento deste agendamento.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 <div className="space-y-3 bg-secondary/35 p-5 rounded-lg border border-border/60">
                   <div className="flex justify-between items-center border-b border-border/40 pb-2.5 text-xs text-muted-foreground">
                     <span>Profissional:</span>
@@ -1048,13 +1075,25 @@ function AgendarWizardInner() {
                     <span className="font-semibold text-foreground">{selectedTime}</span>
                   </div>
                   <div className="flex justify-between items-center text-xs text-muted-foreground pb-2">
-                    <span>Preço Total do Serviço:</span>
+                    <span>Preço do Serviço:</span>
                     <span className="font-semibold text-foreground">R$ {Number(selectedService?.price).toFixed(2)}</span>
                   </div>
+                  {noShowFeeInfo && (
+                    <div className="flex justify-between items-center text-xs pb-2 border-b border-amber-500/20">
+                      <span className="text-amber-500 font-semibold">Taxa por falta anterior:</span>
+                      <span className="font-bold text-amber-500">+ R$ {noShowFeeInfo.fee.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {noShowFeeInfo && (
+                    <div className="flex justify-between items-center text-xs text-muted-foreground pb-2">
+                      <span>Valor Total com Taxa:</span>
+                      <span className="font-bold text-foreground">R$ {(Number(selectedService?.price) + noShowFeeInfo.fee).toFixed(2)}</span>
+                    </div>
+                  )}
                   {paymentMethod === 'pix' ? (
                     <div className="flex justify-between items-center text-sm font-bold text-primary pt-1.5 border-t border-border/40">
                       <span>Sinal via Pix (50%):</span>
-                      <span>R$ {(Number(selectedService?.price) * 0.5).toFixed(2)}</span>
+                      <span>R$ {((Number(selectedService?.price) + (noShowFeeInfo?.fee || 0)) * 0.5).toFixed(2)}</span>
                     </div>
                   ) : (
                     <div className="flex justify-between items-center text-xs font-bold text-primary pt-1.5 border-t border-border/40">
