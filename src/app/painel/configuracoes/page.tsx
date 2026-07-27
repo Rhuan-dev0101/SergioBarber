@@ -115,38 +115,41 @@ export default function PainelConfiguracoes() {
       <main className="flex-grow p-6 sm:p-8 space-y-6 overflow-y-auto">
         
         {/* Title */}
-        <div className="border-b border-border/40 pb-4">
-          <h1 className="text-2xl font-serif font-bold text-foreground">Configurações Gerais</h1>
-          <p className="text-xs text-muted-foreground">Gerencie as informações públicas e chaves Pix da barbearia</p>
+        <div className="border-b border-border/40 pb-6">
+          <h1 className="text-3xl font-serif font-bold text-foreground flex items-center gap-2">
+            <Settings className="w-7 h-7 text-primary shrink-0" />
+            Configurações do Estabelecimento ⚙️
+          </h1>
+          <p className="text-xs text-muted-foreground">Gerencie informações públicas de contato, localização e chave Pix para sinaleira de agendamento</p>
         </div>
 
         {errorMsg && (
-          <div className="p-3 bg-destructive/10 border border-destructive/20 rounded flex items-start gap-2 text-xs text-destructive">
+          <div className="p-3.5 bg-destructive/10 border border-destructive/20 rounded-xl flex items-start gap-2 text-xs text-destructive max-w-2xl">
             <AlertCircle className="w-4.5 h-4.5 shrink-0" />
             <span>{errorMsg}</span>
           </div>
         )}
 
         {successMsg && (
-          <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded flex items-start gap-2 text-xs text-emerald-500">
+          <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-start gap-2 text-xs text-emerald-500 max-w-2xl">
             <CheckCircle2 className="w-4.5 h-4.5 shrink-0" />
             <span>{successMsg}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="max-w-2xl glass p-6 sm:p-8 rounded-lg border border-border space-y-6 shadow-xl">
+        <form onSubmit={handleSubmit} className="max-w-2xl glass p-6 sm:p-8 rounded-2xl border border-border/80 space-y-6 shadow-xl">
           
           {/* Section 1: Business profile details */}
           <div className="space-y-4">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-1.5">
-              <Settings className="w-4 h-4 text-primary" /> Informações de Atendimento
+            <h3 className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-2 border-b border-border/40 pb-2">
+              <Settings className="w-4 h-4 text-primary" /> Informações de Atendimento ao Cliente
             </h3>
 
             {/* WhatsApp */}
             <div className="space-y-1.5">
-              <label htmlFor="cWhatsapp" className="text-xs font-semibold text-muted-foreground uppercase">WhatsApp de Contato</label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <label htmlFor="cWhatsapp" className="text-xs font-bold text-foreground uppercase tracking-wider">WhatsApp Oficial de Suporte</label>
+              <div className="relative flex items-center">
+                <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />
                 <input
                   id="cWhatsapp"
                   type="tel"
@@ -154,18 +157,18 @@ export default function PainelConfiguracoes() {
                   value={whatsapp}
                   onChange={(e) => setWhatsapp(e.target.value)}
                   disabled={isPending}
-                  className="w-full pl-10 pr-4 py-2 bg-secondary border border-border focus:border-primary rounded text-xs text-foreground outline-none"
+                  className="w-full pl-10 pr-4 py-2.5 bg-background border border-border focus:border-primary rounded-xl text-xs text-foreground outline-none font-medium"
                   required
                 />
               </div>
-              <span className="text-[10px] text-muted-foreground italic">Insira apenas números com DDI e DDD (Ex: 5511999999999)</span>
+              <p className="text-[10px] text-muted-foreground italic">Insira apenas números com DDI e DDD (Ex: 5511999999999)</p>
             </div>
 
             {/* Address */}
             <div className="space-y-1.5">
-              <label htmlFor="cAddress" className="text-xs font-semibold text-muted-foreground uppercase">Endereço Público</label>
-              <div className="relative">
-                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <label htmlFor="cAddress" className="text-xs font-bold text-foreground uppercase tracking-wider">Endereço Físico</label>
+              <div className="relative flex items-center">
+                <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />
                 <input
                   id="cAddress"
                   type="text"
@@ -173,7 +176,7 @@ export default function PainelConfiguracoes() {
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   disabled={isPending}
-                  className="w-full pl-10 pr-4 py-2 bg-secondary border border-border focus:border-primary rounded text-xs text-foreground outline-none"
+                  className="w-full pl-10 pr-4 py-2.5 bg-background border border-border focus:border-primary rounded-xl text-xs text-foreground outline-none font-medium"
                   required
                 />
               </div>
@@ -181,9 +184,9 @@ export default function PainelConfiguracoes() {
 
             {/* Instagram */}
             <div className="space-y-1.5">
-              <label htmlFor="cInstagram" className="text-xs font-semibold text-muted-foreground uppercase">Instagram URL</label>
-              <div className="relative">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+              <label htmlFor="cInstagram" className="text-xs font-bold text-foreground uppercase tracking-wider">Instagram URL</label>
+              <div className="relative flex items-center">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-primary"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
                 <input
                   id="cInstagram"
                   type="url"
@@ -191,7 +194,7 @@ export default function PainelConfiguracoes() {
                   value={instagram}
                   onChange={(e) => setInstagram(e.target.value)}
                   disabled={isPending}
-                  className="w-full pl-10 pr-4 py-2 bg-secondary border border-border focus:border-primary rounded text-xs text-foreground outline-none"
+                  className="w-full pl-10 pr-4 py-2.5 bg-background border border-border focus:border-primary rounded-xl text-xs text-foreground outline-none font-medium"
                 />
               </div>
             </div>
@@ -199,19 +202,19 @@ export default function PainelConfiguracoes() {
 
           {/* Section 2: Pix credentials */}
           <div className="space-y-4 pt-4 border-t border-border/40">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-1.5">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-2 border-b border-border/40 pb-2">
               <DollarSign className="w-4 h-4 text-primary" /> Configuração do Pix (Sinal 50%)
             </h3>
 
             {/* Pix key type */}
             <div className="space-y-1.5">
-              <label htmlFor="cPixType" className="text-xs font-semibold text-muted-foreground uppercase">Tipo de Chave Pix</label>
+              <label htmlFor="cPixType" className="text-xs font-bold text-foreground uppercase tracking-wider">Tipo de Chave Pix</label>
               <select
                 id="cPixType"
                 value={pixType}
                 onChange={(e) => setPixType(e.target.value)}
                 disabled={isPending}
-                className="w-full px-3 py-2 bg-secondary border border-border focus:border-primary rounded text-xs text-foreground outline-none cursor-pointer"
+                className="w-full px-4 py-2.5 bg-background border border-border focus:border-primary rounded-xl text-xs text-foreground outline-none cursor-pointer font-medium"
               >
                 <option value="cnpj">CNPJ</option>
                 <option value="email">E-mail</option>
@@ -222,7 +225,7 @@ export default function PainelConfiguracoes() {
 
             {/* Pix key value */}
             <div className="space-y-1.5">
-              <label htmlFor="cPixKey" className="text-xs font-semibold text-muted-foreground uppercase">Chave Pix</label>
+              <label htmlFor="cPixKey" className="text-xs font-bold text-foreground uppercase tracking-wider">Chave Pix de Recebimento</label>
               <input
                 id="cPixKey"
                 type="text"
@@ -230,16 +233,16 @@ export default function PainelConfiguracoes() {
                 value={pixKey}
                 onChange={(e) => setPixKey(e.target.value)}
                 disabled={isPending}
-                className="w-full px-3 py-2 bg-secondary border border-border focus:border-primary rounded text-xs text-foreground outline-none"
+                className="w-full px-4 py-2.5 bg-background border border-border focus:border-primary rounded-xl text-xs text-foreground outline-none font-mono font-bold"
                 required
               />
             </div>
 
             {/* Pix beneficiary name */}
             <div className="space-y-1.5">
-              <label htmlFor="cPixName" className="text-xs font-semibold text-muted-foreground uppercase">Nome do Beneficiário (Titular)</label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <label htmlFor="cPixName" className="text-xs font-bold text-foreground uppercase tracking-wider">Nome do Beneficiário (Titular)</label>
+              <div className="relative flex items-center">
+                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />
                 <input
                   id="cPixName"
                   type="text"
@@ -247,7 +250,7 @@ export default function PainelConfiguracoes() {
                   value={pixName}
                   onChange={(e) => setPixName(e.target.value)}
                   disabled={isPending}
-                  className="w-full pl-10 pr-4 py-2 bg-secondary border border-border focus:border-primary rounded text-xs text-foreground outline-none"
+                  className="w-full pl-10 pr-4 py-2.5 bg-background border border-border focus:border-primary rounded-xl text-xs text-foreground outline-none font-medium"
                   required
                 />
               </div>
@@ -258,7 +261,7 @@ export default function PainelConfiguracoes() {
           <button
             type="submit"
             disabled={isPending}
-            className="w-full py-3 bg-primary hover:bg-primary-hover text-primary-foreground font-bold rounded text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md"
+            className="w-full py-3.5 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 disabled:opacity-50"
           >
             {isPending ? (
               <>
@@ -267,8 +270,8 @@ export default function PainelConfiguracoes() {
               </>
             ) : (
               <>
-                Salvar Configurações
                 <Save className="w-4 h-4 text-primary-foreground" />
+                <span>Salvar Configurações</span>
               </>
             )}
           </button>

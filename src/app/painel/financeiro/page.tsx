@@ -226,20 +226,23 @@ export default function PainelFinanceiro() {
       <main className="flex-grow p-6 sm:p-8 space-y-6 overflow-y-auto">
         
         {/* Title */}
-        <div className="border-b border-border/40 pb-4">
-          <h1 className="text-2xl font-serif font-bold text-foreground">Controle Financeiro</h1>
-          <p className="text-xs text-muted-foreground">Verifique a entrada de caixa e aprove os depósitos de sinal Pix</p>
+        <div className="border-b border-border/40 pb-6">
+          <h1 className="text-3xl font-serif font-bold text-foreground flex items-center gap-2">
+            <DollarSign className="w-7 h-7 text-emerald-500 shrink-0" />
+            Controle Financeiro & Fluxo de Caixa 💰
+          </h1>
+          <p className="text-xs text-muted-foreground">Acompanhe entradas de caixa, estornos e aprove sinaleiras via Pix dos agendamentos</p>
         </div>
 
         {errorMsg && (
-          <div className="p-3 bg-destructive/10 border border-destructive/20 rounded flex items-start gap-2 text-xs text-destructive">
+          <div className="p-3.5 bg-destructive/10 border border-destructive/20 rounded-xl flex items-start gap-2 text-xs text-destructive">
             <AlertCircle className="w-4.5 h-4.5 shrink-0" />
             <span>{errorMsg}</span>
           </div>
         )}
 
         {successMsg && (
-          <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded flex items-start gap-2 text-xs text-emerald-500">
+          <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-start gap-2 text-xs text-emerald-500">
             <CheckCircle2 className="w-4.5 h-4.5 shrink-0" />
             <span>{successMsg}</span>
           </div>
@@ -248,53 +251,53 @@ export default function PainelFinanceiro() {
         {/* Finance stats row */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           
-          <div className="glass p-5 rounded-lg border border-border flex justify-between items-center">
+          <div className="glass p-5 rounded-2xl border border-emerald-500/30 flex justify-between items-center shadow-lg shadow-emerald-500/5 bg-gradient-to-br from-emerald-500/5 to-transparent">
             <div className="space-y-1">
-              <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block">Faturamento Total Confirmado</span>
-              <span className="text-xl font-serif font-bold text-emerald-500">R$ {totalConfirmed.toFixed(2)}</span>
+              <span className="text-[10px] uppercase font-bold text-emerald-500 tracking-wider block">Faturamento Total Liquidado</span>
+              <span className="text-2xl font-serif font-bold text-emerald-500">R$&nbsp;{totalConfirmed.toFixed(2)}</span>
             </div>
-            <div className="p-2 rounded bg-emerald-500/10 text-emerald-500">
-              <DollarSign className="w-5 h-5" />
+            <div className="p-3 rounded-xl bg-emerald-500/15 text-emerald-500 border border-emerald-500/20">
+              <DollarSign className="w-6 h-6" />
             </div>
           </div>
 
-          <div className="glass p-5 rounded-lg border border-border flex justify-between items-center">
+          <div className="glass p-5 rounded-2xl border border-primary/30 flex justify-between items-center shadow-lg shadow-primary/5 bg-gradient-to-br from-primary/5 to-transparent">
             <div className="space-y-1">
-              <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block">Total em Sinais Pix Recebidos</span>
-              <span className="text-xl font-serif font-bold text-foreground">R$ {totalDeposits.toFixed(2)}</span>
+              <span className="text-[10px] uppercase font-bold text-primary tracking-wider block">Sinais Pix Confirmados</span>
+              <span className="text-2xl font-serif font-bold text-foreground">R$&nbsp;{totalDeposits.toFixed(2)}</span>
             </div>
-            <div className="p-2 rounded bg-primary/10 text-primary">
-              <TrendingUp className="w-5 h-5" />
+            <div className="p-3 rounded-xl bg-primary/15 text-primary border border-primary/20">
+              <TrendingUp className="w-6 h-6" />
             </div>
           </div>
 
-          <div className="glass p-5 rounded-lg border border-border flex justify-between items-center">
+          <div className="glass p-5 rounded-2xl border border-amber-500/30 flex justify-between items-center shadow-lg shadow-amber-500/5 bg-gradient-to-br from-amber-500/5 to-transparent">
             <div className="space-y-1">
-              <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block">Sinais Pix Pendentes</span>
-              <span className="text-xl font-serif font-bold text-amber-500">R$ {totalPending.toFixed(2)}</span>
+              <span className="text-[10px] uppercase font-bold text-amber-500 tracking-wider block">Sinais Pix Pendentes</span>
+              <span className="text-2xl font-serif font-bold text-amber-500">R$&nbsp;{totalPending.toFixed(2)}</span>
             </div>
-            <div className="p-2 rounded bg-amber-500/10 text-amber-500">
-              <Clock className="w-5 h-5" />
+            <div className="p-3 rounded-xl bg-amber-500/15 text-amber-500 border border-amber-500/20">
+              <Clock className="w-6 h-6" />
             </div>
           </div>
 
         </div>
 
         {/* Search & filters */}
-        <div className="relative max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <div className="relative max-w-md">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
             type="text"
             placeholder="Buscar por cliente, serviço ou status..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-secondary/40 border border-border focus:border-primary rounded text-xs outline-none text-foreground"
+            className="w-full pl-10 pr-4 py-2.5 bg-secondary/50 border border-border focus:border-primary rounded-xl text-xs outline-none text-foreground font-medium"
           />
         </div>
 
         {/* Payments list table */}
-        <div className="glass rounded-lg border border-border overflow-x-auto shadow">
-          <table className="w-full text-left border-collapse min-w-[700px]">
+        <div className="glass rounded-xl border border-border/80 overflow-x-auto shadow-sm">
+          <table className="w-full text-left border-collapse min-w-[750px]">
             <thead>
               <tr className="bg-secondary/40 border-b border-border/60 text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
                 <th className="p-4">Data Registro</th>
@@ -310,30 +313,30 @@ export default function PainelFinanceiro() {
             <tbody className="divide-y divide-border/40 text-xs">
               {filteredPayments.length > 0 ? (
                 filteredPayments.map((p) => (
-                  <tr key={p.id} className="hover:bg-secondary/15 transition-colors">
-                    <td className="p-4 whitespace-nowrap text-muted-foreground font-mono">
+                  <tr key={p.id} className="hover:bg-secondary/20 transition-colors">
+                    <td className="p-4 whitespace-nowrap text-muted-foreground font-mono text-[11px]">
                       {formatDate(p.created_at)} às {formatTime(p.created_at)}
                     </td>
-                    <td className="p-4 font-medium text-foreground">
+                    <td className="p-4 font-semibold text-foreground">
                       <div className="flex items-center gap-2">
-                        {p.customerName}
+                        <span>{p.customerName}</span>
                         {p.isPackage && (
-                          <span className="inline-flex items-center gap-0.5 bg-primary/10 text-primary border border-primary/20 text-[9px] font-bold px-1.5 py-0.5 rounded tracking-wide">
+                          <span className="inline-flex items-center gap-0.5 bg-primary/15 text-primary border border-primary/25 text-[9px] font-bold px-2 py-0.5 rounded-full tracking-wide">
                             <Crown className="w-2.5 h-2.5" />
                             PACOTE
                           </span>
                         )}
                       </div>
                     </td>
-                    <td className="p-4 whitespace-nowrap">
+                    <td className="p-4 whitespace-nowrap text-muted-foreground font-medium">
                       {p.serviceName}
                     </td>
-                    <td className="p-4 whitespace-nowrap font-mono text-foreground">
+                    <td className="p-4 whitespace-nowrap font-mono text-foreground font-bold">
                       <div className="flex flex-col gap-1">
-                        <span>R$ {Number(p.total_amount).toFixed(2)}</span>
+                        <span>R$&nbsp;{Number(p.total_amount).toFixed(2)}</span>
                         {p.hasNoShowFee && (
-                          <span className="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 border border-amber-500/20 tracking-wider inline-block w-fit">
-                            Inclui Taxa No-Show
+                          <span className="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-500 border border-amber-500/25 tracking-wider inline-block w-fit">
+                            Taxa No-Show
                           </span>
                         )}
                       </div>
@@ -346,36 +349,36 @@ export default function PainelFinanceiro() {
                       )}
                     </td>
                     <td className="p-4 whitespace-nowrap">
-                      <span className={`text-[9px] uppercase font-bold px-2 py-0.5 rounded ${
+                      <span className={`text-[9px] uppercase font-bold px-2.5 py-1 rounded-full border ${
                         p.method === 'cash'
-                          ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                          ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
                           : p.method === 'card'
-                          ? 'bg-sky-500/15 text-sky-400 border border-sky-500/30'
+                          ? 'bg-sky-500/15 text-sky-400 border-sky-500/30'
                           : p.method === 'pix'
-                          ? 'bg-purple-500/15 text-purple-400 border border-purple-500/30'
-                          : 'bg-muted text-muted-foreground border border-border'
+                          ? 'bg-purple-500/15 text-purple-400 border-purple-500/30'
+                          : 'bg-muted text-muted-foreground border-border'
                       }`}>
                         {p.method === 'cash' ? 'Dinheiro' : p.method === 'card' ? 'Cartão' : p.method === 'pix' ? 'Pix' : (p.method || '—')}
                       </span>
                     </td>
                     <td className="p-4 whitespace-nowrap">
-                      <span className={`text-[9px] uppercase font-bold px-2 py-0.5 rounded ${
+                      <span className={`text-[9px] uppercase font-bold px-2.5 py-1 rounded-full border ${
                         p.status === 'confirmed_manually' || p.status === 'paid'
-                          ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' 
+                          ? 'bg-emerald-500/15 text-emerald-500 border-emerald-500/25' 
                           : p.status === 'refunded' || p.status === 'cancelled'
-                          ? 'bg-destructive/10 text-destructive border border-destructive/20'
-                          : 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
+                          ? 'bg-destructive/15 text-destructive border-destructive/25'
+                          : 'bg-amber-500/15 text-amber-500 border-amber-500/25'
                       }`}>
                         {p.status === 'confirmed_manually'
-                          ? 'Confirmado'
+                          ? 'Confirmado ✓'
                           : p.status === 'paid'
-                          ? 'Pago'
+                          ? 'Pago ✓'
                           : p.status === 'refunded' || p.status === 'cancelled'
-                          ? 'Estornado/Cancelado'
-                          : 'Pendente'}
+                          ? 'Estornado ✕'
+                          : 'Pendente ⏳'}
                       </span>
                     </td>
-                    <td className="p-4 text-right whitespace-nowrap space-x-1">
+                    <td className="p-4 text-right whitespace-nowrap space-x-1.5">
                       {p.isPackage ? (
                         <>
                           {p.status === 'pending' && (
@@ -383,14 +386,14 @@ export default function PainelFinanceiro() {
                               <button
                                 onClick={() => handleConfirmPayment(p.id, 'paid')}
                                 disabled={isPending}
-                                className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[10px] font-semibold cursor-pointer"
+                                className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold cursor-pointer transition-all shadow"
                               >
                                 Marcar como Pago
                               </button>
                               <button
                                 onClick={() => handleConfirmPayment(p.id, 'refunded')}
                                 disabled={isPending}
-                                className="px-2 py-1 bg-destructive/10 hover:bg-destructive/20 border border-destructive/20 text-destructive rounded text-[10px] font-semibold cursor-pointer"
+                                className="px-2.5 py-1 bg-destructive/10 hover:bg-destructive/20 border border-destructive/20 text-destructive rounded-lg text-[10px] font-bold cursor-pointer transition-all"
                               >
                                 Cancelar
                               </button>
@@ -400,7 +403,7 @@ export default function PainelFinanceiro() {
                             <button
                               onClick={() => handleConfirmPayment(p.id, 'refunded')}
                               disabled={isPending}
-                              className="px-2 py-1 bg-destructive/10 hover:bg-destructive/20 border border-destructive/20 text-destructive rounded text-[10px] font-semibold cursor-pointer"
+                              className="px-2.5 py-1 bg-destructive/10 hover:bg-destructive/20 border border-destructive/20 text-destructive rounded-lg text-[10px] font-bold cursor-pointer transition-all"
                             >
                               Estornar
                             </button>
@@ -413,14 +416,14 @@ export default function PainelFinanceiro() {
                               <button
                                 onClick={() => handleConfirmPayment(p.id, 'confirmed_manually')}
                                 disabled={isPending}
-                                className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[10px] font-semibold cursor-pointer"
+                                className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold cursor-pointer transition-all shadow"
                               >
-                                Confirmar Depósito
+                                Confirmar Sinal
                               </button>
                               <button
                                 onClick={() => handleConfirmPayment(p.id, 'paid')}
                                 disabled={isPending}
-                                className="px-2 py-1 bg-primary hover:bg-primary-hover text-primary-foreground rounded text-[10px] font-semibold cursor-pointer"
+                                className="px-2.5 py-1 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-[10px] font-bold cursor-pointer transition-all shadow"
                               >
                                 Pago Total
                               </button>
@@ -430,7 +433,7 @@ export default function PainelFinanceiro() {
                             <button
                               onClick={() => handleConfirmPayment(p.id, 'refunded')}
                               disabled={isPending}
-                              className="px-2 py-1 bg-destructive/10 hover:bg-destructive/20 border border-destructive/20 text-destructive rounded text-[10px] font-semibold cursor-pointer"
+                              className="px-2.5 py-1 bg-destructive/10 hover:bg-destructive/20 border border-destructive/20 text-destructive rounded-lg text-[10px] font-bold cursor-pointer transition-all"
                             >
                               Estornar
                             </button>
@@ -442,7 +445,7 @@ export default function PainelFinanceiro() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={8} className="p-8 text-center text-muted-foreground italic">
+                  <td colSpan={8} className="p-10 text-center text-muted-foreground italic">
                     Nenhum lançamento financeiro registrado.
                   </td>
                 </tr>

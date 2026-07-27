@@ -154,25 +154,31 @@ export default function PerfilBarbeiroPage() {
 
       <main className="flex-grow p-6 sm:p-8 space-y-6 overflow-y-auto">
         {/* Header */}
-        <div className="border-b border-border/40 pb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-2xl font-serif font-bold text-foreground">Editar Meu Perfil</h1>
-            <p className="text-xs text-muted-foreground">Gerencie sua apresentação pessoal, foto e especialidades exibidas aos clientes</p>
+        <div className="border-b border-border/40 pb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="space-y-1">
+            <h1 className="text-3xl font-serif font-bold text-foreground flex items-center gap-2">
+              <User className="w-7 h-7 text-primary shrink-0" />
+              Editar Meu Perfil 💈
+            </h1>
+            <p className="text-xs text-muted-foreground">Gerencie sua foto, biografia e especialidades exibidas aos clientes</p>
           </div>
-          <GradientButton variant="variant" onClick={() => router.push('/painel')} className="h-9 text-xs gap-1.5">
-            <ArrowLeft size={14} /> Voltar ao Painel
-          </GradientButton>
+          <button 
+            onClick={() => router.push('/painel')} 
+            className="px-4 py-2 bg-secondary hover:bg-muted text-foreground border border-border rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+          >
+            <ArrowLeft className="w-4 h-4" /> Voltar ao Painel
+          </button>
         </div>
 
         {errorMsg && (
-          <div className="p-3 bg-destructive/10 border border-destructive/20 rounded flex items-start gap-2 text-xs text-destructive max-w-2xl">
+          <div className="p-3.5 bg-destructive/10 border border-destructive/20 rounded-xl flex items-start gap-2 text-xs text-destructive max-w-2xl">
             <AlertCircle className="w-4.5 h-4.5 shrink-0" />
             <span>{errorMsg}</span>
           </div>
         )}
 
         {successMsg && (
-          <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded flex items-start gap-2 text-xs text-emerald-500 max-w-2xl">
+          <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-start gap-2 text-xs text-emerald-500 max-w-2xl">
             <CheckCircle2 className="w-4.5 h-4.5 shrink-0" />
             <span>{successMsg}</span>
           </div>
@@ -180,10 +186,10 @@ export default function PerfilBarbeiroPage() {
 
         {/* Profile Card */}
         {profile && (
-          <form onSubmit={handleSaveProfile} className="glass p-6 sm:p-8 rounded-lg border border-border max-w-2xl space-y-6 shadow-xl">
+          <form onSubmit={handleSaveProfile} className="glass p-6 sm:p-8 rounded-2xl border border-border/80 max-w-2xl space-y-6 shadow-xl">
             {/* Row 1: Profile Photo upload */}
-            <div className="flex flex-col sm:flex-row items-center gap-6 pb-4 border-b border-border/40">
-              <div className="relative w-28 h-28 rounded-full border-2 border-primary/40 p-0.5 overflow-hidden group shrink-0 select-none bg-secondary/30">
+            <div className="flex flex-col sm:flex-row items-center gap-6 pb-6 border-b border-border/40">
+              <div className="relative w-28 h-28 rounded-full border-2 border-primary p-1 overflow-hidden group shrink-0 select-none bg-secondary/40 shadow-lg shadow-primary/10">
                 {photoUrl ? (
                   <Image 
                     src={photoUrl} 
@@ -199,8 +205,8 @@ export default function PerfilBarbeiroPage() {
                 )}
                 
                 {/* Upload Button Overlay */}
-                <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col items-center justify-center cursor-pointer text-white text-[10px] font-semibold">
-                  <Camera size={18} className="text-primary mb-1" />
+                <label className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col items-center justify-center cursor-pointer text-white text-[10px] font-bold">
+                  <Camera size={20} className="text-primary mb-1" />
                   <span>Alterar Foto</span>
                   <input 
                     type="file" 
@@ -212,19 +218,19 @@ export default function PerfilBarbeiroPage() {
                 </label>
 
                 {uploading && (
-                  <div className="absolute inset-0 bg-black/75 flex items-center justify-center">
+                  <div className="absolute inset-0 bg-black/80 flex items-center justify-center">
                     <Loader2 className="w-6 h-6 animate-spin text-primary" />
                   </div>
                 )}
               </div>
 
               <div className="space-y-1.5 text-center sm:text-left">
-                <h3 className="font-serif font-bold text-lg text-foreground">{profile.full_name}</h3>
-                <p className="text-xs text-muted-foreground">{profile.email}</p>
-                <span className="inline-block px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider">
+                <h3 className="font-serif font-bold text-xl text-foreground">{profile.full_name}</h3>
+                <p className="text-xs text-muted-foreground font-mono">{profile.email}</p>
+                <span className="inline-block px-3 py-1 rounded-full bg-primary/15 text-primary text-[10px] font-bold uppercase tracking-wider border border-primary/20">
                   {profile.role === 'admin' ? 'Administrador / Proprietário' : 'Barbeiro Profissional'}
                 </span>
-                <p className="text-[10px] text-muted-foreground">Clique na imagem para enviar uma foto quadrada (máx. 2MB)</p>
+                <p className="text-[10px] text-muted-foreground pt-1">Clique na imagem para trocar a foto de perfil (máx. 2MB)</p>
               </div>
             </div>
 
@@ -232,15 +238,15 @@ export default function PerfilBarbeiroPage() {
             <div className="space-y-4">
               {/* Short Bio */}
               <div className="space-y-1.5">
-                <label htmlFor="bio" className="block text-xs font-semibold text-foreground uppercase tracking-wider">
-                  Apresentação Curta (Exibida no Card Fechado)
+                <label htmlFor="bio" className="block text-xs font-bold text-foreground uppercase tracking-wider">
+                  Apresentação Curta (Exibida no Card de Seleção)
                 </label>
                 <textarea
                   id="bio"
                   rows={2}
                   value={bio}
                   onChange={(e) => setBio(e.target.value)}
-                  className="w-full p-3 bg-secondary/30 border border-border/80 focus:border-primary rounded-lg text-sm text-foreground focus:outline-none focus:ring-0 transition-colors"
+                  className="w-full p-3.5 bg-background border border-border focus:border-primary rounded-xl text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
                   placeholder="Ex: Especialista em cortes clássicos executivos e barba terapia com mais de 8 anos..."
                   required
                 />
@@ -248,15 +254,15 @@ export default function PerfilBarbeiroPage() {
 
               {/* About Quote */}
               <div className="space-y-1.5">
-                <label htmlFor="aboutQuote" className="block text-xs font-semibold text-foreground uppercase tracking-wider">
-                  Frase de Perfil (Exibida em "Sobre o Mestre")
+                <label htmlFor="aboutQuote" className="block text-xs font-bold text-foreground uppercase tracking-wider">
+                  Frase de Perfil (Exibida no &quot;Sobre o Mestre&quot;)
                 </label>
                 <textarea
                   id="aboutQuote"
                   rows={3}
                   value={aboutQuote}
                   onChange={(e) => setAboutQuote(e.target.value)}
-                  className="w-full p-3 bg-secondary/30 border border-border/80 focus:border-primary rounded-lg text-sm text-foreground focus:outline-none focus:ring-0 transition-colors"
+                  className="w-full p-3.5 bg-background border border-border focus:border-primary rounded-xl text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
                   placeholder="Compartilhe um pouco da sua trajetória de vida e compromisso com o cliente..."
                   required
                 />
@@ -265,7 +271,7 @@ export default function PerfilBarbeiroPage() {
               {/* Experience Years */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label htmlFor="experienceYears" className="block text-xs font-semibold text-foreground uppercase tracking-wider">
+                  <label htmlFor="experienceYears" className="block text-xs font-bold text-foreground uppercase tracking-wider">
                     Anos de Experiência
                   </label>
                   <input
@@ -275,14 +281,14 @@ export default function PerfilBarbeiroPage() {
                     onChange={(e) => setExperienceYears(Number(e.target.value))}
                     min={0}
                     max={60}
-                    className="w-full p-3 bg-secondary/30 border border-border/80 focus:border-primary rounded-lg text-sm text-foreground focus:outline-none focus:ring-0 transition-colors"
+                    className="w-full p-3.5 bg-background border border-border focus:border-primary rounded-xl text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary transition-colors font-mono font-bold"
                     required
                   />
                 </div>
 
                 {/* Specialties */}
                 <div className="space-y-1.5">
-                  <label htmlFor="specialties" className="block text-xs font-semibold text-foreground uppercase tracking-wider">
+                  <label htmlFor="specialties" className="block text-xs font-bold text-foreground uppercase tracking-wider">
                     Especialidades (Separadas por vírgula)
                   </label>
                   <input
@@ -290,7 +296,7 @@ export default function PerfilBarbeiroPage() {
                     id="specialties"
                     value={specialtiesText}
                     onChange={(e) => setSpecialtiesText(e.target.value)}
-                    className="w-full p-3 bg-secondary/30 border border-border/80 focus:border-primary rounded-lg text-sm text-foreground focus:outline-none focus:ring-0 transition-colors"
+                    className="w-full p-3.5 bg-background border border-border focus:border-primary rounded-xl text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
                     placeholder="Ex: Degradê Americano, Visagismo, Freestyle"
                     required
                   />
@@ -300,7 +306,11 @@ export default function PerfilBarbeiroPage() {
 
             {/* Form Submit */}
             <div className="pt-4 flex justify-end">
-              <GradientButton type="submit" disabled={isPending || uploading} className="text-xs px-6 gap-2">
+              <button 
+                type="submit" 
+                disabled={isPending || uploading} 
+                className="px-6 py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all duration-200 cursor-pointer disabled:opacity-50"
+              >
                 {(isPending || uploading) ? (
                   <>
                     <Loader2 size={14} className="animate-spin" /> Salvando...
@@ -310,7 +320,7 @@ export default function PerfilBarbeiroPage() {
                     <Save size={14} /> Salvar Alterações
                   </>
                 )}
-              </GradientButton>
+              </button>
             </div>
           </form>
         )}
