@@ -336,8 +336,18 @@ export default function PainelFinanceiro() {
                         `R$ ${Number(p.deposit_amount).toFixed(2)}`
                       )}
                     </td>
-                    <td className="p-4 whitespace-nowrap uppercase text-muted-foreground">
-                      {p.method}
+                    <td className="p-4 whitespace-nowrap">
+                      <span className={`text-[9px] uppercase font-bold px-2 py-0.5 rounded ${
+                        p.method === 'cash'
+                          ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                          : p.method === 'card'
+                          ? 'bg-sky-500/15 text-sky-400 border border-sky-500/30'
+                          : p.method === 'pix'
+                          ? 'bg-purple-500/15 text-purple-400 border border-purple-500/30'
+                          : 'bg-muted text-muted-foreground border border-border'
+                      }`}>
+                        {p.method === 'cash' ? 'Dinheiro' : p.method === 'card' ? 'Cartão' : p.method === 'pix' ? 'Pix' : (p.method || '—')}
+                      </span>
                     </td>
                     <td className="p-4 whitespace-nowrap">
                       <span className={`text-[9px] uppercase font-bold px-2 py-0.5 rounded ${

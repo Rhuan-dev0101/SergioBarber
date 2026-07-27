@@ -435,6 +435,7 @@ export default function PainelAgendamentos() {
                 <th className="p-4">Serviço</th>
                 {userRole === 'admin' && <th className="p-4">Profissional</th>}
                 <th className="p-4">Preço</th>
+                <th className="p-4">Forma Pagto</th>
                 <th className="p-4">Status</th>
                 <th className="p-4">Anotações Internas</th>
                 <th className="p-4 text-right">Ações</th>
@@ -444,7 +445,10 @@ export default function PainelAgendamentos() {
               {filteredAppointments.length > 0 ? (
                 filteredAppointments
                   .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
-                  .map((appt) => (
+                  .map((appt) => {
+                    const payMethod = Array.isArray(appt.payments) ? appt.payments[0]?.method : appt.payments?.method
+
+                    return (
                     <tr key={appt.id} className="hover:bg-secondary/15 transition-colors">
                       <td className="p-4 whitespace-nowrap font-semibold">
                         <div className="flex flex-col gap-0.5">
@@ -482,6 +486,19 @@ export default function PainelAgendamentos() {
                       )}
                       <td className="p-4 whitespace-nowrap font-mono text-primary font-bold">
                         R$ {Number(appt.services?.price || 0).toFixed(2)}
+                      </td>
+                      <td className="p-4 whitespace-nowrap">
+                        <span className={`text-[9px] uppercase font-bold px-2 py-0.5 rounded ${
+                          payMethod === 'cash'
+                            ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                            : payMethod === 'card'
+                            ? 'bg-sky-500/15 text-sky-400 border border-sky-500/30'
+                            : payMethod === 'pix'
+                            ? 'bg-purple-500/15 text-purple-400 border border-purple-500/30'
+                            : 'bg-muted text-muted-foreground border border-border'
+                        }`}>
+                          {payMethod === 'cash' ? 'Dinheiro' : payMethod === 'card' ? 'Cartão' : payMethod === 'pix' ? 'Pix' : '—'}
+                        </span>
                       </td>
                       <td className="p-4 whitespace-nowrap">
                         <span className={`text-[9px] uppercase font-bold px-2 py-0.5 rounded ${
@@ -577,10 +594,11 @@ export default function PainelAgendamentos() {
                         )}
                       </td>
                     </tr>
-                  ))
+                  )
+                })
               ) : (
                 <tr>
-                  <td colSpan={userRole === 'admin' ? 8 : 7} className="p-8 text-center text-muted-foreground italic">
+                  <td colSpan={userRole === 'admin' ? 9 : 8} className="p-8 text-center text-muted-foreground italic">
                     Nenhum agendamento encontrado nesta data.
                   </td>
                 </tr>

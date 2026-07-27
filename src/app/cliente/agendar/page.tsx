@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { 
   Scissors, Calendar, Clock, ChevronRight, ChevronLeft, 
   Check, AlertCircle, ArrowLeft, Loader2, DollarSign, 
-  MessageSquare, User, CheckCircle2 
+  MessageSquare, User, CheckCircle2, QrCode, Banknote, CreditCard 
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { createAppointmentAction, getBarberMonthAvailabilityAction } from './actions'
@@ -70,6 +70,7 @@ function AgendarWizardInner() {
   const [selectedService, setSelectedService] = useState<any>(null)
   const [selectedDate, setSelectedDate] = useState<string>('')
   const [selectedTime, setSelectedTime] = useState<string>('')
+  const [paymentMethod, setPaymentMethod] = useState<'pix' | 'cash' | 'card'>('pix')
   const [notes, setNotes] = useState('')
   const [acceptTerms, setAcceptTerms] = useState(false)
 
@@ -433,7 +434,8 @@ function AgendarWizardInner() {
         selectedService.id,
         selectedDate,
         selectedTime,
-        notes
+        notes,
+        paymentMethod
       )
 
       if (!res.success) {
@@ -447,7 +449,8 @@ function AgendarWizardInner() {
           price: selectedService.price,
           deposit: selectedService.price * 0.5,
           date: selectedDate,
-          time: selectedTime
+          time: selectedTime,
+          method: paymentMethod
         })
       }
     })
@@ -478,13 +481,24 @@ function AgendarWizardInner() {
     // Do NOT pre-encode; double-encoding produces raw %20/%0A/%C3%A1 visible to the user.
     const shortCode = apptShortCode(successInfo.appointmentId)
     const senderName = successInfo.customerName || 'Cliente'
-    const waMessage = [
-      `Olá! Sou ${senderName} e gostaria de confirmar meu agendamento na Osanchez Barbearia.`,
-      `Código: ${shortCode}`,
-      `Serviço: ${successInfo.service} — ${successInfo.barber}`,
-      `Data: ${formatDateText(successInfo.date)} às ${successInfo.time}`,
-      `Sinal de 50% via Pix: R$ ${successInfo.deposit.toFixed(2)} (Aguardando comprovante)`,
-    ].join('\n')
+    const isPix = !successInfo.method || successInfo.method === 'pix'
+    const methodLabel = successInfo.method === 'cash' ? 'Dinheiro' : successInfo.method === 'card' ? 'Cartão' : 'Pix'
+
+    const waMessage = isPix
+      ? [
+          `Olá! Sou ${senderName} e gostaria de confirmar meu agendamento na Osanchez Barbearia.`,
+          `Código: ${shortCode}`,
+          `Serviço: ${successInfo.service} — ${successInfo.barber}`,
+          `Data: ${formatDateText(successInfo.date)} às ${successInfo.time}`,
+          `Sinal de 50% via Pix: R$ ${successInfo.deposit.toFixed(2)} (Aguardando comprovante)`,
+        ].join('\n')
+      : [
+          `Olá! Sou ${senderName} e gostaria de confirmar meu agendamento na Osanchez Barbearia.`,
+          `Código: ${shortCode}`,
+          `Serviço: ${successInfo.service} — ${successInfo.barber}`,
+          `Data: ${formatDateText(successInfo.date)} às ${successInfo.time}`,
+          `Forma de pagamento: ${methodLabel} (pagamento presencial)`,
+        ].join('\n')
 
     return (
       <div className="min-h-screen bg-background flex flex-col">
@@ -496,9 +510,13 @@ function AgendarWizardInner() {
             </div>
             
             <div className="space-y-2">
-              <h2 className="text-2xl font-serif font-bold text-foreground">Horário Pré-Reservado!</h2>
+              <h2 className="text-2xl font-serif font-bold text-foreground">
+                {isPix ? 'Horário Pré-Reservado!' : 'Horário Agendado!'}
+              </h2>
               <p className="text-xs text-muted-foreground">
-                Seu agendamento foi registrado com sucesso. Para confirmar definitivamente, efetue o sinal Pix de 50%.
+                {isPix
+                  ? 'Seu agendamento foi registrado com sucesso. Para confirmar definitivamente, efetue o sinal Pix de 50%.'
+                  : 'Pagamento na barbearia — Você poderá pagar pessoalmente no dia do atendimento.'}
               </p>
             </div>
 
@@ -525,79 +543,108 @@ function AgendarWizardInner() {
                 <span>Valor Total:</span>
                 <span className="font-semibold text-foreground">R$ {successInfo.price.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between text-sm text-primary font-bold pt-1">
-                <span>Sinal Exigido (50%):</span>
-                <span>R$ {successInfo.deposit.toFixed(2)}</span>
-              </div>
+              {isPix ? (
+                <div className="flex justify-between text-sm text-primary font-bold pt-1 border-t border-border/40">
+                  <span>Sinal Exigido (50%):</span>
+                  <span>R$ {successInfo.deposit.toFixed(2)}</span>
+                </div>
+              ) : (
+                <div className="flex justify-between text-xs text-primary font-bold pt-1 border-t border-border/40">
+                  <span>Forma de Pagamento:</span>
+                  <span>{methodLabel} (Presencial)</span>
+                </div>
+              )}
             </div>
 
-            {/* Pix Info */}
-            <div className="p-5 bg-secondary/35 rounded-lg border border-border/60 text-xs text-left space-y-4 shadow-inner">
-              <p className="font-semibold text-primary flex items-center gap-1.5 text-sm">
-                <DollarSign className="w-4 h-4 text-primary" /> Instruções de Pagamento Pix
-              </p>
-              
-              <div className="space-y-1">
-                <p className="text-muted-foreground">
-                  Chave Pix {settings?.pixType === 'cnpj' ? 'CNPJ' : settings?.pixType === 'email' ? 'E-mail' : settings?.pixType === 'phone' ? 'Celular' : settings?.pixType === 'evp' ? 'Chave Aleatória (EVP)' : 'CNPJ'}:{' '}
-                  <span className="font-mono text-foreground font-semibold text-sm">{settings?.pixKey || '12.345.678/0001-90'}</span>
+            {/* Pix Info OR Presencial Info */}
+            {isPix ? (
+              <div className="p-5 bg-secondary/35 rounded-lg border border-border/60 text-xs text-left space-y-4 shadow-inner">
+                <p className="font-semibold text-primary flex items-center gap-1.5 text-sm">
+                  <DollarSign className="w-4 h-4 text-primary" /> Instruções de Pagamento Pix
                 </p>
-                <p className="text-[10px] text-muted-foreground leading-normal">
-                  Efetue a transferência do sinal de 50% (R$ {successInfo.deposit.toFixed(2)}) e envie o comprovante pelo WhatsApp clicando no botão abaixo para aprovação manual.
-                </p>
-              </div>
-
-              {/* QR Code and Copia e Cola */}
-              <div className="flex flex-col sm:flex-row items-center gap-4 p-4 bg-background/50 rounded-lg border border-border/40">
-                {loadingPix ? (
-                  <div className="w-32 h-32 flex flex-col items-center justify-center bg-secondary/50 rounded border border-border/30 gap-1.5 shrink-0">
-                    <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                    <span className="text-[8px] text-muted-foreground uppercase font-bold tracking-wider">Gerando QR...</span>
-                  </div>
-                ) : pixQrCode ? (
-                  <div className="bg-white p-2 rounded-lg shrink-0 border border-border shadow-md">
-                    <img 
-                      src={pixQrCode} 
-                      alt="QR Code Pix" 
-                      className="w-32 h-32 block"
-                    />
-                  </div>
-                ) : (
-                  <div className="w-32 h-32 flex flex-col items-center justify-center bg-secondary/50 rounded border border-border/30 text-[9px] text-rose-500 shrink-0 text-center px-2">
-                    Falha ao gerar QR Code
-                  </div>
-                )}
-
-                <div className="flex-grow space-y-2.5 w-full text-center sm:text-left">
-                  <p className="text-[11px] font-semibold text-foreground">Pague com o Pix Copia e Cola ou QR Code</p>
-                  <p className="text-[10px] text-muted-foreground leading-normal font-sans">
-                    Você pode escanear o QR Code ao lado ou copiar o código Pix abaixo para realizar o pagamento no aplicativo do seu banco.
+                
+                <div className="space-y-1">
+                  <p className="text-muted-foreground">
+                    Chave Pix {settings?.pixType === 'cnpj' ? 'CNPJ' : settings?.pixType === 'email' ? 'E-mail' : settings?.pixType === 'phone' ? 'Celular' : settings?.pixType === 'evp' ? 'Chave Aleatória (EVP)' : 'CNPJ'}:{' '}
+                    <span className="font-mono text-foreground font-semibold text-sm">{settings?.pixKey || '12.345.678/0001-90'}</span>
                   </p>
-                  <button
-                    type="button"
-                    onClick={handleCopyPix}
-                    disabled={!pixPayload}
-                    className={`w-full sm:w-auto px-4 py-2 rounded text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer ${
-                      copiedPix
-                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                        : 'bg-primary hover:bg-primary-hover text-primary-foreground'
-                    }`}
-                  >
-                    {copiedPix ? (
-                      <>
-                        <Check className="w-3.5 h-3.5 text-white" />
-                        Copiado!
-                      </>
-                    ) : (
-                      <>
-                        <Clock className="w-3.5 h-3.5" />
-                        Copiar código Pix
-                      </>
-                    )}
-                  </button>
+                  <p className="text-[10px] text-muted-foreground leading-normal">
+                    Efetue a transferência do sinal de 50% (R$ {successInfo.deposit.toFixed(2)}) e envie o comprovante pelo WhatsApp clicando no botão abaixo para aprovação manual.
+                  </p>
+                </div>
+
+                {/* QR Code and Copia e Cola */}
+                <div className="flex flex-col sm:flex-row items-center gap-4 p-4 bg-background/50 rounded-lg border border-border/40">
+                  {loadingPix ? (
+                    <div className="w-32 h-32 flex flex-col items-center justify-center bg-secondary/50 rounded border border-border/30 gap-1.5 shrink-0">
+                      <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                      <span className="text-[8px] text-muted-foreground uppercase font-bold tracking-wider">Gerando QR...</span>
+                    </div>
+                  ) : pixQrCode ? (
+                    <div className="bg-white p-2 rounded-lg shrink-0 border border-border shadow-md">
+                      <img 
+                        src={pixQrCode} 
+                        alt="QR Code Pix" 
+                        className="w-32 h-32 block"
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-32 h-32 flex flex-col items-center justify-center bg-secondary/50 rounded border border-border/30 text-[9px] text-rose-500 shrink-0 text-center px-2">
+                      Falha ao gerar QR Code
+                    </div>
+                  )}
+
+                  <div className="flex-grow space-y-2.5 w-full text-center sm:text-left">
+                    <p className="text-[11px] font-semibold text-foreground">Pague com o Pix Copia e Cola ou QR Code</p>
+                    <p className="text-[10px] text-muted-foreground leading-normal font-sans">
+                      Você pode escanear o QR Code ao lado ou copiar o código Pix abaixo para realizar o pagamento no aplicativo do seu banco.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleCopyPix}
+                      disabled={!pixPayload}
+                      className={`w-full sm:w-auto px-4 py-2 rounded text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer ${
+                        copiedPix
+                          ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                          : 'bg-primary hover:bg-primary-hover text-primary-foreground'
+                      }`}
+                    >
+                      {copiedPix ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-white" />
+                          Copiado!
+                        </>
+                      ) : (
+                        <>
+                          <Clock className="w-3.5 h-3.5" />
+                          Copiar código Pix
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : (
+              <div className="p-5 bg-secondary/35 rounded-lg border border-border/60 text-xs text-left space-y-3 shadow-inner">
+                <p className="font-semibold text-primary flex items-center gap-1.5 text-sm">
+                  {successInfo.method === 'cash' ? (
+                    <Banknote className="w-4.5 h-4.5 text-emerald-500" />
+                  ) : (
+                    <CreditCard className="w-4.5 h-4.5 text-sky-500" />
+                  )}
+                  Pagamento na barbearia
+                </p>
+                <p className="text-muted-foreground text-xs leading-relaxed">
+                  Você poderá pagar pessoalmente no dia do atendimento.
+                </p>
+                <div className="p-3 bg-background/50 rounded border border-border/40 text-[11px] space-y-1">
+                  <span className="text-muted-foreground block">Opção selecionada:</span>
+                  <span className="font-bold text-foreground block">
+                    {successInfo.method === 'cash' ? 'Dinheiro' : 'Cartão (Débito / Crédito)'} — Presencial
+                  </span>
+                </div>
+              </div>
+            )}
 
             {/* WA button */}
             <a
@@ -607,7 +654,7 @@ function AgendarWizardInner() {
               className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded text-xs transition-all shadow-md flex items-center justify-center gap-2"
             >
               <MessageSquare className="w-4 h-4 text-white" />
-              Enviar Comprovante no WhatsApp
+              {isPix ? 'Enviar Comprovante no WhatsApp' : 'Confirme seu horário aqui'}
             </a>
 
             <div className="pt-2">
@@ -634,7 +681,7 @@ function AgendarWizardInner() {
               <Scissors className="w-5 h-5 text-primary rotate-45" />
               <h1 className="text-xl font-serif font-bold text-foreground">Novo Agendamento</h1>
             </div>
-            <span className="text-xs text-muted-foreground">Passo {step} de 5</span>
+            <span className="text-xs text-muted-foreground">Passo {step} de 6</span>
           </div>
 
           {/* Form Card */}
@@ -748,7 +795,6 @@ function AgendarWizardInner() {
                 </div>
               </div>
             )}
-
 
             {/* STEP 3: Select Date */}
             {step === 3 && (
@@ -905,9 +951,82 @@ function AgendarWizardInner() {
               </div>
             )}
 
-            {/* STEP 5: Review & Confirm */}
+            {/* STEP 5: Payment Method */}
             {step === 5 && (
               <div key="step-5" className="space-y-4">
+                <h3 className="font-serif font-semibold text-lg text-foreground">Forma de Pagamento</h3>
+                <p className="text-xs text-muted-foreground">Escolha como prefere realizar o pagamento do seu atendimento</p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                  {/* Dinheiro */}
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('cash')}
+                    disabled={isPending}
+                    className={`p-3.5 rounded-lg border text-left flex items-start justify-between transition-all cursor-pointer ${
+                      paymentMethod === 'cash'
+                        ? 'border-primary bg-primary/10 ring-1 ring-primary/40'
+                        : 'border-border hover:border-muted-foreground/35 bg-secondary/35'
+                    }`}
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1.5 font-serif font-bold text-xs text-foreground">
+                        <Banknote className="w-4 h-4 text-emerald-500 shrink-0" />
+                        Dinheiro
+                      </div>
+                      <p className="text-[10px] text-muted-foreground leading-tight">Pagamento presencial na barbearia</p>
+                    </div>
+                    {paymentMethod === 'cash' && <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" />}
+                  </button>
+
+                  {/* Pix */}
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('pix')}
+                    disabled={isPending}
+                    className={`p-3.5 rounded-lg border text-left flex items-start justify-between transition-all cursor-pointer ${
+                      paymentMethod === 'pix'
+                        ? 'border-primary bg-primary/10 ring-1 ring-primary/40'
+                        : 'border-border hover:border-muted-foreground/35 bg-secondary/35'
+                    }`}
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1.5 font-serif font-bold text-xs text-foreground">
+                        <QrCode className="w-4 h-4 text-primary shrink-0" />
+                        Pix
+                      </div>
+                      <p className="text-[10px] text-muted-foreground leading-tight">Sinal 50% via QR Code / Copia e Cola</p>
+                    </div>
+                    {paymentMethod === 'pix' && <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" />}
+                  </button>
+
+                  {/* Cartão */}
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('card')}
+                    disabled={isPending}
+                    className={`p-3.5 rounded-lg border text-left flex items-start justify-between transition-all cursor-pointer ${
+                      paymentMethod === 'card'
+                        ? 'border-primary bg-primary/10 ring-1 ring-primary/40'
+                        : 'border-border hover:border-muted-foreground/35 bg-secondary/35'
+                    }`}
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1.5 font-serif font-bold text-xs text-foreground">
+                        <CreditCard className="w-4 h-4 text-sky-500 shrink-0" />
+                        Cartão
+                      </div>
+                      <p className="text-[10px] text-muted-foreground leading-tight">Crédito ou Débito na barbearia</p>
+                    </div>
+                    {paymentMethod === 'card' && <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" />}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* STEP 6: Review & Confirm */}
+            {step === 6 && (
+              <div key="step-6" className="space-y-4">
                 <h3 className="font-serif font-semibold text-lg text-foreground">Revisar Agendamento</h3>
                 <p className="text-xs text-muted-foreground">Revise os detalhes da sua reserva antes de submeter</p>
 
@@ -932,10 +1051,17 @@ function AgendarWizardInner() {
                     <span>Preço Total do Serviço:</span>
                     <span className="font-semibold text-foreground">R$ {Number(selectedService?.price).toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between items-center text-sm font-bold text-primary pt-1.5 border-t border-border/40">
-                    <span>Sinal via Pix (50%):</span>
-                    <span>R$ {(Number(selectedService?.price) * 0.5).toFixed(2)}</span>
-                  </div>
+                  {paymentMethod === 'pix' ? (
+                    <div className="flex justify-between items-center text-sm font-bold text-primary pt-1.5 border-t border-border/40">
+                      <span>Sinal via Pix (50%):</span>
+                      <span>R$ {(Number(selectedService?.price) * 0.5).toFixed(2)}</span>
+                    </div>
+                  ) : (
+                    <div className="flex justify-between items-center text-xs font-bold text-primary pt-1.5 border-t border-border/40">
+                      <span>Forma de Pagamento:</span>
+                      <span>{paymentMethod === 'cash' ? 'Dinheiro' : 'Cartão'} (Presencial)</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Additional Notes */}
@@ -992,14 +1118,15 @@ function AgendarWizardInner() {
                 </Link>
               )}
 
-              {step < 5 ? (
+              {step < 6 ? (
                 <button
                   onClick={() => setStep(step + 1)}
                   disabled={
                     (step === 1 && !selectedBarber) ||
                     (step === 2 && !selectedService) ||
                     (step === 3 && !selectedDate) ||
-                    (step === 4 && !selectedTime)
+                    (step === 4 && !selectedTime) ||
+                    (step === 5 && !paymentMethod)
                   }
                   className="px-5 py-2.5 bg-primary hover:bg-primary-hover text-primary-foreground rounded text-xs font-semibold flex items-center gap-1 cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed ml-auto"
                 >

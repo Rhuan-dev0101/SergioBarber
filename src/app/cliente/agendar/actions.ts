@@ -15,7 +15,8 @@ export async function createAppointmentAction(
   serviceId: string,
   dateStr: string,
   timeStr: string,
-  notes: string
+  notes: string,
+  paymentMethod: 'pix' | 'cash' | 'card' = 'pix'
 ): Promise<BookingResponse> {
   if (!barberId || !serviceId || !dateStr || !timeStr) {
     return { success: false, message: 'Todos os campos de agendamento são obrigatórios.' }
@@ -103,6 +104,10 @@ export async function createAppointmentAction(
     const totalAmount = Number(service.price)
     const depositAmount = totalAmount * 0.5
 
+    const methodNote = paymentMethod === 'pix' 
+      ? `Sinal Pix de 50% gerado para o serviço: ${service.name}`
+      : `Pagamento presencial (${paymentMethod === 'cash' ? 'Dinheiro' : 'Cartão'}) para o serviço: ${service.name}`
+
     const { error: payError } = await supabase
       .from('payments')
       .insert({
@@ -110,8 +115,8 @@ export async function createAppointmentAction(
         total_amount: totalAmount,
         deposit_amount: depositAmount,
         status: 'pending',
-        method: 'pix',
-        notes: `Sinal Pix de 50% gerado para o serviço: ${service.name}`
+        method: paymentMethod,
+        notes: methodNote
       })
 
     if (payError) {
