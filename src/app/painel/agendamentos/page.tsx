@@ -4,7 +4,8 @@ import React, { useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { 
   Scissors, Calendar, Clock, Search, Edit2, Trash2, CheckCircle2, 
-  AlertCircle, Plus, Loader2, Save, X, User, Sparkles, Check, AlertTriangle, UserX
+  AlertCircle, Plus, Loader2, Save, X, User, Sparkles, Check, AlertTriangle, UserX,
+  Filter, RotateCcw, CheckCircle, ChevronRight
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
@@ -25,15 +26,10 @@ export default function PainelAgendamentos() {
   const [currentUser, setCurrentUser] = useState<any>(null)
   const [userRole, setUserRole] = useState<string | null>(null)
 
-  // Filters
+  // Filters (filterDate defaults to empty string so ALL appointments load immediately)
   const [searchQuery, setSearchQuery] = useState('')
-  const [filterDate, setFilterDate] = useState(() => {
-    const today = new Date()
-    const y = today.getFullYear()
-    const m = String(today.getMonth() + 1).padStart(2, '0')
-    const d = String(today.getDate()).padStart(2, '0')
-    return `${y}-${m}-${d}`
-  })
+  const [filterDate, setFilterDate] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
 
   // Walk-in form states
   const [showWalkInModal, setShowWalkInModal] = useState(false)
@@ -175,9 +171,26 @@ export default function PainelAgendamentos() {
   useEffect(() => {
     let result = appointments
 
-    // Filter by Date
+    // Filter by Date if set
     if (filterDate) {
       result = result.filter(a => a.start_time.split('T')[0] === filterDate)
+    }
+
+    // Filter by Status Tab
+    if (statusFilter === 'today') {
+      const todayStr = new Date().toLocaleDateString('pt-BR', {
+        timeZone: 'America/Sao_Paulo',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).split('/').reverse().join('-')
+      result = result.filter(a => a.start_time.split('T')[0] === todayStr && a.status !== 'cancelled')
+    } else if (statusFilter === 'confirmed') {
+      result = result.filter(a => a.status === 'confirmed' || a.status === 'pending')
+    } else if (statusFilter === 'completed') {
+      result = result.filter(a => a.status === 'completed')
+    } else if (statusFilter === 'cancelled') {
+      result = result.filter(a => a.status === 'cancelled' || a.status === 'no_show')
     }
 
     // Search Query
@@ -186,12 +199,13 @@ export default function PainelAgendamentos() {
       result = result.filter(a => 
         a.customerName.toLowerCase().includes(q) || 
         (a.notes && a.notes.toLowerCase().includes(q)) ||
-        (a.services?.name && a.services.name.toLowerCase().includes(q))
+        (a.services?.name && a.services.name.toLowerCase().includes(q)) ||
+        (a.barberName && a.barberName.toLowerCase().includes(q))
       )
     }
 
     setFilteredAppointments(result)
-  }, [appointments, filterDate, searchQuery])
+  }, [appointments, filterDate, statusFilter, searchQuery])
 
   // Load slots for walk-in form
   useEffect(() => {
@@ -380,70 +394,168 @@ export default function PainelAgendamentos() {
       <main className="flex-grow p-6 sm:p-8 space-y-6 overflow-y-auto">
         
         {/* Title & Top button */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border/40 pb-4">
-          <div>
-            <h1 className="text-2xl font-serif font-bold text-foreground">Gerenciar Agendamentos</h1>
-            <p className="text-xs text-muted-foreground">Pesquise, registre novos clientes presenciais e controle a agenda</p>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border/40 pb-6">
+          <div className="space-y-1">
+            <h1 className="text-3xl font-serif font-bold text-foreground">Gerenciar Agendamentos 📅</h1>
+            <p className="text-xs text-muted-foreground">Controle completo de horários, buscas rápidas e registro de atendimentos presenciais</p>
           </div>
           <button
             onClick={() => setShowWalkInModal(true)}
-            className="w-full sm:w-auto px-4 py-2.5 bg-primary hover:bg-primary-hover text-primary-foreground font-bold rounded text-xs flex items-center justify-center gap-1.5 shadow"
+            className="w-full sm:w-auto px-5 py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all duration-200 cursor-pointer group"
           >
-            <Plus className="w-4 h-4 text-primary-foreground" />
-            Novo Agendamento Presencial
+            <Plus className="w-4 h-4 text-primary-foreground transition-transform group-hover:scale-110" />
+            <span>Novo Agendamento Presencial</span>
           </button>
         </div>
 
         {errorMsg && (
-          <div className="p-3 bg-destructive/10 border border-destructive/20 rounded flex items-start gap-2 text-xs text-destructive">
+          <div className="p-3.5 bg-destructive/10 border border-destructive/20 rounded-xl flex items-start gap-2 text-xs text-destructive">
             <AlertCircle className="w-4.5 h-4.5 shrink-0" />
             <span>{errorMsg}</span>
           </div>
         )}
 
         {successMsg && (
-          <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded flex items-start gap-2 text-xs text-emerald-500">
+          <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-start gap-2 text-xs text-emerald-500">
             <CheckCircle2 className="w-4.5 h-4.5 shrink-0" />
             <span>{successMsg}</span>
           </div>
         )}
 
-        {/* Filter controls */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-secondary/15 p-4 rounded-lg border border-border/60">
-          {/* Search bar */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Buscar por cliente, notas..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-secondary border border-border focus:border-primary rounded text-xs outline-none"
-            />
-          </div>
+        {/* Status Tabs & Filter Controls */}
+        <div className="space-y-4">
+          {/* Status Tabs Bar */}
+          {(() => {
+            const todayStr = new Date().toLocaleDateString('pt-BR', {
+              timeZone: 'America/Sao_Paulo',
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit'
+            }).split('/').reverse().join('-')
 
-          {/* Date Picker filter */}
-          <div className="relative">
-            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-            <input
-              type="date"
-              value={filterDate}
-              onChange={(e) => setFilterDate(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-secondary border border-border focus:border-primary rounded text-xs outline-none text-foreground"
-            />
-          </div>
+            const counts = {
+              all: appointments.length,
+              today: appointments.filter(a => a.start_time.split('T')[0] === todayStr && a.status !== 'cancelled').length,
+              confirmed: appointments.filter(a => a.status === 'confirmed' || a.status === 'pending').length,
+              completed: appointments.filter(a => a.status === 'completed').length,
+              cancelled: appointments.filter(a => a.status === 'cancelled' || a.status === 'no_show').length
+            }
 
-          {/* Quick Clear filter button */}
-          <div className="flex gap-2">
-            <button
-              onClick={() => {
-                setFilterDate('')
-                setSearchQuery('')
-              }}
-              className="px-3 py-2 bg-secondary border border-border hover:bg-muted text-foreground text-xs font-semibold rounded w-full"
-            >
-              Limpar Filtros
-            </button>
+            return (
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+                <button
+                  type="button"
+                  onClick={() => { setStatusFilter('all'); setFilterDate('') }}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+                    statusFilter === 'all' && !filterDate
+                      ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20 border border-primary-light/30'
+                      : 'bg-secondary/40 hover:bg-secondary/70 border border-border/60 text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <span>Todos ({counts.all})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter('today')}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+                    statusFilter === 'today'
+                      ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20 border border-primary-light/30'
+                      : 'bg-secondary/40 hover:bg-secondary/70 border border-border/60 text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <Calendar className="w-3.5 h-3.5" />
+                  <span>Hoje ({counts.today})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter('confirmed')}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+                    statusFilter === 'confirmed'
+                      ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20 border border-primary-light/30'
+                      : 'bg-secondary/40 hover:bg-secondary/70 border border-border/60 text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>Confirmados ({counts.confirmed})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter('completed')}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+                    statusFilter === 'completed'
+                      ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20 border border-emerald-500/30'
+                      : 'bg-secondary/40 hover:bg-secondary/70 border border-border/60 text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Concluídos ({counts.completed})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter('cancelled')}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+                    statusFilter === 'cancelled'
+                      ? 'bg-destructive text-white shadow-md shadow-destructive/20 border border-destructive/30'
+                      : 'bg-secondary/40 hover:bg-secondary/70 border border-border/60 text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <UserX className="w-3.5 h-3.5 text-rose-400" />
+                  <span>Cancelados / Ausentes ({counts.cancelled})</span>
+                </button>
+              </div>
+            )
+          })()}
+
+          {/* Search & Date Controls Bar */}
+          <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 bg-secondary/30 p-4 rounded-xl border border-border/70 shadow-sm">
+            <div className="sm:col-span-6 relative">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Buscar cliente, serviço, barbeiro ou notas..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-9 py-2.5 bg-background border border-border focus:border-primary rounded-lg text-xs outline-none transition-all"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            <div className="sm:col-span-4 relative">
+              <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+              <input
+                type="date"
+                value={filterDate}
+                onChange={(e) => setFilterDate(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 bg-background border border-border focus:border-primary rounded-lg text-xs outline-none text-foreground font-medium"
+              />
+            </div>
+
+            <div className="sm:col-span-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setFilterDate('')
+                  setSearchQuery('')
+                  setStatusFilter('all')
+                }}
+                className="w-full h-full py-2.5 px-3 bg-secondary border border-border hover:bg-muted text-foreground text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                title="Mostrar todos os agendamentos"
+              >
+                <RotateCcw className="w-3.5 h-3.5 text-muted-foreground" />
+                <span>Limpar</span>
+              </button>
+            </div>
           </div>
         </div>
 
