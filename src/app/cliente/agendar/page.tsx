@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { 
   Scissors, Calendar, Clock, ChevronRight, ChevronLeft, 
   Check, AlertCircle, ArrowLeft, Loader2, DollarSign, 
-  MessageSquare, User, CheckCircle2, QrCode, Banknote, CreditCard, Star, Award, Sparkles 
+  MessageSquare, User, CheckCircle2, QrCode, Banknote, CreditCard, Star, Award, Sparkles, Sunrise, Sun, Moon 
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { createAppointmentAction, getBarberMonthAvailabilityAction, checkNoShowFeeAction } from './actions'
@@ -1169,34 +1169,150 @@ function AgendarWizardInner() {
 
             {/* STEP 4: Select Time Slot */}
             {step === 4 && (
-              <div key="step-4" className="space-y-4">
-                <h3 className="font-serif font-semibold text-lg text-foreground">Escolha o Horário</h3>
-                <p className="text-xs text-muted-foreground">Horários disponíveis para {selectedBarber?.name} em {formatDateText(selectedDate)}</p>
+              <div key="step-4" className="space-y-6 animate-in fade-in-50 duration-300">
+                <div className="space-y-1.5 text-left border-b border-border/40 pb-4">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2.5 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary font-semibold text-[10px] uppercase tracking-wider flex items-center gap-1">
+                        <Clock className="w-3 h-3 text-primary" /> Passo 4 de 6
+                      </span>
+                      <span className="text-xs text-muted-foreground">• Seleção de Horário</span>
+                    </div>
+
+                    {/* Selected Context Chips */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {selectedBarber && (
+                        <div className="flex items-center gap-1.5 bg-secondary/60 border border-border/60 px-2.5 py-0.5 rounded-full text-[11px]">
+                          <span className="text-muted-foreground">Barbeiro:</span>
+                          <span className="font-semibold text-foreground">{selectedBarber.name}</span>
+                        </div>
+                      )}
+                      {selectedDate && (
+                        <div className="flex items-center gap-1.5 bg-secondary/60 border border-border/60 px-2.5 py-0.5 rounded-full text-[11px]">
+                          <span className="text-muted-foreground">Data:</span>
+                          <span className="font-semibold text-primary">{formatDateText(selectedDate)}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <h3 className="font-serif font-bold text-xl sm:text-2xl text-foreground">Escolha o Horário</h3>
+                  <p className="text-xs text-muted-foreground">
+                    Selecione o horário ideal para o seu atendimento com {selectedBarber?.name} no dia {formatDateText(selectedDate)}.
+                  </p>
+                </div>
 
                 {loadingSlots ? (
-                  <div key="loading-slots" className="py-8 flex flex-col items-center justify-center gap-2">
-                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                    <span className="text-xs text-muted-foreground">Calculando horários livres...</span>
+                  <div key="loading-slots" className="py-12 flex flex-col items-center justify-center gap-3 bg-secondary/20 rounded-xl border border-border/60">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                    <div className="text-center space-y-1">
+                      <span className="text-xs font-bold text-foreground block">Buscando Horários Disponíveis</span>
+                      <span className="text-[11px] text-muted-foreground">Verificando encaixes e tempo de serviço...</span>
+                    </div>
                   </div>
-                ) : slots.length > 0 ? (
-                  <div key="slots-grid" className="grid grid-cols-3 sm:grid-cols-6 gap-2 max-h-60 overflow-y-auto pr-1">
-                    {slots.map((slot) => (
+                ) : slots.length > 0 ? (() => {
+                  const morningSlots = slots.filter(s => parseInt(s.split(':')[0], 10) < 12)
+                  const afternoonSlots = slots.filter(s => {
+                    const hour = parseInt(s.split(':')[0], 10)
+                    return hour >= 12 && hour < 18
+                  })
+                  const eveningSlots = slots.filter(s => parseInt(s.split(':')[0], 10) >= 18)
+
+                  const renderSlotButton = (slot: string) => {
+                    const isSelected = selectedTime === slot
+                    return (
                       <button
                         key={slot}
+                        type="button"
                         onClick={() => setSelectedTime(slot)}
-                        className={`py-2 rounded border text-center font-semibold text-xs transition-all cursor-pointer ${
-                          selectedTime === slot
-                            ? 'border-primary bg-primary text-primary-foreground'
-                            : 'border-border hover:border-primary/40 bg-secondary/30 text-foreground'
+                        className={`relative group py-2.5 px-3 rounded-xl border text-center font-bold text-xs sm:text-sm transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 ${
+                          isSelected
+                            ? 'border-primary bg-gradient-to-br from-primary via-primary/95 to-primary-hover text-primary-foreground shadow-lg shadow-primary/30 scale-105 ring-2 ring-primary/40'
+                            : 'border-border/70 hover:border-primary/60 bg-secondary/35 hover:bg-primary/10 text-foreground shadow-sm hover:scale-105 active:scale-95'
                         }`}
                       >
-                        {slot}
+                        <Clock className={`w-3.5 h-3.5 transition-colors ${
+                          isSelected ? 'text-primary-foreground' : 'text-muted-foreground/60 group-hover:text-primary'
+                        }`} />
+                        <span>{slot}</span>
                       </button>
-                    ))}
-                  </div>
-                ) : (
-                  <div key="no-slots-fallback" className="p-6 bg-secondary/20 rounded border border-border text-center text-xs text-muted-foreground">
-                    Infelizmente, todos os horários estão preenchidos para este profissional na data escolhida. Por favor, volte e escolha outro dia ou outro barbeiro.
+                    )
+                  }
+
+                  return (
+                    <div className="space-y-6">
+                      {/* Manhã */}
+                      {morningSlots.length > 0 && (
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2 text-xs font-bold text-foreground border-b border-border/30 pb-2">
+                            <Sunrise className="w-4 h-4 text-amber-400" />
+                            <span className="font-serif text-sm">Manhã</span>
+                            <span className="text-[10px] text-muted-foreground font-sans font-normal">({morningSlots.length} disponíveis)</span>
+                          </div>
+                          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2.5">
+                            {morningSlots.map(renderSlotButton)}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Tarde */}
+                      {afternoonSlots.length > 0 && (
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2 text-xs font-bold text-foreground border-b border-border/30 pb-2">
+                            <Sun className="w-4 h-4 text-amber-500" />
+                            <span className="font-serif text-sm">Tarde</span>
+                            <span className="text-[10px] text-muted-foreground font-sans font-normal">({afternoonSlots.length} disponíveis)</span>
+                          </div>
+                          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2.5">
+                            {afternoonSlots.map(renderSlotButton)}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Noite */}
+                      {eveningSlots.length > 0 && (
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2 text-xs font-bold text-foreground border-b border-border/30 pb-2">
+                            <Moon className="w-4 h-4 text-sky-400" />
+                            <span className="font-serif text-sm">Fim de Tarde & Noite</span>
+                            <span className="text-[10px] text-muted-foreground font-sans font-normal">({eveningSlots.length} disponíveis)</span>
+                          </div>
+                          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2.5">
+                            {eveningSlots.map(renderSlotButton)}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Selection Confirmation Banner */}
+                      {selectedTime && (
+                        <div className="p-4 bg-gradient-to-r from-emerald-500/15 via-primary/10 to-background border border-emerald-500/30 rounded-xl flex items-center justify-between gap-3 text-xs shadow-sm animate-in fade-in-50 duration-200">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-500 flex items-center justify-center shrink-0">
+                              <Check className="w-4 h-4 text-emerald-500 stroke-[3]" />
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground block text-[10px] uppercase font-bold tracking-wider">Horário Confirmado</span>
+                              <span className="font-bold text-foreground text-sm">
+                                {selectedTime} hs <span className="font-normal text-muted-foreground">({formatDateText(selectedDate)})</span>
+                              </span>
+                            </div>
+                          </div>
+                          <span className="text-[11px] font-bold text-emerald-500 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
+                            Reservado
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })() : (
+                  <div key="no-slots-fallback" className="p-8 bg-secondary/20 rounded-xl border border-border/70 text-center space-y-3 text-xs text-muted-foreground">
+                    <div className="mx-auto w-10 h-10 rounded-full bg-destructive/10 text-destructive flex items-center justify-center">
+                      <Clock className="w-5 h-5" />
+                    </div>
+                    <p className="font-semibold text-foreground text-sm">Agenda Lotada nesta data</p>
+                    <p className="max-w-md mx-auto">
+                      Infelizmente, todos os horários para {selectedBarber?.name} no dia {formatDateText(selectedDate)} já foram preenchidos. Por favor, selecione outro dia no calendário.
+                    </p>
                   </div>
                 )}
               </div>
