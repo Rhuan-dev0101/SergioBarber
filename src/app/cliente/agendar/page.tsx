@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { 
   Scissors, Calendar, Clock, ChevronRight, ChevronLeft, 
   Check, AlertCircle, ArrowLeft, Loader2, DollarSign, 
-  MessageSquare, User, CheckCircle2, QrCode, Banknote, CreditCard, Star, Award, Sparkles, Sunrise, Sun, Moon 
+  MessageSquare, User, CheckCircle2, QrCode, Banknote, CreditCard, Star, Award, Sparkles, Sunrise, Sun, Moon, ShieldCheck 
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { createAppointmentAction, getBarberMonthAvailabilityAction, checkNoShowFeeAction } from './actions'
@@ -1320,73 +1320,165 @@ function AgendarWizardInner() {
 
             {/* STEP 5: Payment Method */}
             {step === 5 && (
-              <div key="step-5" className="space-y-4">
-                <h3 className="font-serif font-semibold text-lg text-foreground">Forma de Pagamento</h3>
-                <p className="text-xs text-muted-foreground">Escolha como prefere realizar o pagamento do seu atendimento</p>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
-                  {/* Dinheiro */}
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod('cash')}
-                    disabled={isPending}
-                    className={`p-3.5 rounded-lg border text-left flex items-start justify-between transition-all cursor-pointer ${
-                      paymentMethod === 'cash'
-                        ? 'border-primary bg-primary/10 ring-1 ring-primary/40'
-                        : 'border-border hover:border-muted-foreground/35 bg-secondary/35'
-                    }`}
-                  >
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-1.5 font-serif font-bold text-xs text-foreground">
-                        <Banknote className="w-4 h-4 text-emerald-500 shrink-0" />
-                        Dinheiro
-                      </div>
-                      <p className="text-[10px] text-muted-foreground leading-tight">Pagamento presencial na barbearia</p>
+              <div key="step-5" className="space-y-6 animate-in fade-in-50 duration-300">
+                <div className="space-y-1.5 text-left border-b border-border/40 pb-4">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2.5 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary font-semibold text-[10px] uppercase tracking-wider flex items-center gap-1">
+                        <DollarSign className="w-3 h-3 text-primary" /> Passo 5 de 6
+                      </span>
+                      <span className="text-xs text-muted-foreground">• Forma de Pagamento</span>
                     </div>
-                    {paymentMethod === 'cash' && <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" />}
-                  </button>
 
+                    {/* Selected Context Summary */}
+                    {selectedService && (
+                      <div className="flex items-center gap-1.5 bg-secondary/60 border border-border/60 px-2.5 py-0.5 rounded-full text-[11px]">
+                        <span className="text-muted-foreground">Valor do Serviço:</span>
+                        <span className="font-bold text-primary">R$&nbsp;{Number(selectedService.price).toFixed(2)}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <h3 className="font-serif font-bold text-xl sm:text-2xl text-foreground">Escolha a Forma de Pagamento</h3>
+                  <p className="text-xs text-muted-foreground">Selecione a opção de sua preferência para concluir ou sinalizar seu agendamento com segurança.</p>
+                </div>
+
+                {/* Payment Cards Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   {/* Pix */}
-                  <button
-                    type="button"
+                  <div
                     onClick={() => setPaymentMethod('pix')}
-                    disabled={isPending}
-                    className={`p-3.5 rounded-lg border text-left flex items-start justify-between transition-all cursor-pointer ${
+                    className={`relative group p-5 rounded-xl border text-left transition-all duration-300 cursor-pointer overflow-hidden flex flex-col justify-between ${
                       paymentMethod === 'pix'
-                        ? 'border-primary bg-primary/10 ring-1 ring-primary/40'
-                        : 'border-border hover:border-muted-foreground/35 bg-secondary/35'
+                        ? 'border-primary bg-gradient-to-br from-primary/15 via-primary/5 to-transparent shadow-lg shadow-primary/10 ring-1 ring-primary/40 scale-[1.02]'
+                        : 'border-border/70 hover:border-primary/50 bg-secondary/30 hover:bg-secondary/50 shadow-sm hover:shadow-md'
                     }`}
                   >
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-1.5 font-serif font-bold text-xs text-foreground">
-                        <QrCode className="w-4 h-4 text-primary shrink-0" />
-                        Pix
+                    {paymentMethod === 'pix' && (
+                      <div className="absolute -top-10 -right-10 w-24 h-24 bg-primary/20 rounded-full blur-xl pointer-events-none" />
+                    )}
+
+                    <div className="space-y-3 relative z-10">
+                      <div className="flex items-center justify-between">
+                        <div className="w-10 h-10 rounded-xl bg-primary/15 border border-primary/25 text-primary flex items-center justify-center shadow-inner">
+                          <QrCode className="w-5 h-5 text-primary" />
+                        </div>
+                        {paymentMethod === 'pix' ? (
+                          <div className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md animate-in zoom-in-75 duration-200">
+                            <Check className="w-3.5 h-3.5 text-primary-foreground stroke-[3]" />
+                          </div>
+                        ) : (
+                          <span className="text-[9px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20">
+                            50% Sinal
+                          </span>
+                        )}
                       </div>
-                      <p className="text-[10px] text-muted-foreground leading-tight">Sinal 50% via QR Code / Copia e Cola</p>
+
+                      <div className="space-y-1">
+                        <h4 className="font-serif font-bold text-sm text-foreground group-hover:text-primary transition-colors flex items-center gap-1.5">
+                          Pix (Sinal)
+                        </h4>
+                        <p className="text-[11px] text-muted-foreground leading-relaxed">
+                          Sinal de 50% (R$&nbsp;{(Number(selectedService?.price || 0) / 2).toFixed(2)}) via QR Code / Copia e Cola.
+                        </p>
+                      </div>
                     </div>
-                    {paymentMethod === 'pix' && <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" />}
-                  </button>
+
+                    <div className="pt-3 border-t border-border/30 mt-3 text-[10px] font-semibold text-primary flex items-center justify-between">
+                      <span>Reserva Imediata</span>
+                      <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                    </div>
+                  </div>
+
+                  {/* Dinheiro */}
+                  <div
+                    onClick={() => setPaymentMethod('cash')}
+                    className={`relative group p-5 rounded-xl border text-left transition-all duration-300 cursor-pointer overflow-hidden flex flex-col justify-between ${
+                      paymentMethod === 'cash'
+                        ? 'border-primary bg-gradient-to-br from-primary/15 via-primary/5 to-transparent shadow-lg shadow-primary/10 ring-1 ring-primary/40 scale-[1.02]'
+                        : 'border-border/70 hover:border-primary/50 bg-secondary/30 hover:bg-secondary/50 shadow-sm hover:shadow-md'
+                    }`}
+                  >
+                    {paymentMethod === 'cash' && (
+                      <div className="absolute -top-10 -right-10 w-24 h-24 bg-primary/20 rounded-full blur-xl pointer-events-none" />
+                    )}
+
+                    <div className="space-y-3 relative z-10">
+                      <div className="flex items-center justify-between">
+                        <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/25 text-emerald-500 flex items-center justify-center shadow-inner">
+                          <Banknote className="w-5 h-5 text-emerald-500" />
+                        </div>
+                        {paymentMethod === 'cash' && (
+                          <div className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md animate-in zoom-in-75 duration-200">
+                            <Check className="w-3.5 h-3.5 text-primary-foreground stroke-[3]" />
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="space-y-1">
+                        <h4 className="font-serif font-bold text-sm text-foreground group-hover:text-primary transition-colors flex items-center gap-1.5">
+                          Dinheiro no Local
+                        </h4>
+                        <p className="text-[11px] text-muted-foreground leading-relaxed">
+                          Pagamento presencial do valor total na barbearia no dia do seu atendimento.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="pt-3 border-t border-border/30 mt-3 text-[10px] font-semibold text-emerald-500 flex items-center justify-between">
+                      <span>Pagamento Presencial</span>
+                      <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                    </div>
+                  </div>
 
                   {/* Cartão */}
-                  <button
-                    type="button"
+                  <div
                     onClick={() => setPaymentMethod('card')}
-                    disabled={isPending}
-                    className={`p-3.5 rounded-lg border text-left flex items-start justify-between transition-all cursor-pointer ${
+                    className={`relative group p-5 rounded-xl border text-left transition-all duration-300 cursor-pointer overflow-hidden flex flex-col justify-between ${
                       paymentMethod === 'card'
-                        ? 'border-primary bg-primary/10 ring-1 ring-primary/40'
-                        : 'border-border hover:border-muted-foreground/35 bg-secondary/35'
+                        ? 'border-primary bg-gradient-to-br from-primary/15 via-primary/5 to-transparent shadow-lg shadow-primary/10 ring-1 ring-primary/40 scale-[1.02]'
+                        : 'border-border/70 hover:border-primary/50 bg-secondary/30 hover:bg-secondary/50 shadow-sm hover:shadow-md'
                     }`}
                   >
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-1.5 font-serif font-bold text-xs text-foreground">
-                        <CreditCard className="w-4 h-4 text-sky-500 shrink-0" />
-                        Cartão
+                    {paymentMethod === 'card' && (
+                      <div className="absolute -top-10 -right-10 w-24 h-24 bg-primary/20 rounded-full blur-xl pointer-events-none" />
+                    )}
+
+                    <div className="space-y-3 relative z-10">
+                      <div className="flex items-center justify-between">
+                        <div className="w-10 h-10 rounded-xl bg-sky-500/15 border border-sky-500/25 text-sky-500 flex items-center justify-center shadow-inner">
+                          <CreditCard className="w-5 h-5 text-sky-500" />
+                        </div>
+                        {paymentMethod === 'card' && (
+                          <div className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md animate-in zoom-in-75 duration-200">
+                            <Check className="w-3.5 h-3.5 text-primary-foreground stroke-[3]" />
+                          </div>
+                        )}
                       </div>
-                      <p className="text-[10px] text-muted-foreground leading-tight">Crédito ou Débito na barbearia</p>
+
+                      <div className="space-y-1">
+                        <h4 className="font-serif font-bold text-sm text-foreground group-hover:text-primary transition-colors flex items-center gap-1.5">
+                          Cartão Débito / Crédito
+                        </h4>
+                        <p className="text-[11px] text-muted-foreground leading-relaxed">
+                          Pagamento na maquininha na barbearia no momento do atendimento.
+                        </p>
+                      </div>
                     </div>
-                    {paymentMethod === 'card' && <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" />}
-                  </button>
+
+                    <div className="pt-3 border-t border-border/30 mt-3 text-[10px] font-semibold text-sky-500 flex items-center justify-between">
+                      <span>Maquininha no Local</span>
+                      <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Security Guarantee Box */}
+                <div className="p-4 bg-secondary/30 rounded-xl border border-border/60 flex items-center gap-3 text-xs text-muted-foreground">
+                  <ShieldCheck className="w-5 h-5 text-primary shrink-0" />
+                  <p className="leading-relaxed">
+                    <strong className="text-foreground font-semibold">Garantia Osanchez Barbearia:</strong> Seu agendamento é protegido. Você pode reagendar ou cancelar sem custos com até 2 horas de antecedência.
+                  </p>
                 </div>
               </div>
             )}
