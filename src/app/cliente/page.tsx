@@ -314,15 +314,32 @@ export default function ClientePanel() {
                     ))}
                   </div>
                 ) : (
-                  <div className="p-8 bg-secondary/20 rounded-lg border border-border text-center text-xs text-muted-foreground space-y-3">
-                    <p>Você não possui agendamentos ativos no momento.</p>
-                    <Link
-                      href="/cliente/agendar"
-                      onClick={handleAgendarClick}
-                      className="text-primary font-semibold hover:underline inline-flex items-center gap-1"
-                    >
-                      Agendar meu primeiro serviço <ArrowRight className="w-3.5 h-3.5" />
-                    </Link>
+                  <div className="p-8 sm:p-10 bg-gradient-to-b from-secondary/40 via-secondary/20 to-background rounded-xl border border-border/70 text-center space-y-4 shadow-sm relative overflow-hidden">
+                    {/* Background subtle glow */}
+                    <div className="absolute -top-12 -left-12 w-32 h-32 bg-primary/10 rounded-full blur-2xl pointer-events-none" />
+                    <div className="absolute -bottom-12 -right-12 w-32 h-32 bg-primary/10 rounded-full blur-2xl pointer-events-none" />
+
+                    {/* Icon badge */}
+                    <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 border border-primary/25 flex items-center justify-center text-primary shadow-inner">
+                      <Calendar className="w-6 h-6" />
+                    </div>
+
+                    <div className="space-y-1 max-w-sm mx-auto">
+                      <p className="text-sm font-semibold text-foreground">Você não possui agendamentos ativos no momento.</p>
+                      <p className="text-xs text-muted-foreground">Escolha seu serviço e barbeiro preferido para garantir seu horário em poucos cliques.</p>
+                    </div>
+
+                    <div className="pt-2">
+                      <Link
+                        href="/cliente/agendar"
+                        onClick={handleAgendarClick}
+                        className="inline-flex items-center justify-center gap-2.5 px-6 py-3 rounded-lg font-bold text-xs sm:text-sm text-primary-foreground bg-primary hover:bg-primary/90 border border-primary-light/30 shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/35 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 cursor-pointer group/btn"
+                      >
+                        <Scissors className="w-4 h-4 text-primary-foreground transition-transform group-hover/btn:rotate-12" />
+                        <span>Agendar meu primeiro serviço</span>
+                        <ArrowRight className="w-4 h-4 text-primary-foreground transition-transform group-hover/btn:translate-x-1" />
+                      </Link>
+                    </div>
                   </div>
                 )}
               </div>
