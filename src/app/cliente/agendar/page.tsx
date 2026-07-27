@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { 
   Scissors, Calendar, Clock, ChevronRight, ChevronLeft, 
   Check, AlertCircle, ArrowLeft, Loader2, DollarSign, 
-  MessageSquare, User, CheckCircle2, QrCode, Banknote, CreditCard 
+  MessageSquare, User, CheckCircle2, QrCode, Banknote, CreditCard, Star, Award, Sparkles 
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { createAppointmentAction, getBarberMonthAvailabilityAction, checkNoShowFeeAction } from './actions'
@@ -27,8 +27,26 @@ const STATIC_SERVICES = [
 ]
 
 const STATIC_BARBERS = [
-  { id: 'sergio-uuid', name: 'Sergio Sanchez', role: 'Barbeiro Master' },
-  { id: 'enzo-uuid', name: 'Enzo', role: 'Especialista' }
+  {
+    id: 'sergio-uuid',
+    name: 'Sergio Sanchez',
+    role: 'Fundador & Master',
+    bio: 'Especialista em visagismo facial e cortes de alto nível.',
+    avatar_url: '/barbers/sergio.jpg',
+    specialties: ['Cortes Clássicos', 'Visagismo Facial', 'Barba Terapia'],
+    experience_years: 10,
+    rating: '5.0'
+  },
+  {
+    id: 'enzo-uuid',
+    name: 'Enzo',
+    role: 'Barbeiro Especialista',
+    bio: 'Especialista em cortes contemporâneos, degradê de precisão e design de barba.',
+    avatar_url: '',
+    specialties: ['Fade / Degradê', 'Design de Barba', 'Corte Moderno'],
+    experience_years: 5,
+    rating: '4.9'
+  }
 ]
 
 function AgendarWizardInner() {
@@ -136,17 +154,28 @@ function AgendarWizardInner() {
         // Fetch active barbers
         const { data: dbBarbers } = await supabase
           .from('barbers')
-          .select('id, is_active, profiles(full_name, role)')
+          .select('id, is_active, bio, avatar_url, photo_url, specialties, experience_years, profiles(full_name, role)')
           .eq('is_active', true)
 
         if (dbBarbers && dbBarbers.length > 0) {
           const formatted = dbBarbers
             .filter((b: any) => b.profiles)
-            .map((b: any) => ({
-              id: b.id,
-              name: (b.profiles as any).full_name,
-              role: (b.profiles as any).role === 'admin' ? 'Fundador & Master' : 'Especialista'
-            }))
+            .map((b: any) => {
+              const fullName = (b.profiles as any).full_name || 'Barbeiro'
+              const isSergio = fullName.toLowerCase().includes('sergio')
+              return {
+                id: b.id,
+                name: fullName,
+                role: (b.profiles as any).role === 'admin' ? 'Fundador & Master' : 'Barbeiro Especialista',
+                bio: b.bio || 'Barbeiro profissional da equipe Osanchez Barbearia.',
+                avatar_url: b.photo_url || b.avatar_url || (isSergio ? '/barbers/sergio.jpg' : ''),
+                specialties: b.specialties && b.specialties.length > 0
+                  ? b.specialties
+                  : (isSergio ? ['Cortes Clássicos', 'Visagismo Facial', 'Barba Terapia'] : ['Fade / Degradê', 'Design de Barba', 'Corte Moderno']),
+                experience_years: b.experience_years || (isSergio ? 10 : 5),
+                rating: '5.0'
+              }
+            })
           setBarbers(formatted)
 
           if (preSelectedBarberId) {
@@ -709,36 +738,123 @@ function AgendarWizardInner() {
             <BookingErrorBoundary>
               {/* STEP 1: Select Barber */}
               {step === 1 && (
-              <div key="step-1" className="space-y-4">
-                <h3 className="font-serif font-semibold text-lg text-foreground">Escolha o Profissional</h3>
-                <p className="text-xs text-muted-foreground">Selecione o barbeiro de sua preferência para realizar o serviço</p>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {barbers.map((barber) => (
-                    <button
-                      key={barber.id}
-                      onClick={() => setSelectedBarber(barber)}
-                      className={`p-5 rounded-lg border text-left flex items-center justify-between transition-all cursor-pointer ${
-                        selectedBarber?.id === barber.id
-                          ? 'border-primary bg-primary/5'
-                          : 'border-border hover:border-muted-foreground/35 bg-secondary/35'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-primary/20 text-primary flex items-center justify-center font-serif font-bold">
-                          {barber.name.charAt(0)}
+                <div key="step-1" className="space-y-6 animate-in fade-in-50 duration-300">
+                  <div className="space-y-1.5 text-left border-b border-border/40 pb-4">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2.5 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary font-semibold text-[10px] uppercase tracking-wider flex items-center gap-1">
+                        <Sparkles className="w-3 h-3 text-primary" /> Passo 1 de 6
+                      </span>
+                      <span className="text-xs text-muted-foreground">• Seleção de Profissional</span>
+                    </div>
+                    <h3 className="font-serif font-bold text-xl sm:text-2xl text-foreground">Escolha o Profissional</h3>
+                    <p className="text-xs text-muted-foreground">Selecione o especialista de sua preferência para cuidar do seu visual com excelência.</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {barbers.map((barber) => {
+                      const isSelected = selectedBarber?.id === barber.id
+                      return (
+                        <div
+                          key={barber.id}
+                          onClick={() => setSelectedBarber(barber)}
+                          className={`relative group p-5 rounded-xl border text-left transition-all duration-300 cursor-pointer overflow-hidden flex flex-col justify-between ${
+                            isSelected
+                              ? 'border-primary bg-gradient-to-br from-primary/15 via-primary/5 to-transparent shadow-lg shadow-primary/10 ring-1 ring-primary/40'
+                              : 'border-border/70 hover:border-primary/50 bg-secondary/30 hover:bg-secondary/50 shadow-sm hover:shadow-md'
+                          }`}
+                        >
+                          {/* Background glow when selected */}
+                          {isSelected && (
+                            <div className="absolute -top-10 -right-10 w-28 h-28 bg-primary/20 rounded-full blur-xl pointer-events-none" />
+                          )}
+
+                          <div className="space-y-4 relative z-10">
+                            {/* Card Header: Avatar + Info + Checkmark */}
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex items-center gap-3.5">
+                                {/* Avatar */}
+                                <div className={`relative w-14 h-14 rounded-full border-2 p-0.5 shrink-0 overflow-hidden shadow-md transition-all duration-300 ${
+                                  isSelected ? 'border-primary ring-2 ring-primary/30 scale-105' : 'border-border/80 group-hover:border-primary/50'
+                                }`}>
+                                  {barber.avatar_url ? (
+                                    <img
+                                      src={barber.avatar_url}
+                                      alt={barber.name}
+                                      className="w-full h-full object-cover rounded-full transition-transform duration-300 group-hover:scale-105"
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full rounded-full bg-gradient-to-tr from-primary/30 via-secondary to-muted flex items-center justify-center text-primary font-serif font-bold text-xl shadow-inner">
+                                      {barber.name.charAt(0)}
+                                    </div>
+                                  )}
+                                  {/* Online status indicator */}
+                                  <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 border-2 border-background rounded-full" title="Disponível para agendamento" />
+                                </div>
+
+                                {/* Name & Role */}
+                                <div className="space-y-1">
+                                  <h4 className="font-serif font-bold text-base text-foreground group-hover:text-primary transition-colors">
+                                    {barber.name}
+                                  </h4>
+                                  <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                                    {barber.role}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Selected Badge */}
+                              {isSelected ? (
+                                <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md animate-in zoom-in-75 duration-200 shrink-0">
+                                  <Check className="w-4 h-4 text-primary-foreground stroke-[3]" />
+                                </div>
+                              ) : (
+                                <div className="w-7 h-7 rounded-full border border-border/80 group-hover:border-primary/40 flex items-center justify-center shrink-0 transition-colors">
+                                  <div className="w-2.5 h-2.5 rounded-full bg-transparent group-hover:bg-primary/30 transition-colors" />
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Rating & Experience */}
+                            <div className="flex items-center gap-3 text-xs pt-1 border-t border-border/30">
+                              <div className="flex items-center gap-1 font-bold text-amber-400">
+                                <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                                <span>{barber.rating || '5.0'}</span>
+                              </div>
+                              <span className="text-muted-foreground/40">•</span>
+                              <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                                <Award className="w-3.5 h-3.5 text-primary" />
+                                <span>{barber.experience_years ? `${barber.experience_years}+ anos exp.` : 'Master Barbeiro'}</span>
+                              </div>
+                            </div>
+
+                            {/* Specialties tags */}
+                            {barber.specialties && barber.specialties.length > 0 && (
+                              <div className="flex flex-wrap gap-1.5 pt-0.5">
+                                {barber.specialties.map((spec: string, idx: number) => (
+                                  <span
+                                    key={idx}
+                                    className="text-[10px] px-2 py-0.5 rounded bg-background/60 text-muted-foreground border border-border/50 font-medium"
+                                  >
+                                    {spec}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Footer Selection Indicator */}
+                          <div className={`mt-4 pt-3 border-t text-[11px] font-semibold flex items-center justify-between transition-colors ${
+                            isSelected ? 'border-primary/30 text-primary' : 'border-border/40 text-muted-foreground/70 group-hover:text-foreground'
+                          }`}>
+                            <span>{isSelected ? 'Profissional Selecionado' : 'Clique para selecionar'}</span>
+                            <ChevronRight className={`w-3.5 h-3.5 transition-transform ${isSelected ? 'translate-x-0.5 text-primary' : 'group-hover:translate-x-1'}`} />
+                          </div>
                         </div>
-                        <div>
-                          <h4 className="font-serif font-semibold text-sm text-foreground">{barber.name}</h4>
-                          <span className="text-[10px] text-primary">{barber.role}</span>
-                        </div>
-                      </div>
-                      {selectedBarber?.id === barber.id && <Check className="w-5 h-5 text-primary shrink-0" />}
-                    </button>
-                  ))}
+                      )
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
             {/* STEP 2: Select Service */}
             {step === 2 && (
