@@ -1,8 +1,10 @@
 import React from 'react'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { 
   Scissors, Calendar, Clock, DollarSign, Users, Sparkles, 
-  ArrowUpRight, AlertCircle, TrendingUp, CheckCircle, XCircle 
+  ArrowUpRight, AlertCircle, TrendingUp, CheckCircle, XCircle,
+  ArrowRight, ShieldCheck, Award, UserCheck, ChevronRight
 } from 'lucide-react'
 import { createServerSupabaseClient } from '@/lib/supabase'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
@@ -178,6 +180,9 @@ export default async function PainelDashboard() {
     .sort((a, b) => b.count - a.count)
     .slice(0, 4)
 
+  const firstName = profile.full_name?.split(' ')[0] || 'Barbeiro'
+  const dateFormatted = new Date().toLocaleDateString('pt-BR', { dateStyle: 'long' })
+
   return (
     <div className="min-h-screen bg-background flex flex-col md:flex-row">
       <DashboardSidebar />
@@ -185,104 +190,153 @@ export default async function PainelDashboard() {
       <main className="flex-grow p-6 sm:p-8 space-y-8 overflow-y-auto">
         
         {/* Header Title */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-border/40 pb-4">
-          <div>
-            <h1 className="text-2xl font-serif font-bold text-foreground">Visão Geral</h1>
-            <p className="text-xs text-muted-foreground">Indicadores e resumo operacional da barbearia</p>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border/40 pb-6">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <h1 className="text-3xl font-serif font-bold text-foreground">Olá, {firstName}! ✂️</h1>
+              <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                {isAdmin ? 'Gestão Geral' : 'Painel do Barbeiro'}
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground">Bem-vindo à sua visão geral de desempenho e agendamentos</p>
           </div>
-          <div className="text-xs font-semibold text-muted-foreground bg-secondary px-3 py-1.5 rounded border border-border">
-            Hoje: {new Date().toLocaleDateString('pt-BR', { dateStyle: 'long' })}
+
+          <div className="flex items-center gap-2 text-xs font-semibold text-primary bg-primary/10 px-3.5 py-2 rounded-xl border border-primary/25 shadow-sm">
+            <Calendar className="w-4 h-4 text-primary" />
+            <span>Hoje: {dateFormatted}</span>
           </div>
         </div>
 
         {/* Stats Cards Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           
           {/* Card 1: Today's Appointments */}
-          <div className="glass p-6 rounded-lg border border-border flex justify-between items-start">
-            <div className="space-y-2">
-              <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Agendamentos Hoje</span>
-              <div className="text-3xl font-serif font-bold text-foreground">{todayCount}</div>
-              <p className="text-[10px] text-muted-foreground leading-normal">Agendados para realização na data de hoje</p>
-            </div>
-            <div className="p-2.5 rounded bg-primary/10 text-primary">
-              <Calendar className="w-5 h-5" />
+          <div className="relative overflow-hidden p-6 rounded-xl border border-primary/30 bg-gradient-to-br from-primary/15 via-secondary/30 to-background shadow-md group hover:border-primary/60 transition-all duration-300">
+            <div className="absolute -top-10 -right-10 w-24 h-24 bg-primary/10 rounded-full blur-xl pointer-events-none" />
+            <div className="flex justify-between items-start relative z-10">
+              <div className="space-y-2">
+                <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block">Agendamentos Hoje</span>
+                <div className="text-3xl sm:text-4xl font-serif font-bold text-foreground group-hover:text-primary transition-colors">{todayCount}</div>
+                <p className="text-[11px] text-muted-foreground leading-normal">Clientes programados para hoje</p>
+              </div>
+              <div className="p-3 rounded-xl bg-primary/15 border border-primary/25 text-primary shadow-inner">
+                <Calendar className="w-5 h-5" />
+              </div>
             </div>
           </div>
 
           {/* Card 2: Upcoming Appointments */}
-          <div className="glass p-6 rounded-lg border border-border flex justify-between items-start">
-            <div className="space-y-2">
-              <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Agendamentos Ativos</span>
-              <div className="text-3xl font-serif font-bold text-foreground">{upcomingCount}</div>
-              <p className="text-[10px] text-muted-foreground leading-normal">Agendamentos ativos futuros na agenda</p>
-            </div>
-            <div className="p-2.5 rounded bg-primary/10 text-primary">
-              <Clock className="w-5 h-5" />
+          <div className="relative overflow-hidden p-6 rounded-xl border border-sky-500/30 bg-gradient-to-br from-sky-500/10 via-secondary/30 to-background shadow-md group hover:border-sky-500/60 transition-all duration-300">
+            <div className="absolute -top-10 -right-10 w-24 h-24 bg-sky-500/10 rounded-full blur-xl pointer-events-none" />
+            <div className="flex justify-between items-start relative z-10">
+              <div className="space-y-2">
+                <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block">Agendamentos Ativos</span>
+                <div className="text-3xl sm:text-4xl font-serif font-bold text-foreground group-hover:text-sky-400 transition-colors">{upcomingCount}</div>
+                <p className="text-[11px] text-muted-foreground leading-normal">Futuros horários na agenda</p>
+              </div>
+              <div className="p-3 rounded-xl bg-sky-500/15 border border-sky-500/25 text-sky-400 shadow-inner">
+                <Clock className="w-5 h-5" />
+              </div>
             </div>
           </div>
 
           {/* Card 3: Cash Inflow */}
-          <div className="glass p-6 rounded-lg border border-border flex justify-between items-start">
-            <div className="space-y-2">
-              <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Faturamento Confirmado</span>
-              <div className="text-2xl font-serif font-bold text-emerald-500">R$ {totalRevenue.toFixed(2)}</div>
-              <p className="text-[10px] text-muted-foreground leading-normal">Total liquidado (Pix e pagamentos presenciais)</p>
-            </div>
-            <div className="p-2.5 rounded bg-emerald-500/10 text-emerald-500">
-              <DollarSign className="w-5 h-5" />
+          <div className="relative overflow-hidden p-6 rounded-xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 via-secondary/30 to-background shadow-md group hover:border-emerald-500/60 transition-all duration-300">
+            <div className="absolute -top-10 -right-10 w-24 h-24 bg-emerald-500/10 rounded-full blur-xl pointer-events-none" />
+            <div className="flex justify-between items-start relative z-10">
+              <div className="space-y-2">
+                <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block">Faturamento Confirmado</span>
+                <div className="text-2xl sm:text-3xl font-serif font-bold text-emerald-500">R$&nbsp;{totalRevenue.toFixed(2)}</div>
+                <p className="text-[11px] text-muted-foreground leading-normal">Liquidado (Pix, cartões e presencial)</p>
+              </div>
+              <div className="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/25 text-emerald-500 shadow-inner">
+                <DollarSign className="w-5 h-5" />
+              </div>
             </div>
           </div>
 
           {/* Card 4: Forecast Pending Signals */}
-          <div className="glass p-6 rounded-lg border border-border flex justify-between items-start">
-            <div className="space-y-2">
-              <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Sinais Pendentes</span>
-              <div className="text-2xl font-serif font-bold text-amber-500">R$ {pendingRevenue.toFixed(2)}</div>
-              <p className="text-[10px] text-muted-foreground leading-normal">Sinais Pix gerados e aguardando liquidação</p>
-            </div>
-            <div className="p-2.5 rounded bg-amber-500/10 text-amber-500">
-              <TrendingUp className="w-5 h-5" />
+          <div className="relative overflow-hidden p-6 rounded-xl border border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-secondary/30 to-background shadow-md group hover:border-amber-500/60 transition-all duration-300">
+            <div className="absolute -top-10 -right-10 w-24 h-24 bg-amber-500/10 rounded-full blur-xl pointer-events-none" />
+            <div className="flex justify-between items-start relative z-10">
+              <div className="space-y-2">
+                <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block">Sinais Pendentes</span>
+                <div className="text-2xl sm:text-3xl font-serif font-bold text-amber-400">R$&nbsp;{pendingRevenue.toFixed(2)}</div>
+                <p className="text-[11px] text-muted-foreground leading-normal">Sinais Pix aguardando aprovação</p>
+              </div>
+              <div className="p-3 rounded-xl bg-amber-500/15 border border-amber-500/25 text-amber-400 shadow-inner">
+                <TrendingUp className="w-5 h-5" />
+              </div>
             </div>
           </div>
 
         </div>
 
         {/* Detailed Stats Graphs / Tables */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
           {/* Left panel: Top Services and Barber workload */}
-          <div className="lg:col-span-8 space-y-6">
+          <div className="lg:col-span-8 space-y-8">
             
             {/* Workload by Barber */}
-            <div className="glass p-6 rounded-lg border border-border space-y-4">
-              <h3 className="font-serif font-semibold text-sm text-foreground uppercase tracking-wider">Desempenho por Profissional</h3>
+            <div className="glass p-6 sm:p-7 rounded-xl border border-border/80 space-y-5 shadow-sm">
+              <div className="flex items-center justify-between border-b border-border/40 pb-3">
+                <h3 className="font-serif font-bold text-base text-foreground uppercase tracking-wider flex items-center gap-2">
+                  <UserCheck className="w-4.5 h-4.5 text-primary" /> Desempenho por Profissional
+                </h3>
+                <span className="text-[11px] text-muted-foreground font-semibold">Total de Atendimentos</span>
+              </div>
               
               {Object.keys(barberStats).length > 0 ? (
-                <div className="space-y-4">
-                  {Object.entries(barberStats).map(([barberName, stats]) => (
-                    <div key={barberName} className="space-y-1.5">
-                      <div className="flex justify-between text-xs font-semibold">
-                        <span className="text-foreground">{barberName}</span>
-                        <span className="text-muted-foreground">{stats.count} cortes | R$ {stats.revenue.toFixed(2)}</span>
+                <div className="space-y-5">
+                  {Object.entries(barberStats).map(([barberName, stats]) => {
+                    const percentage = Math.min(100, Math.round((stats.count / (apptsList.length || 1)) * 100))
+                    return (
+                      <div key={barberName} className="space-y-2">
+                        <div className="flex justify-between items-center text-xs font-semibold">
+                          <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-primary/30 to-secondary border border-primary/30 text-primary font-serif font-bold flex items-center justify-center text-xs">
+                              {barberName.charAt(0)}
+                            </div>
+                            <span className="text-foreground font-bold">{barberName}</span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-primary font-mono font-bold bg-primary/10 px-2 py-0.5 rounded border border-primary/20 text-[11px]">
+                              {stats.count} atendimento{stats.count !== 1 ? 's' : ''}
+                            </span>
+                            <span className="text-emerald-500 font-bold font-serif text-sm">
+                              R$&nbsp;{stats.revenue.toFixed(2)}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="w-full bg-secondary/80 h-3 rounded-full overflow-hidden p-0.5 border border-border/40">
+                          <div 
+                            className="bg-gradient-to-r from-primary via-primary/90 to-primary-hover h-full rounded-full transition-all duration-500 shadow-sm" 
+                            style={{ width: `${percentage}%` }}
+                          />
+                        </div>
                       </div>
-                      <div className="w-full bg-secondary h-2.5 rounded overflow-hidden">
-                        <div 
-                          className="bg-primary h-full rounded" 
-                          style={{ width: `${Math.min(100, (stats.count / (apptsList.length || 1)) * 100)}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               ) : (
-                <p className="text-xs text-muted-foreground italic">Nenhum atendimento registrado.</p>
+                <p className="text-xs text-muted-foreground italic text-center py-4">Nenhum atendimento registrado no momento.</p>
               )}
             </div>
 
             {/* Today's appointments schedule list */}
-            <div className="glass p-6 rounded-lg border border-border space-y-4">
-              <h3 className="font-serif font-semibold text-sm text-foreground uppercase tracking-wider">Próximos Clientes Hoje</h3>
+            <div className="glass p-6 sm:p-7 rounded-xl border border-border/80 space-y-5 shadow-sm">
+              <div className="flex items-center justify-between border-b border-border/40 pb-3">
+                <h3 className="font-serif font-bold text-base text-foreground uppercase tracking-wider flex items-center gap-2">
+                  <Clock className="w-4.5 h-4.5 text-primary" /> Próximos Clientes Hoje
+                </h3>
+                <Link
+                  href="/painel/agendamentos"
+                  className="text-xs text-primary font-semibold hover:underline flex items-center gap-1"
+                >
+                  Ver Agenda Completa <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
               
               <div className="space-y-3">
                 {apptsList.filter((a: any) => a.start_time.split('T')[0] === todayStr && a.status !== 'cancelled').length > 0 ? (
@@ -292,25 +346,34 @@ export default async function PainelDashboard() {
                     .map((appt: any) => (
                       <div 
                         key={appt.id}
-                        className="flex justify-between items-center p-3 rounded bg-secondary/40 border border-border/50 text-xs"
+                        className="flex justify-between items-center p-4 rounded-xl bg-secondary/35 hover:bg-secondary/60 border border-border/60 text-xs transition-all shadow-sm"
                       >
-                        <div className="space-y-1">
-                          <p className="font-semibold text-foreground">{appt.customer?.full_name || 'Cliente'}</p>
-                          <p className="text-[10px] text-muted-foreground">
-                            {appt.services?.name} | {new Date(appt.start_time).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' })}
-                          </p>
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-primary/10 border border-primary/20 text-primary flex items-center justify-center font-bold text-xs shrink-0">
+                            {new Date(appt.start_time).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                          <div className="space-y-0.5">
+                            <p className="font-bold text-foreground text-sm">{appt.customer?.full_name || 'Cliente'}</p>
+                            <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                              <Scissors className="w-3 h-3 text-primary" />
+                              <span>{appt.services?.name}</span>
+                            </p>
+                          </div>
                         </div>
-                        <span className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase ${
+
+                        <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider ${
                           appt.status === 'completed' 
-                            ? 'bg-emerald-500/10 text-emerald-500' 
-                            : 'bg-primary/10 text-primary'
+                            ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/25' 
+                            : 'bg-primary/15 text-primary border border-primary/25'
                         }`}>
                           {appt.status === 'completed' ? 'Concluído' : 'Confirmado'}
                         </span>
                       </div>
                     ))
                 ) : (
-                  <p className="text-xs text-muted-foreground italic text-center py-4">Nenhum agendamento programado para hoje.</p>
+                  <div className="p-8 bg-secondary/20 rounded-xl border border-border/60 text-center space-y-2">
+                    <p className="text-xs text-muted-foreground italic">Nenhum agendamento programado para o dia de hoje.</p>
+                  </div>
                 )}
               </div>
             </div>
@@ -318,47 +381,51 @@ export default async function PainelDashboard() {
           </div>
 
           {/* Right panel: Top Services / Operations metrics */}
-          <div className="lg:col-span-4 space-y-6">
+          <div className="lg:col-span-4 space-y-8">
             
             {/* Top Services chart */}
-            <div className="glass p-6 rounded-lg border border-border space-y-4">
-              <h3 className="font-serif font-semibold text-sm text-foreground uppercase tracking-wider flex items-center gap-1.5">
-                <Sparkles className="w-4 h-4 text-primary" /> Serviços Populares
+            <div className="glass p-6 sm:p-7 rounded-xl border border-border/80 space-y-5 shadow-sm">
+              <h3 className="font-serif font-bold text-base text-foreground uppercase tracking-wider flex items-center gap-2 border-b border-border/40 pb-3">
+                <Sparkles className="w-4.5 h-4.5 text-primary" /> Serviços Populares
               </h3>
 
               {topServices.length > 0 ? (
                 <div className="space-y-4">
                   {topServices.map((item, idx) => (
-                    <div key={idx} className="flex justify-between items-center text-xs">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-primary font-serif text-sm">#{idx + 1}</span>
-                        <span className="text-foreground">{item.name}</span>
+                    <div key={idx} className="flex justify-between items-center text-xs p-3 rounded-lg bg-secondary/30 border border-border/50">
+                      <div className="flex items-center gap-2.5">
+                        <span className="w-6 h-6 rounded-full bg-primary/15 border border-primary/25 font-bold text-primary font-serif text-xs flex items-center justify-center shrink-0">
+                          #{idx + 1}
+                        </span>
+                        <span className="text-foreground font-semibold">{item.name}</span>
                       </div>
-                      <span className="text-muted-foreground font-semibold bg-secondary px-2 py-0.5 rounded border border-border">
-                        {item.count} vezes
+                      <span className="text-primary font-bold font-mono text-xs bg-background/80 px-2.5 py-1 rounded-full border border-border/60">
+                        {item.count} realizaçõ{item.count !== 1 ? 'es' : 'ão'}
                       </span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-xs text-muted-foreground italic">Nenhum serviço registrado.</p>
+                <p className="text-xs text-muted-foreground italic text-center py-4">Nenhum serviço registrado.</p>
               )}
             </div>
 
             {/* Quick Status Ratios */}
-            <div className="glass p-6 rounded-lg border border-border space-y-4">
-              <h3 className="font-serif font-semibold text-sm text-foreground uppercase tracking-wider">Status da Agenda</h3>
+            <div className="glass p-6 sm:p-7 rounded-xl border border-border/80 space-y-5 shadow-sm">
+              <h3 className="font-serif font-bold text-base text-foreground uppercase tracking-wider border-b border-border/40 pb-3">
+                Status da Agenda
+              </h3>
               
-              <div className="grid grid-cols-2 gap-3 text-center">
-                <div className="p-3 bg-emerald-500/5 rounded border border-emerald-500/20 space-y-1">
-                  <CheckCircle className="w-4.5 h-4.5 text-emerald-500 mx-auto" />
-                  <span className="text-[10px] text-muted-foreground uppercase block font-semibold">Concluídos</span>
-                  <span className="text-lg font-serif font-bold text-foreground">{completedCount}</span>
+              <div className="grid grid-cols-2 gap-4 text-center">
+                <div className="p-4 bg-emerald-500/10 rounded-xl border border-emerald-500/25 space-y-1.5 shadow-sm">
+                  <CheckCircle className="w-5 h-5 text-emerald-500 mx-auto" />
+                  <span className="text-[10px] text-muted-foreground uppercase block font-bold tracking-wider">Concluídos</span>
+                  <span className="text-2xl font-serif font-bold text-foreground">{completedCount}</span>
                 </div>
-                <div className="p-3 bg-destructive/5 rounded border border-destructive/20 space-y-1">
-                  <XCircle className="w-4.5 h-4.5 text-destructive mx-auto" />
-                  <span className="text-[10px] text-muted-foreground uppercase block font-semibold">Cancelados</span>
-                  <span className="text-lg font-serif font-bold text-foreground">{cancelledCount}</span>
+                <div className="p-4 bg-destructive/10 rounded-xl border border-destructive/25 space-y-1.5 shadow-sm">
+                  <XCircle className="w-5 h-5 text-destructive mx-auto" />
+                  <span className="text-[10px] text-muted-foreground uppercase block font-bold tracking-wider">Cancelados</span>
+                  <span className="text-2xl font-serif font-bold text-foreground">{cancelledCount}</span>
                 </div>
               </div>
             </div>
