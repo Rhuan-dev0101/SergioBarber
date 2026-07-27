@@ -4,7 +4,8 @@ import React, { useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { 
   Scissors, Phone, MapPin, DollarSign, User, 
-  AlertCircle, CheckCircle2, Loader2, Save, Settings 
+  AlertCircle, CheckCircle2, Loader2, Save, Settings,
+  Video, Monitor, Smartphone
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
@@ -21,6 +22,10 @@ export default function PainelConfiguracoes() {
   const [pixType, setPixType] = useState('cnpj')
   const [pixKey, setPixKey] = useState('')
   const [pixName, setPixName] = useState('')
+
+  // Tutorial Video URLs
+  const [tutorialVideoDesktop, setTutorialVideoDesktop] = useState('')
+  const [tutorialVideoMobile, setTutorialVideoMobile] = useState('')
 
   const [errorMsg, setErrorMsg] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
@@ -64,6 +69,8 @@ export default function PainelConfiguracoes() {
           setPixType(val.pixType || 'cnpj')
           setPixKey(val.pixKey || '')
           setPixName(val.pixName || '')
+          setTutorialVideoDesktop(val.tutorial_video_desktop_url || '')
+          setTutorialVideoMobile(val.tutorial_video_mobile_url || '')
         }
       } catch (err) {
         console.error('Error loading config settings:', err)
@@ -87,7 +94,9 @@ export default function PainelConfiguracoes() {
         instagram,
         pixType,
         pixKey,
-        pixName
+        pixName,
+        tutorial_video_desktop_url: tutorialVideoDesktop,
+        tutorial_video_mobile_url: tutorialVideoMobile
       }
 
       const res = await updateBusinessSettingsAction('general_settings', configVal)
@@ -120,7 +129,7 @@ export default function PainelConfiguracoes() {
             <Settings className="w-7 h-7 text-primary shrink-0" />
             Configurações do Estabelecimento ⚙️
           </h1>
-          <p className="text-xs text-muted-foreground">Gerencie informações públicas de contato, localização e chave Pix para sinaleira de agendamento</p>
+          <p className="text-xs text-muted-foreground">Gerencie informações públicas de contato, localização, chave Pix e vídeos tutoriais do site</p>
         </div>
 
         {errorMsg && (
@@ -252,6 +261,54 @@ export default function PainelConfiguracoes() {
                   disabled={isPending}
                   className="w-full pl-10 pr-4 py-2.5 bg-background border border-border focus:border-primary rounded-xl text-xs text-foreground outline-none font-medium"
                   required
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Section 3: Tutorial Video URLs */}
+          <div className="space-y-4 pt-4 border-t border-border/40">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-2 border-b border-border/40 pb-2">
+              <Video className="w-4 h-4 text-primary" /> Vídeos de Tutorial do Site 🎬
+            </h3>
+            <p className="text-[11px] text-muted-foreground">
+              Cole abaixo os links dos vídeos do YouTube (ex: <code className="text-primary font-mono font-bold">https://youtube.com/watch?v=...</code> ou <code className="text-primary font-mono font-bold">https://youtu.be/...</code>). Se mantido em branco, o site exibirá o botão de suporte via WhatsApp.
+            </p>
+
+            {/* Desktop Video URL */}
+            <div className="space-y-1.5">
+              <label htmlFor="cTutorialDesktop" className="text-xs font-bold text-foreground uppercase tracking-wider">
+                Link do Vídeo Tutorial (Computador / Desktop)
+              </label>
+              <div className="relative flex items-center">
+                <Monitor className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />
+                <input
+                  id="cTutorialDesktop"
+                  type="url"
+                  placeholder="https://www.youtube.com/watch?v=..."
+                  value={tutorialVideoDesktop}
+                  onChange={(e) => setTutorialVideoDesktop(e.target.value)}
+                  disabled={isPending}
+                  className="w-full pl-10 pr-4 py-2.5 bg-background border border-border focus:border-primary rounded-xl text-xs text-foreground outline-none font-mono"
+                />
+              </div>
+            </div>
+
+            {/* Mobile Video URL */}
+            <div className="space-y-1.5">
+              <label htmlFor="cTutorialMobile" className="text-xs font-bold text-foreground uppercase tracking-wider">
+                Link do Vídeo Tutorial (Celular / Smartphone)
+              </label>
+              <div className="relative flex items-center">
+                <Smartphone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />
+                <input
+                  id="cTutorialMobile"
+                  type="url"
+                  placeholder="https://www.youtube.com/watch?v=..."
+                  value={tutorialVideoMobile}
+                  onChange={(e) => setTutorialVideoMobile(e.target.value)}
+                  disabled={isPending}
+                  className="w-full pl-10 pr-4 py-2.5 bg-background border border-border focus:border-primary rounded-xl text-xs text-foreground outline-none font-mono"
                 />
               </div>
             </div>

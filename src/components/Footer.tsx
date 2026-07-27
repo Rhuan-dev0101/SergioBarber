@@ -3,18 +3,22 @@
 import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Scissors, Phone, MapPin, Mail, Clock } from 'lucide-react'
+import { Scissors, Phone, MapPin, Mail, Clock, Play } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { formatPhoneNumber, formatWhatsAppLink } from '@/lib/settings'
+import { TutorialModal } from '@/components/TutorialModal'
 
 interface BusinessSettings {
   whatsapp?: string
   address?: string
   instagram?: string
+  tutorial_video_desktop_url?: string
+  tutorial_video_mobile_url?: string
 }
 
 export function Footer({ initialSettings }: { initialSettings?: BusinessSettings }) {
   const [settings, setSettings] = useState<BusinessSettings | null>(initialSettings || null)
+  const [showTutorial, setShowTutorial] = useState(false)
 
   useEffect(() => {
     if (initialSettings) {
@@ -128,6 +132,16 @@ export function Footer({ initialSettings }: { initialSettings?: BusinessSettings
                 <Link href="/barbeiros" className="hover:text-primary transition-colors">Nossa Equipe</Link>
               </li>
               <li className="transform hover:translate-x-1 transition-all duration-200">
+                <button
+                  type="button"
+                  onClick={() => setShowTutorial(true)}
+                  className="hover:text-primary transition-colors text-left font-semibold text-primary/90 flex items-center gap-1 cursor-pointer"
+                >
+                  <Play className="w-3 h-3 fill-primary" />
+                  <span>Ver Tutorial em Vídeo</span>
+                </button>
+              </li>
+              <li className="transform hover:translate-x-1 transition-all duration-200">
                 <Link href="/termos-de-uso" className="hover:text-primary transition-colors">Termos de Uso</Link>
               </li>
               <li className="transform hover:translate-x-1 transition-all duration-200">
@@ -148,6 +162,14 @@ export function Footer({ initialSettings }: { initialSettings?: BusinessSettings
           </span>
         </div>
       </div>
+
+      <TutorialModal
+        isOpen={showTutorial}
+        onClose={() => setShowTutorial(false)}
+        initialDesktopUrl={settings?.tutorial_video_desktop_url}
+        initialMobileUrl={settings?.tutorial_video_mobile_url}
+        initialWhatsapp={rawWhatsapp}
+      />
     </footer>
   )
 }

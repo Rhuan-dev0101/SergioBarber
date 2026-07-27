@@ -7,6 +7,7 @@ import { Footer } from '@/components/Footer'
 import { createServerSupabaseClient } from '@/lib/supabase'
 import { GradientButton } from '@/components/ui/gradient-button'
 import { BarbersSection } from '@/components/BarbersSection'
+import { HeroActions } from '@/components/HeroActions'
 import { getBusinessSettings, formatPhoneNumber, formatWhatsAppLink } from '@/lib/settings'
 
 // Static fallback seed data in case database is empty or unreachable during build
@@ -140,26 +141,12 @@ export default async function Home() {
                 <span>Capricho</span>
               </div>
               
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-3">
-                <GradientButton asChild>
-                  <Link href="/entrar" className="flex items-center gap-2 group">
-                    <Calendar className="w-5 h-5" />
-                    Agendar Meu Horário
-                    <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                  </Link>
-                </GradientButton>
-                <GradientButton variant="variant" asChild>
-                  <a
-                    href={whatsappUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2"
-                  >
-                    <Phone className="w-5 h-5" />
-                    Falar no WhatsApp
-                  </a>
-                </GradientButton>
-              </div>
+              <HeroActions 
+                whatsappUrl={whatsappUrl}
+                initialDesktopUrl={(settings as any)?.tutorial_video_desktop_url}
+                initialMobileUrl={(settings as any)?.tutorial_video_mobile_url}
+                rawWhatsapp={rawWhatsapp}
+              />
             </div>
           </div>
         </section>
