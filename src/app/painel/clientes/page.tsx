@@ -308,18 +308,33 @@ export default function PainelClientes() {
       <main className="flex-grow p-6 sm:p-8 space-y-6 overflow-y-auto">
         
         {/* Title */}
-        <div className="border-b border-border/40 pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-serif font-bold text-foreground">Base de Clientes</h1>
-            <p className="text-xs text-muted-foreground">Consulte o cadastro, histórico de agendamentos e mantenha anotações privadas de atendimento</p>
+        <div className="border-b border-border/40 pb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="space-y-1">
+            <h1 className="text-3xl font-serif font-bold text-foreground">Base de Clientes 👥</h1>
+            <p className="text-xs text-muted-foreground">Fichas de visagismo, histórico de cortes, contatos diretos e cadastros de clientes</p>
           </div>
           <button
             onClick={() => setIsRegisterModalOpen(true)}
-            className="px-4 py-2.5 bg-primary hover:bg-primary-hover text-primary-foreground font-bold rounded text-xs transition-all shadow flex items-center justify-center gap-1.5 cursor-pointer sm:self-center"
+            className="px-5 py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl text-xs transition-all duration-200 shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 flex items-center justify-center gap-2 cursor-pointer sm:self-center group"
           >
-            <User className="w-4 h-4 text-primary-foreground" />
-            Cadastrar Cliente Manualmente
+            <User className="w-4 h-4 text-primary-foreground transition-transform group-hover:scale-110" />
+            <span>Cadastrar Cliente Manualmente</span>
           </button>
+        </div>
+
+        {/* Quick Stats Summary Bar */}
+        <div className="flex flex-wrap items-center justify-between gap-3 bg-secondary/20 px-4 py-3 rounded-xl border border-border/60 text-xs">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <span className="font-semibold text-foreground">Total de Clientes Cadastrados:</span>
+            <span className="px-2.5 py-0.5 rounded-full bg-primary/10 text-primary font-bold border border-primary/20">
+              {customers.length}
+            </span>
+          </div>
+          {searchQuery && (
+            <div className="text-[11px] text-muted-foreground font-medium">
+              Exibindo <strong className="text-foreground">{filteredCustomers.length}</strong> resultado{filteredCustomers.length !== 1 ? 's' : ''} para &quot;{searchQuery}&quot;
+            </div>
+          )}
         </div>
 
         {/* Master-Detail Layout */}
@@ -329,39 +344,64 @@ export default function PainelClientes() {
           <div className="lg:col-span-5 space-y-4">
             {/* Search Input */}
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
                 type="text"
-                placeholder="Buscar por nome, email ou WhatsApp..."
+                placeholder="Buscar por nome, e-mail ou WhatsApp..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2.5 bg-secondary border border-border focus:border-primary rounded text-xs outline-none text-foreground"
+                className="w-full pl-10 pr-9 py-2.5 bg-secondary/40 border border-border focus:border-primary rounded-xl text-xs outline-none text-foreground transition-all"
               />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
 
-            {/* List */}
-            <div className="glass border border-border rounded-lg overflow-hidden divide-y divide-border/40 max-h-[500px] overflow-y-auto pr-1">
+            {/* Customer List Container */}
+            <div className="glass border border-border/80 rounded-xl overflow-hidden divide-y divide-border/40 max-h-[580px] overflow-y-auto shadow-sm">
               {filteredCustomers.length > 0 ? (
-                filteredCustomers.map((c) => (
-                  <button
-                    key={c.id}
-                    onClick={() => handleSelectCustomer(c)}
-                    className={`w-full p-4 text-left flex items-center justify-between transition-colors hover:bg-secondary/20 cursor-pointer ${
-                      selectedCustomer?.id === c.id ? 'bg-primary/5 border-l-2 border-primary' : ''
-                    }`}
-                  >
-                    <div className="space-y-1">
-                      <h4 className="font-serif font-bold text-sm text-foreground">{c.full_name}</h4>
-                      <p className="text-[10px] text-muted-foreground flex items-center gap-1.5">
-                        <Phone className="w-3 h-3 text-primary" /> {c.phone || 'Sem telefone'}
-                      </p>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                  </button>
-                ))
+                filteredCustomers.map((c) => {
+                  const initial = c.full_name?.charAt(0)?.toUpperCase() || 'C'
+                  const isSelected = selectedCustomer?.id === c.id
+
+                  return (
+                    <button
+                      key={c.id}
+                      onClick={() => handleSelectCustomer(c)}
+                      className={`w-full p-4 text-left flex items-center justify-between transition-all duration-200 cursor-pointer ${
+                        isSelected 
+                          ? 'bg-primary/10 border-l-4 border-primary' 
+                          : 'hover:bg-secondary/40'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-xl font-serif font-bold text-sm flex items-center justify-center shrink-0 border transition-all ${
+                          isSelected
+                            ? 'bg-primary text-primary-foreground border-primary'
+                            : 'bg-gradient-to-tr from-primary/20 to-secondary text-primary border-primary/30'
+                        }`}>
+                          {initial}
+                        </div>
+                        <div className="space-y-0.5">
+                          <h4 className="font-serif font-bold text-sm text-foreground">{c.full_name}</h4>
+                          <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                            <Phone className="w-3 h-3 text-primary shrink-0" /> {c.phone || 'Sem telefone'}
+                          </p>
+                        </div>
+                      </div>
+                      <ChevronRight className={`w-4 h-4 transition-transform ${isSelected ? 'text-primary translate-x-0.5' : 'text-muted-foreground'}`} />
+                    </button>
+                  )
+                })
               ) : (
-                <div className="p-8 text-center text-xs text-muted-foreground italic">
-                  Nenhum cliente cadastrado com este critério.
+                <div className="p-10 text-center text-xs text-muted-foreground italic space-y-2">
+                  <User className="w-8 h-8 text-muted-foreground/30 mx-auto" />
+                  <p>Nenhum cliente encontrado com este critério de busca.</p>
                 </div>
               )}
             </div>
@@ -370,123 +410,166 @@ export default function PainelClientes() {
           {/* Right panel: Details & History */}
           <div className="lg:col-span-7">
             {selectedCustomer ? (
-              <div className="glass p-6 sm:p-8 rounded-lg border border-border space-y-6 shadow-xl">
+              <div className="glass p-6 sm:p-8 rounded-xl border border-border/80 space-y-6 shadow-xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-2xl pointer-events-none" />
+
                 {/* Header Profile */}
-                <div className="flex justify-between items-start border-b border-border/40 pb-4">
-                  <div className="space-y-1.5">
-                    <div className="flex flex-wrap items-center gap-3">
-                      <h2 className="text-xl font-serif font-bold text-foreground">{selectedCustomer.full_name}</h2>
-                      {role === 'admin' && (
-                        <button
-                          onClick={() => {
-                            setErrorMsg('')
-                            setSuccessMsg('')
-                            setShowConfirmDelete(true)
-                          }}
-                          className="px-2.5 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 hover:text-rose-400 font-bold border border-rose-500/20 rounded text-[9px] uppercase transition-all cursor-pointer flex items-center gap-1"
-                        >
-                          Excluir Cliente
-                        </button>
-                      )}
+                <div className="flex justify-between items-start border-b border-border/40 pb-5">
+                  <div className="flex items-start gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-primary/30 to-secondary border-2 border-primary/40 text-primary text-xl font-bold font-serif flex items-center justify-center shadow-md shrink-0">
+                      {selectedCustomer.full_name?.charAt(0)?.toUpperCase() || 'C'}
                     </div>
-                    <div className="text-xs text-muted-foreground space-y-1">
-                      <p className="flex items-center gap-1.5"><Mail className="w-3.5 h-3.5 text-primary" /> {selectedCustomer.email}</p>
-                      <p className="flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 text-primary" /> {selectedCustomer.phone || 'Telefone não informado'}</p>
+
+                    <div className="space-y-1.5">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <h2 className="text-2xl font-serif font-bold text-foreground">{selectedCustomer.full_name}</h2>
+                        {role === 'admin' && (
+                          <button
+                            onClick={() => {
+                              setErrorMsg('')
+                              setSuccessMsg('')
+                              setShowConfirmDelete(true)
+                            }}
+                            className="px-2.5 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 hover:text-rose-400 font-bold border border-rose-500/25 rounded-lg text-[9px] uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1"
+                          >
+                            Excluir Cliente
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Contact Badges */}
+                      <div className="flex flex-wrap items-center gap-2 text-xs">
+                        <span className="px-3 py-1 rounded-lg bg-secondary/50 border border-border/60 text-muted-foreground flex items-center gap-1.5">
+                          <Mail className="w-3.5 h-3.5 text-primary" /> {selectedCustomer.email}
+                        </span>
+
+                        {selectedCustomer.phone && (
+                          <a
+                            href={`https://wa.me/55${selectedCustomer.phone.replace(/\D/g, '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-3 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-500 font-semibold flex items-center gap-1.5 transition-all"
+                            title="Conversar no WhatsApp"
+                          >
+                            <Phone className="w-3.5 h-3.5 text-emerald-500" />
+                            <span>{selectedCustomer.phone}</span>
+                            <span className="text-[10px] bg-emerald-500/20 px-1.5 py-0.5 rounded text-emerald-400 font-bold ml-1">WhatsApp</span>
+                          </a>
+                        )}
+                      </div>
                     </div>
                   </div>
+
                   <button 
                     onClick={() => setSelectedCustomer(null)}
-                    className="p-1 rounded hover:bg-secondary text-muted-foreground"
+                    className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                   >
                     <X className="w-5 h-5" />
                   </button>
                 </div>
 
                 {errorMsg && (
-                  <div className="p-3 bg-destructive/10 border border-destructive/20 rounded flex items-start gap-2 text-xs text-destructive">
+                  <div className="p-3.5 bg-destructive/10 border border-destructive/20 rounded-xl flex items-start gap-2 text-xs text-destructive">
                     <AlertCircle className="w-4.5 h-4.5 shrink-0" />
                     <span>{errorMsg}</span>
                   </div>
                 )}
 
                 {successMsg && (
-                  <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded flex items-start gap-2 text-xs text-emerald-500">
+                  <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-start gap-2 text-xs text-emerald-500">
                     <CheckCircle2 className="w-4.5 h-4.5 shrink-0" />
                     <span>{successMsg}</span>
                   </div>
                 )}
 
                 {/* Customer Notes */}
-                <div className="space-y-2">
-                  <label htmlFor="cNotes" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex justify-between items-center">
-                    <span>Ficha de Cliente / Observações Privadas</span>
+                <div className="space-y-2.5">
+                  <label htmlFor="cNotes" className="text-xs font-bold text-foreground uppercase tracking-wider flex justify-between items-center">
+                    <span>Ficha do Cliente / Observações Privadas (Visagismo)</span>
                     {isPending && <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />}
                   </label>
                   <textarea
                     id="cNotes"
-                    placeholder="Escreva notas de corte, visagismo ou preferências de atendimento..."
+                    placeholder="Escreva preferências de corte, tipo de barba, formato de rosto ou notas privadas de atendimento..."
                     value={privateNotes}
                     onChange={(e) => setPrivateNotes(e.target.value)}
                     disabled={isPending}
                     rows={4}
-                    className="w-full p-3 bg-secondary border border-border focus:border-primary rounded text-xs text-foreground placeholder:text-muted-foreground outline-none resize-none"
+                    className="w-full p-4 bg-secondary/40 border border-border/80 focus:border-primary rounded-xl text-xs text-foreground placeholder:text-muted-foreground outline-none resize-none transition-all shadow-inner"
                   />
-                  <button
-                    onClick={handleSaveNotes}
-                    disabled={isPending}
-                    className="px-4 py-2 bg-primary hover:bg-primary-hover text-primary-foreground font-bold rounded text-xs transition-all shadow flex items-center justify-center gap-1.5 ml-auto cursor-pointer"
-                  >
-                    <Save className="w-4 h-4 text-primary-foreground" />
-                    Salvar Ficha do Cliente
-                  </button>
+                  <div className="flex justify-end">
+                    <button
+                      onClick={handleSaveNotes}
+                      disabled={isPending}
+                      className="px-5 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl text-xs transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <Save className="w-4 h-4 text-primary-foreground" />
+                      Salvar Ficha do Cliente
+                    </button>
+                  </div>
                 </div>
 
                 {/* Appointments History */}
-                <div className="space-y-4 pt-4 border-t border-border/40">
-                  <h3 className="font-serif font-bold text-sm text-foreground uppercase tracking-wider">Histórico de Atendimentos</h3>
+                <div className="space-y-4 pt-5 border-t border-border/40">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-serif font-bold text-sm text-foreground uppercase tracking-wider flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-primary" /> Histórico de Atendimentos
+                    </h3>
+                    <span className="text-xs text-muted-foreground font-semibold">
+                      {apptHistory.length} agendamento{apptHistory.length !== 1 ? 's' : ''}
+                    </span>
+                  </div>
                   
                   {loadingHistory ? (
-                    <div className="py-6 flex flex-col items-center justify-center gap-2 text-xs text-muted-foreground">
+                    <div className="py-8 flex flex-col items-center justify-center gap-2 text-xs text-muted-foreground">
                       <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                      <span>Carregando histórico...</span>
+                      <span>Carregando histórico do cliente...</span>
                     </div>
                   ) : apptHistory.length > 0 ? (
-                    <div className="space-y-2.5 max-h-52 overflow-y-auto pr-1">
+                    <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
                       {apptHistory.map((appt) => (
                         <div 
                           key={appt.id} 
-                          className="flex justify-between items-center p-3 rounded bg-secondary/35 border border-border/50 text-xs"
+                          className="flex justify-between items-center p-3.5 rounded-xl bg-secondary/35 border border-border/60 text-xs shadow-sm hover:bg-secondary/50 transition-colors"
                         >
                           <div className="space-y-1">
-                            <p className="font-semibold text-foreground">{appt.services?.name}</p>
-                            <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                              <Calendar className="w-3 h-3 text-primary" /> {formatDate(appt.start_time)} às {formatTime(appt.start_time)}
+                            <div className="flex items-center gap-2">
+                              <p className="font-bold text-foreground text-sm">{appt.services?.name}</p>
+                              <span className="text-mono font-bold text-primary text-[11px]">
+                                R$&nbsp;{Number(appt.services?.price || 0).toFixed(2)}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                              <Clock className="w-3 h-3 text-primary" /> {formatDate(appt.start_time)} às {formatTime(appt.start_time)}
                               <span className="mx-1">•</span>
-                              Profissional: {appt.barberName}
+                              Barbeiro: <strong className="text-foreground">{appt.barberName}</strong>
                             </p>
                           </div>
-                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase ${
+
+                          <span className={`text-[9px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider ${
                             appt.status === 'completed' 
-                              ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' 
+                              ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/25' 
                               : appt.status === 'cancelled'
-                              ? 'bg-destructive/10 text-destructive border border-destructive/20'
-                              : 'bg-primary/10 text-primary border border-primary/20'
+                              ? 'bg-destructive/15 text-destructive border border-destructive/25'
+                              : 'bg-primary/15 text-primary border border-primary/25'
                           }`}>
-                            {appt.status === 'completed' ? 'Concluído' : appt.status === 'cancelled' ? 'Cancelado' : appt.status}
+                            {appt.status === 'completed' ? 'Concluído' : appt.status === 'cancelled' ? 'Cancelado' : 'Confirmado'}
                           </span>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-xs text-muted-foreground italic">Nenhum atendimento realizado anteriormente.</p>
+                    <div className="p-6 bg-secondary/20 rounded-xl border border-border/60 text-center">
+                      <p className="text-xs text-muted-foreground italic">Nenhum atendimento realizado anteriormente por este cliente.</p>
+                    </div>
                   )}
                 </div>
 
               </div>
             ) : (
-              <div className="glass p-12 rounded-lg border border-border text-center text-muted-foreground italic flex flex-col items-center justify-center space-y-3 min-h-[300px]">
-                <User className="w-12 h-12 text-primary/20" />
-                <p className="text-xs">Selecione um cliente na lista lateral para visualizar suas informações, histórico de agendamentos e anotações.</p>
+              <div className="glass p-12 rounded-xl border border-border text-center text-muted-foreground italic flex flex-col items-center justify-center space-y-3 min-h-[360px] shadow-sm">
+                <User className="w-12 h-12 text-primary/30" />
+                <p className="text-xs max-w-xs leading-relaxed">Selecione um cliente na lista lateral para visualizar suas informações de contato, ficha de atendimento e histórico de cortes.</p>
               </div>
             )}
           </div>
