@@ -999,119 +999,169 @@ function AgendarWizardInner() {
 
             {/* STEP 3: Select Date */}
             {step === 3 && (
-              <div key="step-3" className="space-y-4">
-                <div className="border-b border-border/40 pb-2">
-                  <h3 className="font-serif font-semibold text-lg text-foreground">Selecione a Data</h3>
-                  <p className="text-xs text-muted-foreground">Escolha um dos próximos dias disponíveis para agendamento (Domingo e Segunda fechados)</p>
-                </div>
-
-                {/* Calendar Header with Navigation */}
-                <div className="flex items-center justify-between bg-secondary/40 border border-border/50 rounded-t-lg p-4">
-                  <span className="font-serif font-bold text-sm text-foreground uppercase tracking-wider">
-                    {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
-                  </span>
-                  
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      disabled={isPrevMonthDisabled() || loadingCalendar}
-                      onClick={handlePrevMonth}
-                      className="p-1.5 rounded bg-secondary border border-border hover:bg-muted text-foreground disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
-                      aria-label="Mês anterior"
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                    </button>
-                    <button
-                      type="button"
-                      disabled={loadingCalendar}
-                      onClick={handleNextMonth}
-                      className="p-1.5 rounded bg-secondary border border-border hover:bg-muted text-foreground disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
-                      aria-label="Próximo mês"
-                    >
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Calendar Grid Container */}
-                <div className="glass border-x border-b border-border/50 rounded-b-lg p-4 relative min-h-[280px]">
-                  
-                  {loadingCalendar && (
-                    <div className="absolute inset-0 bg-background/60 backdrop-blur-[1px] flex flex-col items-center justify-center gap-1.5 z-10 rounded-b-lg">
-                      <Loader2 className="w-7 h-7 animate-spin text-primary" />
-                      <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Carregando Calendário...</span>
-                    </div>
-                  )}
-
-                  {/* Weekdays header */}
-                  <div className="grid grid-cols-7 gap-1 text-center mb-2">
-                    {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((wd) => (
-                      <span key={wd} className="text-[10px] uppercase font-bold text-muted-foreground py-1">
-                        {wd}
+              <div key="step-3" className="space-y-6 animate-in fade-in-50 duration-300">
+                <div className="space-y-1.5 text-left border-b border-border/40 pb-4">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2.5 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary font-semibold text-[10px] uppercase tracking-wider flex items-center gap-1">
+                        <Calendar className="w-3 h-3 text-primary" /> Passo 3 de 6
                       </span>
-                    ))}
+                      <span className="text-xs text-muted-foreground">• Seleção de Data</span>
+                    </div>
+
+                    {/* Selected Context Chips */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {selectedBarber && (
+                        <div className="flex items-center gap-1.5 bg-secondary/60 border border-border/60 px-2.5 py-0.5 rounded-full text-[11px]">
+                          <span className="text-muted-foreground">Barbeiro:</span>
+                          <span className="font-semibold text-foreground">{selectedBarber.name}</span>
+                        </div>
+                      )}
+                      {selectedService && (
+                        <div className="flex items-center gap-1.5 bg-secondary/60 border border-border/60 px-2.5 py-0.5 rounded-full text-[11px]">
+                          <span className="text-muted-foreground">Serviço:</span>
+                          <span className="font-semibold text-primary">{selectedService.name}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
-                  {/* Days grid */}
-                  <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
-                    {getCalendarDays().map((day, idx) => {
-                      if (day.blank) {
-                        return <div key={`blank-${idx}`} className="aspect-square" />
-                      }
+                  <h3 className="font-serif font-bold text-xl sm:text-2xl text-foreground">Escolha a Data do Atendimento</h3>
+                  <p className="text-xs text-muted-foreground">Selecione um dos dias livres no calendário para consultar os horários disponíveis.</p>
+                </div>
 
-                      const dateStr = day.dateStr
-                      const dayVal = day.dayNum
-                      const isToday = dateStr === todayLocalStr
-                      const isSelected = selectedDate === dateStr
-                      
-                      const avail = monthAvailability[dateStr]
-                      const isPast = dateStr < todayLocalStr
-                      
-                      const isClosed = isPast ? false : (avail?.isClosed ?? false)
-                      const isFullyBooked = isPast ? false : (avail?.isFullyBooked ?? false)
-                      const hasSlots = isPast ? false : (avail?.hasSlots ?? false)
-                      
-                      const isDisabled = isPast || isClosed || isFullyBooked
+                {/* Calendar Container */}
+                <div className="rounded-xl border border-border/70 bg-gradient-to-b from-secondary/30 via-background to-background p-4 sm:p-5 space-y-4 shadow-sm relative">
+                  {/* Calendar Header Control Bar */}
+                  <div className="flex items-center justify-between bg-secondary/60 border border-border/60 rounded-lg p-3">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-primary" />
+                      <span className="font-serif font-bold text-sm sm:text-base text-foreground uppercase tracking-wider">
+                        {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
+                      </span>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={isPrevMonthDisabled() || loadingCalendar}
+                        onClick={handlePrevMonth}
+                        className="p-2 rounded-lg bg-background border border-border hover:border-primary/50 text-foreground hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all shadow-sm"
+                        aria-label="Mês anterior"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        disabled={loadingCalendar}
+                        onClick={handleNextMonth}
+                        className="p-2 rounded-lg bg-background border border-border hover:border-primary/50 text-foreground hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all shadow-sm"
+                        aria-label="Próximo mês"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
 
-                      let btnClasses = "aspect-square rounded-lg border text-center flex flex-col items-center justify-center gap-0.5 text-xs font-semibold relative transition-all "
-                      let statusText = null
+                  {/* Calendar Grid Box */}
+                  <div className="relative min-h-[290px]">
+                    {loadingCalendar && (
+                      <div className="absolute inset-0 bg-background/75 backdrop-blur-[2px] flex flex-col items-center justify-center gap-2 z-20 rounded-lg">
+                        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                        <span className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Verificando Agenda...</span>
+                      </div>
+                    )}
 
-                      if (isSelected) {
-                        btnClasses += "border-primary bg-primary text-primary-foreground shadow-lg scale-105 z-10 cursor-pointer font-bold"
-                      } else if (isDisabled) {
-                        btnClasses += "border-border/30 bg-secondary/10 text-muted-foreground/30 opacity-40 cursor-not-allowed "
-                        if (isClosed) {
-                          btnClasses += "line-through"
+                    {/* Weekdays Header */}
+                    <div className="grid grid-cols-7 gap-1 text-center pb-2 mb-2 border-b border-border/40">
+                      {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((wd) => (
+                        <span key={wd} className="text-[11px] uppercase font-bold text-muted-foreground/80 tracking-wider">
+                          {wd}
+                        </span>
+                      ))}
+                    </div>
+
+                    {/* Days Grid */}
+                    <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
+                      {getCalendarDays().map((day, idx) => {
+                        if (day.blank) {
+                          return <div key={`blank-${idx}`} className="aspect-square" />
                         }
-                      } else {
-                        btnClasses += "border-border hover:border-primary/60 bg-secondary/35 text-foreground cursor-pointer hover:bg-primary/5 active:scale-95"
-                      }
 
-                      if (isClosed && !isPast) {
-                        statusText = <span className="text-[7px] text-muted-foreground/45 uppercase font-bold block scale-75 truncate max-w-full">Folga</span>
-                      } else if (isFullyBooked && !isPast) {
-                        statusText = <span className="text-[7px] text-rose-500/60 uppercase font-bold block scale-75 truncate max-w-full font-sans">Lotado</span>
-                      } else if (hasSlots && !isPast && !isSelected) {
-                        statusText = <span className="text-[7px] text-primary/70 uppercase font-bold block scale-75 truncate max-w-full">Livre</span>
-                      }
+                        const dateStr = day.dateStr
+                        const dayVal = day.dayNum
+                        const isToday = dateStr === todayLocalStr
+                        const isSelected = selectedDate === dateStr
+                        
+                        const avail = monthAvailability[dateStr]
+                        const isPast = dateStr < todayLocalStr
+                        
+                        const isClosed = isPast ? false : (avail?.isClosed ?? false)
+                        const isFullyBooked = isPast ? false : (avail?.isFullyBooked ?? false)
+                        const hasSlots = isPast ? false : (avail?.hasSlots ?? false)
+                        
+                        const isDisabled = isPast || isClosed || isFullyBooked
 
-                      return (
-                        <button
-                          key={dateStr}
-                          type="button"
-                          disabled={isDisabled}
-                          onClick={() => setSelectedDate(dateStr)}
-                          className={btnClasses}
-                        >
-                          <span className="text-xs sm:text-sm">{dayVal}</span>
-                          {statusText}
-                          
-                          {isToday && !isSelected && (
-                            <span className="absolute bottom-1 w-1 h-1 rounded-full bg-primary" />
-                          )}
-                        </button>
-                      )
-                    })}
+                        let btnClasses = "aspect-square rounded-xl border text-center flex flex-col items-center justify-center gap-0.5 text-xs font-semibold relative transition-all duration-200 "
+                        let statusText = null
+
+                        if (isSelected) {
+                          btnClasses += "border-primary bg-primary text-primary-foreground shadow-lg shadow-primary/30 scale-105 z-10 cursor-pointer font-bold ring-2 ring-primary/40"
+                        } else if (isDisabled) {
+                          btnClasses += "border-border/30 bg-secondary/10 text-muted-foreground/30 opacity-40 cursor-not-allowed "
+                          if (isClosed) {
+                            btnClasses += "line-through"
+                          }
+                        } else {
+                          btnClasses += "border-border/70 hover:border-primary/60 bg-secondary/30 hover:bg-primary/10 text-foreground cursor-pointer hover:scale-105 active:scale-95 shadow-sm"
+                        }
+
+                        if (isClosed && !isPast) {
+                          statusText = <span className="text-[8px] text-muted-foreground/50 uppercase font-bold block truncate max-w-full">Folga</span>
+                        } else if (isFullyBooked && !isPast) {
+                          statusText = <span className="text-[8px] text-rose-500 uppercase font-bold block truncate max-w-full">Lotado</span>
+                        } else if (hasSlots && !isPast && !isSelected) {
+                          statusText = <span className="text-[8px] text-emerald-500 font-bold block truncate max-w-full">Livre</span>
+                        }
+
+                        return (
+                          <button
+                            key={dateStr}
+                            type="button"
+                            disabled={isDisabled}
+                            onClick={() => setSelectedDate(dateStr)}
+                            className={btnClasses}
+                          >
+                            <span className={`text-xs sm:text-sm ${isSelected ? 'text-primary-foreground' : 'text-foreground'}`}>{dayVal}</span>
+                            {statusText}
+                            
+                            {isToday && !isSelected && (
+                              <span className="absolute bottom-1 w-1.5 h-1.5 rounded-full bg-primary shadow-sm" title="Hoje" />
+                            )}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Calendar Legend Bar */}
+                  <div className="flex flex-wrap items-center justify-center gap-4 pt-3 border-t border-border/40 text-[11px] text-muted-foreground">
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                      <span>Disponível</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-primary" />
+                      <span>Selecionado</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
+                      <span>Lotado</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-muted-foreground/30" />
+                      <span>Folga / Fechado</span>
+                    </div>
                   </div>
                 </div>
               </div>
