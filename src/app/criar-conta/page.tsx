@@ -117,14 +117,13 @@ function SignUpForm() {
   const [acceptPrivacy, setAcceptPrivacy] = useState(false)
 
   const [errorMsg, setErrorMsg] = useState('')
-  const [successMsg, setSuccessMsg] = useState('')
+  const [isSignedUp, setIsSignedUp] = useState(false)
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setErrorMsg('')
-    setSuccessMsg('')
 
     if (!fullName || !email || !phone || !password || !confirmPassword) {
       setErrorMsg('Por favor, preencha todos os campos obrigatórios.')
@@ -155,11 +154,7 @@ function SignUpForm() {
       if (!response.success) {
         setErrorMsg(response.message)
       } else {
-        setSuccessMsg(response.message)
-        // Redirect to login after 3 seconds
-        setTimeout(() => {
-          router.push('/entrar')
-        }, 3000)
+        setIsSignedUp(true)
       }
     })
   }
@@ -182,6 +177,44 @@ function SignUpForm() {
     }
   }
 
+  if (isSignedUp) {
+    return (
+      <div className="animated-gradient-card p-8 sm:p-10 rounded-2xl space-y-6 shadow-2xl relative overflow-hidden text-center animate-in zoom-in-95 duration-300">
+        <div className="w-16 h-16 rounded-2xl bg-primary/15 text-primary flex items-center justify-center mx-auto border border-primary/30 shadow-lg shadow-primary/10">
+          <Mail className="w-8 h-8" />
+        </div>
+
+        <div className="space-y-3">
+          <h2 className="text-2xl font-serif font-bold text-foreground">
+            Conta criada com sucesso! ✉️
+          </h2>
+          
+          <div className="p-4 bg-secondary/50 border border-primary/20 rounded-xl text-xs sm:text-sm text-foreground/90 text-left space-y-2.5 leading-relaxed">
+            <p className="font-semibold text-primary">
+              Enviamos um link de confirmação para o seu e-mail: <span className="underline font-mono text-foreground">{email}</span>
+            </p>
+            <p>
+              Você precisa clicar nesse link para ativar sua conta antes de conseguir fazer login.
+            </p>
+            <p className="text-[11px] text-muted-foreground pt-2 border-t border-border/40">
+              💡 <strong>Não encontrou o e-mail?</strong> Verifique também a sua caixa de <strong>spam</strong> ou lixo eletrônico.
+            </p>
+          </div>
+        </div>
+
+        <div className="pt-2">
+          <Link
+            href="/entrar"
+            className="inline-flex items-center justify-center gap-2 w-full py-3.5 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl text-xs shadow-lg transition-all"
+          >
+            <span>Ir para a Tela de Entrar (Login)</span>
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="animated-gradient-card p-8 sm:p-10 rounded-2xl space-y-6 shadow-2xl relative overflow-hidden transition-all duration-300">
       
@@ -189,13 +222,6 @@ function SignUpForm() {
         <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg flex items-start gap-2.5 text-xs text-destructive animate-in fade-in duration-200">
           <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
           <span>{errorMsg}</span>
-        </div>
-      )}
-
-      {successMsg && (
-        <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg flex items-start gap-2.5 text-xs text-emerald-500 animate-in fade-in duration-200">
-          <CheckCircle className="w-4 h-4 shrink-0 mt-0.5" />
-          <span>{successMsg}</span>
         </div>
       )}
 
@@ -210,7 +236,7 @@ function SignUpForm() {
               placeholder=" "
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              disabled={isPending || !!successMsg}
+              disabled={isPending}
               className="block px-3.5 pb-2.5 pt-5 w-full text-sm text-foreground bg-transparent border-0 appearance-none focus:outline-none focus:ring-0 peer disabled:opacity-50"
               required
             />
@@ -232,7 +258,7 @@ function SignUpForm() {
               placeholder=" "
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              disabled={isPending || !!successMsg}
+              disabled={isPending}
               className="block px-3.5 pb-2.5 pt-5 w-full text-sm text-foreground bg-transparent border-0 appearance-none focus:outline-none focus:ring-0 peer disabled:opacity-50"
               required
             />
@@ -254,7 +280,7 @@ function SignUpForm() {
               placeholder=" "
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              disabled={isPending || !!successMsg}
+              disabled={isPending}
               className="block px-3.5 pb-2.5 pt-5 w-full text-sm text-foreground bg-transparent border-0 appearance-none focus:outline-none focus:ring-0 peer disabled:opacity-50"
               required
             />
@@ -276,7 +302,7 @@ function SignUpForm() {
               placeholder=" "
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              disabled={isPending || !!successMsg}
+              disabled={isPending}
               className="block px-3.5 pb-2.5 pt-5 w-full text-sm text-foreground bg-transparent border-0 appearance-none focus:outline-none focus:ring-0 peer disabled:opacity-50"
               required
             />
@@ -298,7 +324,7 @@ function SignUpForm() {
               placeholder=" "
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              disabled={isPending || !!successMsg}
+              disabled={isPending}
               className="block px-3.5 pb-2.5 pt-5 w-full text-sm text-foreground bg-transparent border-0 appearance-none focus:outline-none focus:ring-0 peer disabled:opacity-50"
               required
             />
@@ -318,7 +344,7 @@ function SignUpForm() {
               type="checkbox"
               checked={acceptTerms}
               onChange={(e) => setAcceptTerms(e.target.checked)}
-              disabled={isPending || !!successMsg}
+              disabled={isPending}
               className="mt-0.5 rounded accent-primary w-4 h-4 cursor-pointer"
               required
             />
@@ -336,7 +362,7 @@ function SignUpForm() {
               type="checkbox"
               checked={acceptPrivacy}
               onChange={(e) => setAcceptPrivacy(e.target.checked)}
-              disabled={isPending || !!successMsg}
+              disabled={isPending}
               className="mt-0.5 rounded accent-primary w-4 h-4 cursor-pointer"
               required
             />
@@ -353,7 +379,7 @@ function SignUpForm() {
         {/* Submit Button */}
         <button
           type="submit"
-          disabled={isPending || !!successMsg}
+          disabled={isPending}
           className="w-full py-3 bg-primary hover:bg-primary-hover text-primary-foreground font-bold rounded-lg text-xs transition-all shadow-md hover:shadow-lg hover:scale-[1.01] active:scale-[0.99] disabled:opacity-75 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer mt-2"
         >
           {isPending ? (
@@ -382,7 +408,7 @@ function SignUpForm() {
       <button
         type="button"
         onClick={handleGoogleSignUp}
-        disabled={isPending || !!successMsg}
+        disabled={isPending}
         className="w-full py-3 bg-secondary hover:bg-muted border border-border text-foreground font-semibold rounded-lg text-xs transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2.5 cursor-pointer shadow-md disabled:opacity-50"
       >
         <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">

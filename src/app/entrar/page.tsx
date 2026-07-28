@@ -111,6 +111,12 @@ function LoginForm() {
   return (
     <div className="animated-gradient-card p-8 sm:p-10 rounded-2xl space-y-6 shadow-2xl relative overflow-hidden transition-all duration-300">
       
+      {/* Friendly Email Confirmation Reminder */}
+      <div className="p-3.5 bg-primary/10 border border-primary/25 rounded-xl flex items-center gap-2.5 text-xs text-foreground/90 font-medium">
+        <Mail className="w-4 h-4 text-primary shrink-0" />
+        <span>Acabou de criar sua conta? Confirme seu e-mail antes de entrar.</span>
+      </div>
+
       {errorMsg && (
         <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg flex items-start gap-2.5 text-xs text-destructive animate-in fade-in duration-200">
           <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
