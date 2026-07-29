@@ -187,8 +187,20 @@ export default function ClientePanel() {
 
   // Separate upcoming and past
   const nowStr = new Date().toISOString()
-  const upcoming = appointments.filter(a => a.start_time >= nowStr && a.status !== 'cancelled')
-  const past = appointments.filter(a => a.start_time < nowStr || a.status === 'cancelled')
+  const upcoming = appointments.filter(a => 
+    a.start_time >= nowStr && 
+    a.status !== 'completed' && 
+    a.status !== 'cancelled' && 
+    a.status !== 'no_show'
+  )
+  const past = appointments
+    .filter(a => 
+      a.status === 'completed' || 
+      a.status === 'cancelled' || 
+      a.status === 'no_show' || 
+      a.start_time < nowStr
+    )
+    .sort((a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime())
 
   if (loading) {
     return (
