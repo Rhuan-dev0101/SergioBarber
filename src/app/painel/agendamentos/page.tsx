@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { 
   Scissors, Calendar, Clock, Search, Edit2, Trash2, CheckCircle2, 
   AlertCircle, Plus, Loader2, Save, X, User, Sparkles, Check, AlertTriangle, UserX,
-  Filter, RotateCcw, CheckCircle, ChevronRight
+  Filter, RotateCcw, CheckCircle, ChevronRight, Wallet, DollarSign, RefreshCw
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
@@ -26,7 +26,7 @@ export default function PainelAgendamentos() {
   const [currentUser, setCurrentUser] = useState<any>(null)
   const [userRole, setUserRole] = useState<string | null>(null)
 
-  // Filters (filterDate defaults to empty string so ALL appointments load immediately)
+  // Filters
   const [searchQuery, setSearchQuery] = useState('')
   const [filterDate, setFilterDate] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
@@ -114,7 +114,6 @@ export default function PainelAgendamentos() {
           barber_id
         `)
       
-      // If barber, filter by ownership (unless admin)
       if (profile.role === 'barber') {
         query = query.eq('barber_id', session.user.id)
       }
@@ -122,7 +121,6 @@ export default function PainelAgendamentos() {
       const { data: appts } = await query.order('start_time', { ascending: true })
 
       if (appts && appts.length > 0) {
-        // Load profiles to map names of customers and barbers
         const customerIds = Array.from(new Set(appts.map(a => a.customer_id).filter(Boolean)))
         const barberIds = Array.from(new Set(appts.map(a => a.barber_id)))
 
@@ -141,7 +139,6 @@ export default function PainelAgendamentos() {
           if (a.customer_id) {
             cName = nameMap[a.customer_id] || 'Cliente'
           } else if (a.notes && a.notes.includes('[Walk-in] Cliente:')) {
-            // Extract from notes
             const match = a.notes.match(/\[Walk-in\] Cliente:\s*([^.]+)/)
             if (match) cName = match[1]
           }
@@ -152,12 +149,14 @@ export default function PainelAgendamentos() {
             barberName: nameMap[a.barber_id] || 'Barbeiro'
           }
         })
+
         setAppointments(enriched)
       } else {
         setAppointments([])
       }
     } catch (err) {
-      console.error('Error loading dashboard appointments:', err)
+      console.error('Error loading appointments:', err)
+      setErrorMsg('Erro inesperado ao carregar agendamentos.')
     } finally {
       setLoading(false)
     }
@@ -167,16 +166,16 @@ export default function PainelAgendamentos() {
     loadData()
   }, [])
 
-  // Filter logic
+  // Filter pipeline
   useEffect(() => {
-    let result = appointments
+    let result = [...appointments]
 
-    // Filter by Date if set
+    // Date Picker Filter
     if (filterDate) {
       result = result.filter(a => a.start_time.split('T')[0] === filterDate)
     }
 
-    // Filter by Status Tab
+    // Status tab filter
     if (statusFilter === 'today') {
       const todayStr = new Date().toLocaleDateString('pt-BR', {
         timeZone: 'America/Sao_Paulo',
@@ -288,7 +287,6 @@ export default function PainelAgendamentos() {
         setSuccessMsg(res.message)
         setShowWalkInModal(false)
         
-        // Reset form
         setClientName('')
         setSelectedBarberId('')
         setSelectedServiceId('')
@@ -337,211 +335,246 @@ export default function PainelAgendamentos() {
     })
   }
 
-  const formatTime = (dateStr: string) => {
-    try {
-      return new Date(dateStr).toLocaleTimeString('pt-BR', {
-        timeZone: 'America/Sao_Paulo',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false
-      })
-    } catch (e) {
-      return '--:--'
-    }
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return ''
+    const d = new Date(dateStr)
+    return d.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: 'numeric' })
   }
 
-  const formatDate = (dateStr: string) => {
-    try {
-      const d = new Date(dateStr)
-      const formatter = new Intl.DateTimeFormat('pt-BR', {
-        timeZone: 'America/Sao_Paulo',
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-      })
-      const parts = formatter.formatToParts(d)
-      const day = parts.find(p => p.type === 'day')?.value || ''
-      const month = parts.find(p => p.type === 'month')?.value || ''
-      const year = parts.find(p => p.type === 'year')?.value || ''
-      
-      const currentYear = new Date().toLocaleDateString('pt-BR', {
-        timeZone: 'America/Sao_Paulo',
-        year: 'numeric'
-      })
+  const formatTime = (dateStr: string) => {
+    if (!dateStr) return ''
+    return new Date(dateStr).toLocaleTimeString('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    })
+  }
 
-      if (year && currentYear && year !== currentYear) {
-        return `${day}/${month}/${year}`
-      }
-      return `${day}/${month}`
-    } catch (e) {
-      return '--/--'
-    }
+  const counts = {
+    all: appointments.length,
+    today: appointments.filter(a => {
+      const todayStr = new Date().toLocaleDateString('pt-BR', {
+        timeZone: 'America/Sao_Paulo',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).split('/').reverse().join('-')
+      return a.start_time.split('T')[0] === todayStr && a.status !== 'cancelled'
+    }).length,
+    confirmed: appointments.filter(a => a.status === 'confirmed' || a.status === 'pending').length,
+    completed: appointments.filter(a => a.status === 'completed').length,
+    cancelled: appointments.filter(a => a.status === 'cancelled' || a.status === 'no_show').length
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex flex-col md:flex-row justify-center items-center gap-2">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        <p className="text-xs text-muted-foreground">Carregando painel de agendamentos...</p>
+      <div className="flex min-h-screen bg-background text-foreground">
+        <DashboardSidebar />
+        <main className="flex-1 p-8 flex flex-col items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <p className="text-xs text-muted-foreground mt-3 font-medium">Carregando agendamentos...</p>
+        </main>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col md:flex-row">
+    <div className="flex min-h-screen bg-background text-foreground">
       <DashboardSidebar />
 
-      <main className="flex-grow p-6 sm:p-8 space-y-6 overflow-y-auto">
+      <main className="flex-1 p-4 sm:p-8 space-y-6 max-w-7xl mx-auto w-full">
         
-        {/* Title & Top button */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border/40 pb-6">
+        {/* Header Section */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border/60 pb-6">
           <div className="space-y-1">
-            <h1 className="text-3xl font-serif font-bold text-foreground">Gerenciar Agendamentos 📅</h1>
-            <p className="text-xs text-muted-foreground">Controle completo de horários, buscas rápidas e registro de atendimentos presenciais</p>
+            <div className="flex items-center gap-2.5">
+              <h1 className="text-2xl sm:text-3xl font-serif font-bold text-foreground">Agendamentos</h1>
+              {counts.confirmed > 0 && (
+                <span className="px-3 py-1 rounded-full text-xs font-bold bg-primary/20 text-primary border border-primary/30 flex items-center gap-1">
+                  <Calendar className="w-3.5 h-3.5" />
+                  {counts.confirmed} Ativo{counts.confirmed > 1 ? 's' : ''}
+                </span>
+              )}
+            </div>
+            <p className="text-xs sm:text-sm text-muted-foreground">
+              Gerencie seus atendimentos, confirme agendamentos e registre horários presenciais.
+            </p>
           </div>
-          <button
-            onClick={() => setShowWalkInModal(true)}
-            className="w-full sm:w-auto px-5 py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all duration-200 cursor-pointer group"
-          >
-            <Plus className="w-4 h-4 text-primary-foreground transition-transform group-hover:scale-110" />
-            <span>Novo Agendamento Presencial</span>
-          </button>
+
+          <div className="flex items-center gap-2.5 w-full sm:w-auto">
+            <button
+              onClick={() => loadData()}
+              disabled={isPending}
+              className="p-2.5 bg-secondary hover:bg-muted border border-border/80 text-foreground text-xs font-semibold rounded-xl transition-all shadow-sm cursor-pointer"
+              title="Atualizar lista"
+            >
+              <RefreshCw className={`w-4 h-4 ${isPending ? 'animate-spin' : ''}`} />
+            </button>
+            <button
+              onClick={() => setShowWalkInModal(true)}
+              className="flex-1 sm:flex-none px-4 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-95"
+            >
+              <Plus className="w-4 h-4 text-primary-foreground" />
+              <span>Encaixe Presencial</span>
+            </button>
+          </div>
         </div>
 
+        {/* Banners */}
         {errorMsg && (
-          <div className="p-3.5 bg-destructive/10 border border-destructive/20 rounded-xl flex items-start gap-2 text-xs text-destructive">
-            <AlertCircle className="w-4.5 h-4.5 shrink-0" />
-            <span>{errorMsg}</span>
+          <div className="p-4 bg-destructive/10 border border-destructive/30 rounded-xl flex items-center justify-between gap-3 text-xs sm:text-sm text-destructive shadow-sm">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{errorMsg}</span>
+            </div>
+            <button onClick={() => setErrorMsg('')} className="text-muted-foreground hover:text-foreground">
+              <X className="w-4 h-4" />
+            </button>
           </div>
         )}
 
         {successMsg && (
-          <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-start gap-2 text-xs text-emerald-500">
-            <CheckCircle2 className="w-4.5 h-4.5 shrink-0" />
-            <span>{successMsg}</span>
+          <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center justify-between gap-3 text-xs sm:text-sm text-emerald-400 font-medium shadow-sm">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              <span>{successMsg}</span>
+            </div>
+            <button onClick={() => setSuccessMsg('')} className="text-muted-foreground hover:text-foreground">
+              <X className="w-4 h-4" />
+            </button>
           </div>
         )}
 
-        {/* Status Tabs & Filter Controls */}
-        <div className="space-y-4">
-          {/* Status Tabs Bar */}
-          {(() => {
-            const todayStr = new Date().toLocaleDateString('pt-BR', {
-              timeZone: 'America/Sao_Paulo',
-              year: 'numeric',
-              month: '2-digit',
-              day: '2-digit'
-            }).split('/').reverse().join('-')
+        {/* Interactive Metric Cards (Touch-friendly filters) */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <button
+            onClick={() => { setStatusFilter('today'); setFilterDate(''); }}
+            className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
+              statusFilter === 'today'
+                ? 'bg-primary/15 border-primary shadow-md'
+                : 'bg-card/70 border-border/70 hover:border-primary/40'
+            }`}
+          >
+            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block">Hoje</span>
+            <span className="text-2xl font-serif font-bold text-foreground mt-0.5 block">{counts.today}</span>
+          </button>
 
-            const counts = {
-              all: appointments.length,
-              today: appointments.filter(a => a.start_time.split('T')[0] === todayStr && a.status !== 'cancelled').length,
-              confirmed: appointments.filter(a => a.status === 'confirmed' || a.status === 'pending').length,
-              completed: appointments.filter(a => a.status === 'completed').length,
-              cancelled: appointments.filter(a => a.status === 'cancelled' || a.status === 'no_show').length
-            }
+          <button
+            onClick={() => { setStatusFilter('confirmed'); setFilterDate(''); }}
+            className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
+              statusFilter === 'confirmed'
+                ? 'bg-amber-500/15 border-amber-500 shadow-md'
+                : 'bg-card/70 border-border/70 hover:border-amber-500/40'
+            }`}
+          >
+            <span className="text-[11px] font-semibold text-amber-400 uppercase tracking-wider block">Ativos / Pendentes</span>
+            <span className="text-2xl font-serif font-bold text-amber-400 mt-0.5 block">{counts.confirmed}</span>
+          </button>
 
-            return (
-              <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-                <button
-                  type="button"
-                  onClick={() => { setStatusFilter('all'); setFilterDate('') }}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
-                    statusFilter === 'all' && !filterDate
-                      ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20 border border-primary-light/30'
-                      : 'bg-secondary/40 hover:bg-secondary/70 border border-border/60 text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  <span>Todos ({counts.all})</span>
-                </button>
+          <button
+            onClick={() => { setStatusFilter('completed'); setFilterDate(''); }}
+            className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
+              statusFilter === 'completed'
+                ? 'bg-emerald-500/15 border-emerald-500 shadow-md'
+                : 'bg-card/70 border-border/70 hover:border-emerald-500/40'
+            }`}
+          >
+            <span className="text-[11px] font-semibold text-emerald-400 uppercase tracking-wider block">Concluídos</span>
+            <span className="text-2xl font-serif font-bold text-emerald-400 mt-0.5 block">{counts.completed}</span>
+          </button>
 
-                <button
-                  type="button"
-                  onClick={() => setStatusFilter('today')}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
-                    statusFilter === 'today'
-                      ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20 border border-primary-light/30'
-                      : 'bg-secondary/40 hover:bg-secondary/70 border border-border/60 text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  <Calendar className="w-3.5 h-3.5" />
-                  <span>Hoje ({counts.today})</span>
-                </button>
+          <button
+            onClick={() => { setStatusFilter('cancelled'); setFilterDate(''); }}
+            className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
+              statusFilter === 'cancelled'
+                ? 'bg-destructive/15 border-destructive shadow-md'
+                : 'bg-card/70 border-border/70 hover:border-destructive/40'
+            }`}
+          >
+            <span className="text-[11px] font-semibold text-destructive uppercase tracking-wider block">Cancelados / Faltas</span>
+            <span className="text-2xl font-serif font-bold text-destructive mt-0.5 block">{counts.cancelled}</span>
+          </button>
+        </div>
 
-                <button
-                  type="button"
-                  onClick={() => setStatusFilter('confirmed')}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
-                    statusFilter === 'confirmed'
-                      ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20 border border-primary-light/30'
-                      : 'bg-secondary/40 hover:bg-secondary/70 border border-border/60 text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  <Clock className="w-3.5 h-3.5" />
-                  <span>Confirmados ({counts.confirmed})</span>
-                </button>
+        {/* Toolbar: Search, Date Filter & Clear */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-secondary/30 p-3.5 rounded-2xl border border-border/60">
+          
+          {/* Status Tabs */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            <button
+              onClick={() => setStatusFilter('all')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                statusFilter === 'all' && !filterDate
+                  ? 'bg-primary text-primary-foreground font-bold shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
+              }`}
+            >
+              Todos ({counts.all})
+            </button>
+            <button
+              onClick={() => setStatusFilter('today')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                statusFilter === 'today'
+                  ? 'bg-primary text-primary-foreground font-bold shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
+              }`}
+            >
+              Hoje ({counts.today})
+            </button>
+            <button
+              onClick={() => setStatusFilter('confirmed')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                statusFilter === 'confirmed'
+                  ? 'bg-amber-500 text-black font-bold shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
+              }`}
+            >
+              Ativos ({counts.confirmed})
+            </button>
+            <button
+              onClick={() => setStatusFilter('completed')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                statusFilter === 'completed'
+                  ? 'bg-emerald-600 text-white font-bold shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
+              }`}
+            >
+              Concluídos ({counts.completed})
+            </button>
+          </div>
 
-                <button
-                  type="button"
-                  onClick={() => setStatusFilter('completed')}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
-                    statusFilter === 'completed'
-                      ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20 border border-emerald-500/30'
-                      : 'bg-secondary/40 hover:bg-secondary/70 border border-border/60 text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Concluídos ({counts.completed})</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setStatusFilter('cancelled')}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
-                    statusFilter === 'cancelled'
-                      ? 'bg-destructive text-white shadow-md shadow-destructive/20 border border-destructive/30'
-                      : 'bg-secondary/40 hover:bg-secondary/70 border border-border/60 text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  <UserX className="w-3.5 h-3.5 text-rose-400" />
-                  <span>Cancelados / Ausentes ({counts.cancelled})</span>
-                </button>
-              </div>
-            )
-          })()}
-
-          {/* Search & Date Controls Bar */}
-          <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 bg-secondary/30 p-4 rounded-xl border border-border/70 shadow-sm">
-            <div className="sm:col-span-6 relative">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          {/* Search & Date Filter */}
+          <div className="flex flex-col sm:flex-row items-center gap-2.5">
+            <div className="relative w-full sm:w-56">
+              <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Buscar cliente, serviço, barbeiro ou notas..."
+                placeholder="Buscar cliente, serviço..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-9 py-2.5 bg-background border border-border focus:border-primary rounded-lg text-xs outline-none transition-all"
+                className="w-full pl-8 pr-3 py-2 bg-background border border-border text-xs text-foreground placeholder:text-muted-foreground/60 rounded-xl focus:outline-none focus:ring-1 focus:ring-primary"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
               )}
             </div>
 
-            <div className="sm:col-span-4 relative">
-              <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+            <div className="relative w-full sm:w-auto">
               <input
                 type="date"
                 value={filterDate}
                 onChange={(e) => setFilterDate(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-background border border-border focus:border-primary rounded-lg text-xs outline-none text-foreground font-medium"
+                className="w-full sm:w-auto px-3 py-2 bg-background border border-border text-xs text-foreground rounded-xl focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer font-medium"
               />
             </div>
 
-            <div className="sm:col-span-2">
+            {(filterDate || searchQuery || statusFilter !== 'all') && (
               <button
                 type="button"
                 onClick={() => {
@@ -549,139 +582,175 @@ export default function PainelAgendamentos() {
                   setSearchQuery('')
                   setStatusFilter('all')
                 }}
-                className="w-full h-full py-2.5 px-3 bg-secondary border border-border hover:bg-muted text-foreground text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer"
-                title="Mostrar todos os agendamentos"
+                className="px-3 py-2 bg-secondary hover:bg-muted border border-border text-foreground text-xs font-semibold rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
               >
                 <RotateCcw className="w-3.5 h-3.5 text-muted-foreground" />
                 <span>Limpar</span>
               </button>
-            </div>
+            )}
           </div>
+
         </div>
 
-        {/* Table of bookings */}
-        <div className="glass rounded-lg border border-border overflow-x-auto shadow">
-          <table className="w-full text-left border-collapse min-w-[700px]">
-            <thead>
-              <tr className="bg-secondary/40 border-b border-border/60 text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
-                <th className="p-4">Data / Hora</th>
-                <th className="p-4">Cliente</th>
-                <th className="p-4">Serviço</th>
-                {userRole === 'admin' && <th className="p-4">Profissional</th>}
-                <th className="p-4">Preço</th>
-                <th className="p-4">Forma Pagto</th>
-                <th className="p-4">Status</th>
-                <th className="p-4">Anotações Internas</th>
-                <th className="p-4 text-right">Ações</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/40 text-xs">
-              {filteredAppointments.length > 0 ? (
-                filteredAppointments
-                  .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
-                  .map((appt) => {
-                    const payMethod = Array.isArray(appt.payments) ? appt.payments[0]?.method : appt.payments?.method
+        {/* ── MOBILE-FIRST RESPONSIVE CARDS LIST (ZERO HORIZONTAL SCROLL) ────────── */}
+        {filteredAppointments.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredAppointments
+              .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
+              .map((appt) => {
+                const payMethod = Array.isArray(appt.payments) ? appt.payments[0]?.method : appt.payments?.method
 
-                    return (
-                    <tr key={appt.id} className="hover:bg-secondary/15 transition-colors">
-                      <td className="p-4 whitespace-nowrap font-semibold">
-                        <div className="flex flex-col gap-0.5">
-                          <span className="text-[10px] text-muted-foreground font-normal">
+                return (
+                  <div
+                    key={appt.id}
+                    className="bg-card/90 border border-border/80 rounded-2xl p-5 hover:border-primary/40 transition-all duration-200 flex flex-col justify-between space-y-4 shadow-md group relative overflow-hidden"
+                  >
+                    {/* Status accent bar on left */}
+                    <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${
+                      appt.status === 'completed'
+                        ? 'bg-emerald-500'
+                        : appt.status === 'cancelled'
+                        ? 'bg-destructive'
+                        : appt.status === 'no_show'
+                        ? 'bg-amber-500'
+                        : appt.status === 'confirmed'
+                        ? 'bg-primary'
+                        : 'bg-amber-400'
+                    }`} />
+
+                    <div className="pl-1.5 space-y-3.5">
+                      
+                      {/* Top Bar: Time Badge, Short Code & Status Badge */}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xl font-serif font-bold text-foreground flex items-center gap-1.5">
+                              <Clock className="w-4 h-4 text-primary shrink-0" />
+                              {formatTime(appt.start_time)}
+                            </span>
+                            <span className="font-mono text-[10px] text-muted-foreground bg-secondary px-2 py-0.5 rounded-lg border border-border/60 tracking-widest font-semibold">
+                              {apptShortCode(appt.id)}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-muted-foreground font-medium">
                             {formatDate(appt.start_time)}
-                          </span>
-                          <span className="flex items-center gap-1 text-xs text-foreground font-bold">
-                            <Clock className="w-3 h-3 text-primary shrink-0" />
-                            {formatTime(appt.start_time)}
-                          </span>
+                          </p>
                         </div>
-                      </td>
-                      <td className="p-4">
-                        <div className="flex flex-col gap-0.5">
-                          <span className="font-medium text-foreground">{appt.customerName}</span>
-                          <span className="font-mono text-[10px] text-primary/70 tracking-widest font-semibold">
-                            {apptShortCode(appt.id)}
+
+                        {/* Status Badge */}
+                        <div className="flex flex-col items-end gap-1">
+                          <span className={`text-[10px] uppercase font-extrabold px-2.5 py-1 rounded-full border flex items-center gap-1 shrink-0 ${
+                            appt.status === 'completed' 
+                              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' 
+                              : appt.status === 'cancelled'
+                              ? 'bg-destructive/10 text-destructive border-destructive/30'
+                              : appt.status === 'no_show'
+                              ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                              : appt.status === 'confirmed'
+                              ? 'bg-primary/10 text-primary border-primary/30'
+                              : 'bg-amber-400/10 text-amber-400 border-amber-400/30 animate-pulse'
+                          }`}>
+                            {appt.status === 'completed' && <CheckCircle2 className="w-3 h-3" />}
+                            {appt.status === 'confirmed' && <CheckCircle className="w-3 h-3" />}
+                            {appt.status === 'pending' && <Clock className="w-3 h-3" />}
+                            {appt.status === 'completed' ? 'Concluído' : appt.status === 'cancelled' ? 'Cancelado' : appt.status === 'no_show' ? 'Não Compareceu' : appt.status === 'confirmed' ? 'Confirmado' : 'Pendente'}
                           </span>
-                        </div>
-                      </td>
-                      <td className="p-4 whitespace-nowrap">
-                        <div className="flex items-center gap-1.5">
-                          {appt.services?.name}
-                          {appt.package_subscription_id && (
-                            <span className="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded bg-primary/15 text-primary border border-primary/25 tracking-wider">
-                              Pacote
+
+                          {appt.no_show_fee_charged && (
+                            <span className="text-[9px] uppercase font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                              Taxa Cobrada ✓
                             </span>
                           )}
                         </div>
-                      </td>
-                      {userRole === 'admin' && (
-                        <td className="p-4 whitespace-nowrap text-muted-foreground">
-                          {appt.barberName}
-                        </td>
-                      )}
-                      <td className="p-4 whitespace-nowrap font-mono text-primary font-bold">
-                        R$ {Number(appt.services?.price || 0).toFixed(2)}
-                      </td>
-                      <td className="p-4 whitespace-nowrap">
-                        <span className={`text-[9px] uppercase font-bold px-2 py-0.5 rounded ${
+                      </div>
+
+                      {/* Customer Name & Info */}
+                      <div className="flex items-center gap-3 bg-secondary/30 p-3 rounded-xl border border-border/40">
+                        <div className="w-10 h-10 rounded-full bg-secondary border border-primary/30 flex items-center justify-center text-primary font-serif font-bold text-base shrink-0 shadow-inner">
+                          {appt.customerName ? appt.customerName.charAt(0).toUpperCase() : 'C'}
+                        </div>
+                        <div className="space-y-0.5 min-w-0 flex-1">
+                          <h4 className="font-bold text-sm text-foreground truncate">
+                            {appt.customerName}
+                          </h4>
+                          {userRole === 'admin' && (
+                            <p className="text-[11px] text-muted-foreground flex items-center gap-1 truncate">
+                              <User className="w-3 h-3 text-primary" />
+                              Profissional: <strong className="text-foreground font-medium">{appt.barberName}</strong>
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Service & Price Row */}
+                      <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <div className="space-y-0.5">
+                          <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider block">Serviço</span>
+                          <span className="font-semibold text-foreground flex items-center gap-1.5">
+                            {appt.services?.name}
+                            {appt.package_subscription_id && (
+                              <span className="text-[9px] uppercase font-extrabold px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                                Pacote
+                              </span>
+                            )}
+                          </span>
+                        </div>
+
+                        <div className="text-right space-y-0.5">
+                          <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider block">Valor</span>
+                          <span className="font-serif font-bold text-amber-400 text-sm">
+                            R$ {Number(appt.services?.price || 0).toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Payment Method Badge */}
+                      <div className="flex items-center justify-between pt-1 border-t border-border/30 text-xs">
+                        <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+                          <Wallet className="w-3.5 h-3.5 text-primary" /> Formato Pagto:
+                        </span>
+                        <span className={`text-[10px] uppercase font-bold px-2.5 py-0.5 rounded-lg border ${
                           payMethod === 'cash'
-                            ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                            ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
                             : payMethod === 'card'
-                            ? 'bg-sky-500/15 text-sky-400 border border-sky-500/30'
+                            ? 'bg-sky-500/15 text-sky-400 border-sky-500/30'
                             : payMethod === 'pix'
-                            ? 'bg-purple-500/15 text-purple-400 border border-purple-500/30'
-                            : 'bg-muted text-muted-foreground border border-border'
+                            ? 'bg-purple-500/15 text-purple-400 border-purple-500/30'
+                            : 'bg-muted text-muted-foreground border-border'
                         }`}>
                           {payMethod === 'cash' ? 'Dinheiro' : payMethod === 'card' ? 'Cartão' : payMethod === 'pix' ? 'Pix' : '—'}
                         </span>
-                      </td>
-                      <td className="p-4 whitespace-nowrap">
-                        <div className="flex flex-col gap-1">
-                        <span className={`text-[9px] uppercase font-bold px-2 py-0.5 rounded ${
-                          appt.status === 'completed' 
-                            ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' 
-                            : appt.status === 'cancelled'
-                            ? 'bg-destructive/10 text-destructive border border-destructive/20'
-                            : appt.status === 'no_show'
-                            ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
-                            : appt.status === 'confirmed'
-                            ? 'bg-primary/10 text-primary border border-primary/20'
-                            : 'bg-muted text-muted-foreground border border-border'
-                        }`}>
-                          {appt.status === 'completed' ? 'Concluído' : appt.status === 'cancelled' ? 'Cancelado' : appt.status === 'no_show' ? 'Não Compareceu' : appt.status === 'confirmed' ? 'Confirmado' : 'Pendente'}
-                        </span>
-                        {appt.no_show_fee_charged && (
-                          <span className="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 tracking-wider inline-block w-fit">
-                            Taxa Cobrada ✓
-                          </span>
-                        )}
-                        </div>
-                      </td>
-                      <td className="p-4">
+                      </div>
+
+                      {/* Internal Notes area */}
+                      <div className="space-y-1">
+                        <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider block">Anotações Internas</span>
                         {editingNotesId === appt.id ? (
-                          <div className="flex gap-1.5 max-w-[200px]">
+                          <div className="flex items-center gap-1.5">
                             <input
                               type="text"
                               value={notesContent}
                               onChange={(e) => setNotesContent(e.target.value)}
-                              className="p-1 text-xs bg-secondary border border-border outline-none rounded flex-grow"
+                              placeholder="Escreva anotações..."
+                              className="p-2 text-xs bg-background border border-primary outline-none rounded-xl flex-grow text-foreground"
                             />
                             <button
                               onClick={() => handleSaveNotes(appt.id)}
                               disabled={isPending}
-                              className="p-1 bg-primary text-primary-foreground rounded hover:bg-primary-hover"
+                              className="p-2 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90"
                             >
-                              <Save className="w-3 h-3 text-primary-foreground" />
+                              <Save className="w-4 h-4 text-primary-foreground" />
                             </button>
                             <button
                               onClick={() => setEditingNotesId(null)}
-                              className="p-1 bg-secondary border border-border text-foreground rounded hover:bg-muted"
+                              className="p-2 bg-secondary border border-border text-foreground rounded-xl"
                             >
-                              <X className="w-3 h-3" />
+                              <X className="w-4 h-4" />
                             </button>
                           </div>
                         ) : (
-                          <div className="flex items-center gap-1.5 group max-w-[250px]">
-                            <span className="truncate block text-muted-foreground select-none">
+                          <div className="flex items-center justify-between p-2.5 bg-secondary/20 rounded-xl border border-border/40 text-xs">
+                            <span className="text-muted-foreground italic truncate max-w-[220px]">
                               {appt.notes || 'Sem anotações'}
                             </span>
                             <button
@@ -689,109 +758,114 @@ export default function PainelAgendamentos() {
                                 setEditingNotesId(appt.id)
                                 setNotesContent(appt.notes || '')
                               }}
-                              className="p-1 text-primary opacity-0 group-hover:opacity-100 hover:bg-secondary rounded transition-all cursor-pointer"
+                              className="text-primary hover:text-primary/80 p-1 font-semibold text-[11px] flex items-center gap-1 cursor-pointer"
                             >
-                              <Edit2 className="w-3 h-3" />
+                              <Edit2 className="w-3.5 h-3.5" />
+                              <span>Editar</span>
                             </button>
                           </div>
                         )}
-                      </td>
-                      <td className="p-4 text-right whitespace-nowrap space-x-1">
-                        {appt.status !== 'completed' && appt.status !== 'cancelled' && appt.status !== 'no_show' && (
-                          <>
-                            <button
-                              onClick={() => handleStatusUpdate(appt.id, 'completed')}
-                              disabled={isPending}
-                              className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[10px] font-semibold cursor-pointer"
-                            >
-                              Concluir
-                            </button>
-                            <button
-                              onClick={() => handleStatusUpdate(appt.id, 'cancelled')}
-                              disabled={isPending}
-                              className="px-2 py-1 bg-destructive/10 hover:bg-destructive/20 border border-destructive/20 text-destructive rounded text-[10px] font-semibold cursor-pointer"
-                            >
-                              Cancelar
-                            </button>
-                            {/* No-show button — only for cash/card presencial payments */}
-                            {(payMethod === 'cash' || payMethod === 'card') && (
-                              <button
-                                onClick={() => setNoShowTarget(appt)}
-                                disabled={isPending}
-                                title="Marcar como não compareceu"
-                                className="px-2 py-1 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-500 rounded text-[10px] font-semibold cursor-pointer"
-                              >
-                                Não Compareceu
-                              </button>
-                            )}
-                          </>
-                        )}
-                        {appt.status === 'pending' && (
-                          <button
-                            onClick={() => handleStatusUpdate(appt.id, 'confirmed')}
-                            disabled={isPending}
-                            className="px-2 py-1 bg-primary hover:bg-primary-hover text-primary-foreground rounded text-[10px] font-semibold cursor-pointer"
-                          >
-                            Confirmar
-                          </button>
-                        )}
-                        {/* Admin-only permanent delete */}
-                        {userRole === 'admin' && (
-                          <button
-                            onClick={() => handleDelete(appt)}
-                            disabled={isPending}
-                            title="Excluir permanentemente"
-                            className="p-1 bg-red-900/20 hover:bg-red-900/40 border border-red-800/40 text-red-400 hover:text-red-300 rounded cursor-pointer transition-all"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  )
-                })
-              ) : (
-                <tr>
-                  <td colSpan={userRole === 'admin' ? 9 : 8} className="p-8 text-center text-muted-foreground italic">
-                    Nenhum agendamento encontrado nesta data.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                      </div>
 
-        {/* ── Delete Confirmation Modal (admin only) ──────────────────────── */}
+                    </div>
+
+                    {/* ── TOUCH-FRIENDLY ACTION BUTTONS BAR (MOBILE FIRST) ────────── */}
+                    <div className="pt-3 border-t border-border/40 flex flex-wrap items-center gap-2">
+                      
+                      {/* Confirmar button (For pending status) */}
+                      {appt.status === 'pending' && (
+                        <button
+                          onClick={() => handleStatusUpdate(appt.id, 'confirmed')}
+                          disabled={isPending}
+                          className="flex-1 min-h-[44px] py-2.5 px-3 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold rounded-xl shadow-md flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+                        >
+                          <CheckCircle className="w-4 h-4 text-primary-foreground" />
+                          <span>Confirmar</span>
+                        </button>
+                      )}
+
+                      {/* Concluir button (For active bookings) */}
+                      {appt.status !== 'completed' && appt.status !== 'cancelled' && appt.status !== 'no_show' && (
+                        <button
+                          onClick={() => handleStatusUpdate(appt.id, 'completed')}
+                          disabled={isPending}
+                          className="flex-1 min-h-[44px] py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+                        >
+                          <CheckCircle2 className="w-4 h-4" />
+                          <span>Concluir Corte</span>
+                        </button>
+                      )}
+
+                      {/* Cancelar button */}
+                      {appt.status !== 'completed' && appt.status !== 'cancelled' && appt.status !== 'no_show' && (
+                        <button
+                          onClick={() => handleStatusUpdate(appt.id, 'cancelled')}
+                          disabled={isPending}
+                          className="min-h-[44px] py-2.5 px-3 bg-destructive/10 hover:bg-destructive/20 border border-destructive/30 text-destructive text-xs font-semibold rounded-xl flex items-center justify-center gap-1 transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+                        >
+                          <X className="w-4 h-4" />
+                          <span>Cancelar</span>
+                        </button>
+                      )}
+
+                      {/* Não Compareceu button (only for cash/card presencial payments) */}
+                      {appt.status !== 'completed' && appt.status !== 'cancelled' && appt.status !== 'no_show' && (payMethod === 'cash' || payMethod === 'card') && (
+                        <button
+                          onClick={() => setNoShowTarget(appt)}
+                          disabled={isPending}
+                          className="min-h-[44px] py-2.5 px-3 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 text-xs font-semibold rounded-xl flex items-center justify-center gap-1 transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+                          title="Marcar como não compareceu"
+                        >
+                          <UserX className="w-4 h-4" />
+                          <span className="hidden sm:inline">Não Compareceu</span>
+                        </button>
+                      )}
+
+                      {/* Admin Permanent Delete button */}
+                      {userRole === 'admin' && (
+                        <button
+                          onClick={() => handleDelete(appt)}
+                          disabled={isPending}
+                          className="min-h-[44px] p-2.5 bg-destructive/10 hover:bg-destructive/20 border border-destructive/25 text-destructive rounded-xl transition-all cursor-pointer flex items-center justify-center shrink-0"
+                          title="Excluir agendamento permanentemente"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+
+                    </div>
+
+                  </div>
+                )
+              })}
+          </div>
+        ) : (
+          <div className="p-12 text-center bg-secondary/20 border border-border/60 rounded-2xl space-y-3">
+            <Calendar className="w-12 h-12 text-muted-foreground/30 mx-auto" />
+            <h3 className="text-base font-semibold text-foreground">Nenhum agendamento encontrado</h3>
+            <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+              {searchQuery || filterDate || statusFilter !== 'all'
+                ? 'Tente alterar os filtros ou termo de busca.'
+                : 'Não há agendamentos cadastrados no momento.'}
+            </p>
+          </div>
+        )}
+
+        {/* Delete Confirmation Modal (admin only) */}
         {deleteTarget && (
-          <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
-            <div className="glass p-6 sm:p-8 rounded-lg border border-red-800/50 max-w-md w-full shadow-2xl space-y-5 relative">
-              
-              {/* Header */}
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-full bg-red-900/30 border border-red-800/40 flex items-center justify-center shrink-0">
-                  <AlertTriangle className="w-5 h-5 text-red-400" />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
+            <div className="bg-card border border-border/80 rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl">
+              <div className="flex items-center gap-3 text-destructive">
+                <div className="p-3 bg-destructive/10 rounded-full">
+                  <AlertTriangle className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="font-serif font-bold text-lg text-foreground">Excluir Agendamento</h3>
-                  <p className="text-[11px] text-red-400 font-semibold mt-0.5">Esta ação é permanente e irreversível</p>
+                  <h3 className="text-lg font-serif font-bold text-foreground">Excluir Agendamento?</h3>
+                  <p className="text-xs text-muted-foreground">Esta ação é permanente e irreversível.</p>
                 </div>
               </div>
 
-              {/* Warning text */}
-              <div className="p-4 bg-red-900/10 border border-red-800/30 rounded-lg space-y-2 text-xs text-muted-foreground leading-relaxed">
-                <p>
-                  Você está prestes a <strong className="text-red-400">excluir permanentemente</strong> este agendamento.
-                  Ao contrário de "Cancelar" (que apenas altera o status), a exclusão remove o registro do banco de dados completamente.
-                </p>
-                <p>
-                  O agendamento <strong className="text-foreground">desaparecerá</strong> tanto do painel administrativo quanto do histórico de agendamentos do cliente em sua conta. O registro de pagamento vinculado também será deletado.
-                </p>
-                <p className="font-semibold text-red-400">Esta operação não pode ser desfeita.</p>
-              </div>
-
-              {/* Appointment details */}
-              <div className="bg-secondary/40 border border-border/50 rounded-lg p-4 space-y-2 text-xs">
-                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-2">Agendamento a excluir</p>
+              <div className="p-3.5 bg-secondary/30 border border-border/50 rounded-xl space-y-1.5 text-xs">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Cliente:</span>
                   <span className="font-semibold text-foreground">{deleteTarget.customerName}</span>
@@ -806,21 +880,14 @@ export default function PainelAgendamentos() {
                     {formatDate(deleteTarget.start_time)} às {formatTime(deleteTarget.start_time)}
                   </span>
                 </div>
-                {userRole === 'admin' && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Profissional:</span>
-                    <span className="font-semibold text-foreground">{deleteTarget.barberName}</span>
-                  </div>
-                )}
               </div>
 
-              {/* Action buttons */}
-              <div className="flex gap-3 pt-1">
+              <div className="flex items-center justify-end gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setDeleteTarget(null)}
                   disabled={isPending}
-                  className="flex-1 px-4 py-2.5 bg-secondary hover:bg-muted border border-border text-foreground rounded text-xs font-semibold transition-all cursor-pointer"
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-muted-foreground hover:bg-secondary transition-all"
                 >
                   Cancelar
                 </button>
@@ -828,50 +895,31 @@ export default function PainelAgendamentos() {
                   type="button"
                   onClick={handleConfirmDelete}
                   disabled={isPending}
-                  className="flex-1 px-4 py-2.5 bg-red-700 hover:bg-red-800 text-white rounded text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2.5 bg-destructive hover:bg-destructive/90 text-destructive-foreground font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-md"
                 >
-                  {isPending ? (
-                    <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Excluindo...</>
-                  ) : (
-                    <><Trash2 className="w-3.5 h-3.5" /> Sim, excluir permanentemente</>
-                  )}
+                  {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                  Sim, Excluir
                 </button>
               </div>
             </div>
           </div>
         )}
 
-        {/* ── No-Show Confirmation Modal ──────────────────────── */}
+        {/* No-Show Confirmation Modal */}
         {noShowTarget && (
-          <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
-            <div className="glass p-6 sm:p-8 rounded-lg border border-amber-700/50 max-w-md w-full shadow-2xl space-y-5 relative">
-              
-              {/* Header */}
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-full bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shrink-0">
-                  <UserX className="w-5 h-5 text-amber-500" />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
+            <div className="bg-card border border-border/80 rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl">
+              <div className="flex items-center gap-3 text-amber-400">
+                <div className="p-3 bg-amber-500/10 rounded-full">
+                  <UserX className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="font-serif font-bold text-lg text-foreground">Marcar como Não Compareceu</h3>
-                  <p className="text-[11px] text-amber-500 font-semibold mt-0.5">Taxa de 50% será aplicada ao próximo agendamento</p>
+                  <h3 className="text-lg font-serif font-bold text-foreground">Marcar Não Compareceu</h3>
+                  <p className="text-xs text-muted-foreground">Taxa de 50% será gerada ao cliente.</p>
                 </div>
               </div>
 
-              {/* Warning text */}
-              <div className="p-4 bg-amber-500/5 border border-amber-500/20 rounded-lg space-y-2 text-xs text-muted-foreground leading-relaxed">
-                <p>
-                  Ao marcar este agendamento como <strong className="text-amber-500">não compareceu</strong>, o cliente
-                  receberá uma <strong className="text-foreground">taxa de 50% do valor do serviço</strong> somada automaticamente
-                  ao total do seu próximo agendamento.
-                </p>
-                <p>
-                  A taxa só será considerada quitada quando o próximo atendimento for concluído ou o pagamento for confirmado.
-                </p>
-              </div>
-
-              {/* Appointment details */}
-              <div className="bg-secondary/40 border border-border/50 rounded-lg p-4 space-y-2 text-xs">
-                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-2">Agendamento</p>
+              <div className="p-3.5 bg-secondary/30 border border-border/50 rounded-xl space-y-1.5 text-xs">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Cliente:</span>
                   <span className="font-semibold text-foreground">{noShowTarget.customerName}</span>
@@ -880,25 +928,18 @@ export default function PainelAgendamentos() {
                   <span className="text-muted-foreground">Serviço:</span>
                   <span className="font-semibold text-foreground">{noShowTarget.services?.name}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Data / Hora:</span>
-                  <span className="font-semibold text-foreground">
-                    {formatDate(noShowTarget.start_time)} às {formatTime(noShowTarget.start_time)}
-                  </span>
-                </div>
-                <div className="flex justify-between border-t border-border/40 pt-2">
-                  <span className="text-muted-foreground">Taxa a cobrar (50%):</span>
-                  <span className="font-bold text-amber-500">R$ {(Number(noShowTarget.services?.price || 0) * 0.5).toFixed(2)}</span>
+                <div className="flex justify-between border-t border-border/40 pt-1.5">
+                  <span className="text-muted-foreground">Taxa (50%):</span>
+                  <span className="font-bold text-amber-400">R$ {(Number(noShowTarget.services?.price || 0) * 0.5).toFixed(2)}</span>
                 </div>
               </div>
 
-              {/* Action buttons */}
-              <div className="flex gap-3 pt-1">
+              <div className="flex items-center justify-end gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setNoShowTarget(null)}
                   disabled={isPending}
-                  className="flex-1 px-4 py-2.5 bg-secondary hover:bg-muted border border-border text-foreground rounded text-xs font-semibold transition-all cursor-pointer"
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-muted-foreground hover:bg-secondary transition-all"
                 >
                   Cancelar
                 </button>
@@ -906,13 +947,10 @@ export default function PainelAgendamentos() {
                   type="button"
                   onClick={handleConfirmNoShow}
                   disabled={isPending}
-                  className="flex-1 px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-md"
                 >
-                  {isPending ? (
-                    <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Processando...</>
-                  ) : (
-                    <><UserX className="w-3.5 h-3.5" /> Confirmar Não Compareceu</>
-                  )}
+                  {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UserX className="w-3.5 h-3.5" />}
+                  Confirmar Não Compareceu
                 </button>
               </div>
             </div>
@@ -921,23 +959,22 @@ export default function PainelAgendamentos() {
 
         {/* Walk-in Modal overlay */}
         {showWalkInModal && (
-          <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-            <div className="glass p-6 sm:p-8 rounded-lg border border-border max-w-md w-full shadow-2xl space-y-5 relative animate-in zoom-in-95 duration-200">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-card border border-border/80 rounded-2xl p-6 sm:p-8 max-w-md w-full space-y-5 relative shadow-2xl max-h-[90vh] overflow-y-auto">
               
-              <div className="flex justify-between items-center pb-2 border-b border-border/40">
-                <h3 className="font-serif font-bold text-lg text-foreground flex items-center gap-1.5">
+              <div className="flex justify-between items-center pb-3 border-b border-border/40">
+                <h3 className="font-serif font-bold text-lg text-foreground flex items-center gap-2">
                   <Scissors className="w-5 h-5 text-primary rotate-45" /> Agendar Presencial (Walk-in)
                 </h3>
                 <button
                   onClick={() => setShowWalkInModal(false)}
-                  className="text-muted-foreground hover:text-foreground p-1 hover:bg-secondary rounded"
+                  className="text-muted-foreground hover:text-foreground p-1.5 hover:bg-secondary rounded-lg transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
               <form onSubmit={handleCreateWalkIn} className="space-y-4">
-                {/* Client Name */}
                 <div className="space-y-1.5">
                   <label htmlFor="wName" className="text-xs font-semibold text-muted-foreground uppercase">Nome do Cliente</label>
                   <div className="relative">
@@ -949,13 +986,12 @@ export default function PainelAgendamentos() {
                       value={clientName}
                       onChange={(e) => setClientName(e.target.value)}
                       disabled={isPending}
-                      className="w-full pl-10 pr-4 py-2 bg-secondary border border-border focus:border-primary rounded text-xs outline-none"
+                      className="w-full pl-10 pr-4 py-2.5 bg-secondary/50 border border-border focus:border-primary rounded-xl text-xs outline-none text-foreground"
                       required
                     />
                   </div>
                 </div>
 
-                {/* Barber Selector */}
                 <div className="space-y-1.5">
                   <label htmlFor="wBarber" className="text-xs font-semibold text-muted-foreground uppercase">Barbeiro</label>
                   <select
@@ -963,7 +999,7 @@ export default function PainelAgendamentos() {
                     value={selectedBarberId}
                     onChange={(e) => setSelectedBarberId(e.target.value)}
                     disabled={isPending}
-                    className="w-full px-3 py-2 bg-secondary border border-border focus:border-primary rounded text-xs text-foreground outline-none cursor-pointer"
+                    className="w-full px-3.5 py-2.5 bg-secondary/50 border border-border focus:border-primary rounded-xl text-xs text-foreground outline-none cursor-pointer"
                     required
                   >
                     <option value="">Selecione o profissional</option>
@@ -973,7 +1009,6 @@ export default function PainelAgendamentos() {
                   </select>
                 </div>
 
-                {/* Service Selector */}
                 <div className="space-y-1.5">
                   <label htmlFor="wService" className="text-xs font-semibold text-muted-foreground uppercase">Serviço</label>
                   <select
@@ -981,7 +1016,7 @@ export default function PainelAgendamentos() {
                     value={selectedServiceId}
                     onChange={(e) => setSelectedServiceId(e.target.value)}
                     disabled={isPending}
-                    className="w-full px-3 py-2 bg-secondary border border-border focus:border-primary rounded text-xs text-foreground outline-none cursor-pointer"
+                    className="w-full px-3.5 py-2.5 bg-secondary/50 border border-border focus:border-primary rounded-xl text-xs text-foreground outline-none cursor-pointer"
                     required
                   >
                     <option value="">Selecione o serviço</option>
@@ -991,7 +1026,6 @@ export default function PainelAgendamentos() {
                   </select>
                 </div>
 
-                {/* Date */}
                 <div className="space-y-1.5">
                   <label htmlFor="wDate" className="text-xs font-semibold text-muted-foreground uppercase">Data</label>
                   <input
@@ -1000,17 +1034,16 @@ export default function PainelAgendamentos() {
                     value={walkInDate}
                     onChange={(e) => setWalkInDate(e.target.value)}
                     disabled={isPending}
-                    className="w-full px-3 py-2 bg-secondary border border-border focus:border-primary rounded text-xs text-foreground outline-none"
+                    className="w-full px-3 py-2.5 bg-secondary/50 border border-border focus:border-primary rounded-xl text-xs text-foreground outline-none cursor-pointer"
                     required
                   />
                 </div>
 
-                {/* Time slot picker */}
                 <div className="space-y-1.5">
                   <label htmlFor="wTime" className="text-xs font-semibold text-muted-foreground uppercase">Horários Disponíveis</label>
                   {loadingSlots ? (
-                    <div className="flex items-center gap-1 text-[11px] text-muted-foreground py-1">
-                      <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" /> Carregando horários livres...
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground py-2">
+                      <Loader2 className="w-4 h-4 animate-spin text-primary" /> Carregando horários livres...
                     </div>
                   ) : availableSlots.length > 0 ? (
                     <select
@@ -1018,7 +1051,7 @@ export default function PainelAgendamentos() {
                       value={walkInTime}
                       onChange={(e) => setWalkInTime(e.target.value)}
                       disabled={isPending}
-                      className="w-full px-3 py-2 bg-secondary border border-border focus:border-primary rounded text-xs text-foreground outline-none cursor-pointer"
+                      className="w-full px-3.5 py-2.5 bg-secondary/50 border border-border focus:border-primary rounded-xl text-xs text-foreground outline-none cursor-pointer"
                       required
                     >
                       <option value="">Escolha um horário livre</option>
@@ -1027,45 +1060,42 @@ export default function PainelAgendamentos() {
                       ))}
                     </select>
                   ) : (
-                    <p className="text-[10px] text-muted-foreground italic bg-secondary p-2 rounded border border-border">
+                    <p className="text-[11px] text-muted-foreground italic bg-secondary/40 p-2.5 rounded-xl border border-border">
                       Selecione barbeiro, serviço e data para carregar horários disponíveis.
                     </p>
                   )}
                 </div>
 
-                {/* Private note */}
                 <div className="space-y-1.5">
                   <label htmlFor="wNotes" className="text-xs font-semibold text-muted-foreground uppercase">Observações Extras</label>
                   <textarea
                     id="wNotes"
-                    placeholder="Ex: Cabelo curto, prefere navalha..."
+                    placeholder="Ex: Prefere corte tesoura, cliente novo..."
                     value={walkInNotes}
                     onChange={(e) => setWalkInNotes(e.target.value)}
                     disabled={isPending}
                     rows={2}
-                    className="w-full p-3 bg-secondary border border-border focus:border-primary rounded text-xs text-foreground placeholder:text-muted-foreground outline-none resize-none"
+                    className="w-full p-3 bg-secondary/50 border border-border focus:border-primary rounded-xl text-xs text-foreground placeholder:text-muted-foreground/60 outline-none resize-none"
                   />
                 </div>
 
-                {/* Submit button */}
                 <button
                   type="submit"
                   disabled={isPending || (availableSlots.length > 0 && !walkInTime)}
-                  className="w-full py-3 bg-primary hover:bg-primary-hover text-primary-foreground font-bold rounded text-xs flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md disabled:opacity-50"
                 >
                   {isPending ? (
                     <>
-                      <Loader2 className="w-4 h-4 animate-spin text-primary-foreground" />
-                      Registrando Agendamento...
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Registrando...
                     </>
                   ) : (
                     <>
                       Confirmar Agendamento Presencial
-                      <Check className="w-4 h-4 text-primary-foreground" />
+                      <Check className="w-4 h-4" />
                     </>
                   )}
                 </button>
-
               </form>
             </div>
           </div>
