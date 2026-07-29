@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { 
   Scissors, Calendar, Clock, User, Phone, Edit, Trash2, 
-  AlertCircle, CheckCircle, HelpCircle, Loader2, ArrowRight, Wallet 
+  AlertCircle, CheckCircle, HelpCircle, Loader2, ArrowRight, Wallet, Star 
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { cancelAppointmentAction } from './actions'
@@ -14,6 +14,7 @@ import { Footer } from '@/components/Footer'
 import { formatWhatsAppLink } from '@/lib/settings'
 import { apptShortCode } from '@/lib/utils'
 import { CompleteProfileModal } from '@/components/CompleteProfileModal'
+import { ReviewModal } from '@/components/ReviewModal'
 
 export default function ClientePanel() {
   const router = useRouter()
@@ -25,6 +26,8 @@ export default function ClientePanel() {
   const [isPending, startTransition] = useTransition()
   const [settings, setSettings] = useState<any>(null)
   const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false)
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false)
+  const [selectedApptForReview, setSelectedApptForReview] = useState<any>(null)
   
   const supabase = createClient()
 
@@ -100,6 +103,17 @@ export default function ClientePanel() {
         .eq('customer_id', session.user.id)
         .order('start_time', { ascending: true })
 
+      // Fetch customer's existing reviews to check which appointments have been reviewed
+      const { data: customerReviews } = await supabase
+        .from('reviews')
+        .select('id, appointment_id, rating, status, comment')
+        .eq('customer_id', session.user.id)
+
+      const reviewMap = (customerReviews || []).reduce((acc: any, r: any) => {
+        acc[r.appointment_id] = r
+        return acc
+      }, {})
+
       // For barber names, let's load profiles for those barber_ids.
       if (appts && appts.length > 0) {
         const barberIds = Array.from(new Set(appts.map(a => a.barber_id)))
@@ -115,7 +129,8 @@ export default function ClientePanel() {
 
         const enriched = appts.map(a => ({
           ...a,
-          barberName: barberMap[a.barber_id] || 'Barbeiro'
+          barberName: barberMap[a.barber_id] || 'Barbeiro',
+          review: reviewMap[a.id] || null
         }))
         setAppointments(enriched)
       } else {
@@ -353,7 +368,7 @@ export default function ClientePanel() {
                     {past.map((appt) => (
                       <div 
                         key={appt.id}
-                        className="p-4 rounded-lg bg-secondary/25 border border-border/50 flex justify-between items-center text-xs gap-4"
+                        className="p-4 rounded-lg bg-secondary/25 border border-border/50 flex flex-col sm:flex-row justify-between items-start sm:items-center text-xs gap-3"
                       >
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
@@ -362,15 +377,44 @@ export default function ClientePanel() {
                           </div>
                           <p className="text-[10px] text-muted-foreground">{formatDate(appt.start_time)} às {formatTime(appt.start_time)} | {appt.barberName}</p>
                         </div>
-                        <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${
-                          appt.status === 'completed' 
-                            ? 'bg-emerald-500/10 text-emerald-500' 
-                            : appt.status === 'cancelled'
-                            ? 'bg-destructive/10 text-destructive'
-                            : 'bg-muted text-muted-foreground'
-                        }`}>
-                          {appt.status === 'completed' ? 'Concluído' : appt.status === 'cancelled' ? 'Cancelado' : appt.status}
-                        </span>
+
+                        <div className="flex items-center gap-2 self-end sm:self-center">
+                          {appt.status === 'completed' && !appt.review && (
+                            <button
+                              onClick={() => {
+                                setSelectedApptForReview({
+                                  id: appt.id,
+                                  barber_id: appt.barber_id,
+                                  barberName: appt.barberName,
+                                  serviceName: appt.services?.name || 'Corte/Serviço',
+                                  dateFormatted: formatDate(appt.start_time)
+                                })
+                                setIsReviewModalOpen(true)
+                              }}
+                              className="px-3 py-1.5 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-400 font-bold rounded text-[11px] flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+                            >
+                              <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                              Avaliar Atendimento
+                            </button>
+                          )}
+
+                          {appt.status === 'completed' && appt.review && (
+                            <span className="text-[10px] font-semibold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-1 rounded flex items-center gap-1">
+                              <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                              {appt.review.status === 'pending' ? `Avaliação em Análise (${appt.review.rating}★)` : `Avaliado (${appt.review.rating}★)`}
+                            </span>
+                          )}
+
+                          <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${
+                            appt.status === 'completed' 
+                              ? 'bg-emerald-500/10 text-emerald-500' 
+                              : appt.status === 'cancelled'
+                              ? 'bg-destructive/10 text-destructive'
+                              : 'bg-muted text-muted-foreground'
+                          }`}>
+                            {appt.status === 'completed' ? 'Concluído' : appt.status === 'cancelled' ? 'Cancelado' : appt.status}
+                          </span>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -425,6 +469,18 @@ export default function ClientePanel() {
         isBlocking={false}
         onClose={() => setIsCompleteModalOpen(false)}
         onComplete={handleProfileComplete}
+      />
+
+      <ReviewModal
+        isOpen={isReviewModalOpen}
+        onClose={() => {
+          setIsReviewModalOpen(false)
+          setSelectedApptForReview(null)
+        }}
+        appointment={selectedApptForReview}
+        onSuccess={() => {
+          loadData()
+        }}
       />
     </div>
   )

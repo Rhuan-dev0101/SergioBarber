@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { 
   Scissors, LayoutDashboard, CalendarRange, Users, UserCog, 
   Sparkles, DollarSign, Settings, LogOut, Menu, X, User, Image as ImageIcon,
-  Crown
+  Crown, Star
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 
@@ -46,6 +46,7 @@ export function DashboardSidebar() {
     { label: 'Visão Geral', href: '/painel', icon: LayoutDashboard, roles: ['admin', 'barber'] },
     { label: 'Agendamentos', href: '/painel/agendamentos', icon: CalendarRange, roles: ['admin', 'barber'] },
     { label: 'Clientes', href: '/painel/clientes', icon: Users, roles: ['admin', 'barber'] },
+    { label: 'Avaliações', href: '/painel/avaliacoes', icon: Star, roles: ['admin'] },
     { label: 'Pacotes', href: '/painel/pacotes', icon: Crown, roles: ['admin'] },
     { label: 'Meus Serviços', href: '/painel/meus-servicos', icon: Sparkles, roles: ['admin', 'barber'] },
     { label: 'Editar Perfil', href: '/painel/perfil-barbeiro', icon: User, roles: ['admin', 'barber'] },

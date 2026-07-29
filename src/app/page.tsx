@@ -8,6 +8,7 @@ import { createServerSupabaseClient } from '@/lib/supabase'
 import { GradientButton } from '@/components/ui/gradient-button'
 import { BarbersSection } from '@/components/BarbersSection'
 import { HeroActions } from '@/components/HeroActions'
+import { TestimonialsSection } from '@/components/TestimonialsSection'
 import { getBusinessSettings, formatPhoneNumber, formatWhatsAppLink } from '@/lib/settings'
 
 // Static fallback seed data in case database is empty or unreachable during build
@@ -45,9 +46,68 @@ export default async function Home() {
   let services = FALLBACK_SERVICES
   let barbers = FALLBACK_BARBERS
   let gallery = FALLBACK_GALLERY
+  let approvedTestimonials: any[] = []
+  let ratingsMap: Record<string, { avg: number; count: number }> = {}
 
   try {
     const supabase = await createServerSupabaseClient()
+
+    // Fetch approved reviews for public testimonials & barber average rating calculation
+    const { data: dbReviews } = await supabase
+      .from('reviews')
+      .select('*')
+      .eq('status', 'approved')
+      .order('created_at', { ascending: false })
+
+    if (dbReviews && dbReviews.length > 0) {
+      const barberStats: Record<string, { total: number; count: number }> = {}
+      dbReviews.forEach(r => {
+        if (!barberStats[r.barber_id]) {
+          barberStats[r.barber_id] = { total: 0, count: 0 }
+        }
+        barberStats[r.barber_id].total += r.rating
+        barberStats[r.barber_id].count += 1
+      })
+
+      Object.keys(barberStats).forEach(bId => {
+        ratingsMap[bId] = {
+          avg: barberStats[bId].total / barberStats[bId].count,
+          count: barberStats[bId].count
+        }
+      })
+
+      const customerIds = Array.from(new Set(dbReviews.map(r => r.customer_id)))
+      const { data: customerProfiles } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', customerIds)
+
+      const customerMap = (customerProfiles || []).reduce((acc: any, c: any) => {
+        acc[c.id] = c.full_name
+        return acc
+      }, {})
+
+      const barberIds = Array.from(new Set(dbReviews.map(r => r.barber_id)))
+      const { data: barberProfiles } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', barberIds)
+
+      const barberMap = (barberProfiles || []).reduce((acc: any, b: any) => {
+        acc[b.id] = b.full_name
+        return acc
+      }, {})
+
+      approvedTestimonials = dbReviews.map(r => ({
+        id: r.id,
+        customerName: customerMap[r.customer_id] || 'Cliente',
+        barberName: barberMap[r.barber_id] || 'Barbeiro',
+        rating: r.rating,
+        comment: r.comment || '',
+        createdAt: r.created_at
+      }))
+    }
+
     const { data: dbServices } = await supabase
       .from('services')
       .select('name, duration, price, description')
@@ -204,9 +264,12 @@ export default async function Home() {
               </p>
             </div>
 
-            <BarbersSection initialBarbers={barbers} />
+            <BarbersSection initialBarbers={barbers} ratingsMap={ratingsMap} />
           </div>
         </section>
+
+        {/* Testimonials Section */}
+        <TestimonialsSection testimonials={approvedTestimonials} />
 
         {/* Gallery Preview */}
         <section className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

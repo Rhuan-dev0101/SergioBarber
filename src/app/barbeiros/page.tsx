@@ -8,6 +8,7 @@ import { Footer } from '@/components/Footer'
 import { createServerSupabaseClient } from '@/lib/supabase'
 import { GradientButton } from '@/components/ui/gradient-button'
 import { getBusinessSettings } from '@/lib/settings'
+import { TestimonialsSection } from '@/components/TestimonialsSection'
 
 const SEED_BARBERS = [
   {
@@ -31,9 +32,68 @@ const SEED_BARBERS = [
 export default async function Barbeiros() {
   const settings = await getBusinessSettings()
   let barbers = SEED_BARBERS
+  let approvedTestimonials: any[] = []
+  let ratingsMap: Record<string, { avg: number; count: number }> = {}
 
   try {
     const supabase = await createServerSupabaseClient()
+
+    // Fetch approved reviews for public testimonials & barber average rating calculation
+    const { data: dbReviews } = await supabase
+      .from('reviews')
+      .select('*')
+      .eq('status', 'approved')
+      .order('created_at', { ascending: false })
+
+    if (dbReviews && dbReviews.length > 0) {
+      const barberStats: Record<string, { total: number; count: number }> = {}
+      dbReviews.forEach(r => {
+        if (!barberStats[r.barber_id]) {
+          barberStats[r.barber_id] = { total: 0, count: 0 }
+        }
+        barberStats[r.barber_id].total += r.rating
+        barberStats[r.barber_id].count += 1
+      })
+
+      Object.keys(barberStats).forEach(bId => {
+        ratingsMap[bId] = {
+          avg: barberStats[bId].total / barberStats[bId].count,
+          count: barberStats[bId].count
+        }
+      })
+
+      const customerIds = Array.from(new Set(dbReviews.map(r => r.customer_id)))
+      const { data: customerProfiles } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', customerIds)
+
+      const customerMap = (customerProfiles || []).reduce((acc: any, c: any) => {
+        acc[c.id] = c.full_name
+        return acc
+      }, {})
+
+      const barberIds = Array.from(new Set(dbReviews.map(r => r.barber_id)))
+      const { data: barberProfiles } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', barberIds)
+
+      const barberMap = (barberProfiles || []).reduce((acc: any, b: any) => {
+        acc[b.id] = b.full_name
+        return acc
+      }, {})
+
+      approvedTestimonials = dbReviews.map(r => ({
+        id: r.id,
+        customerName: customerMap[r.customer_id] || 'Cliente',
+        barberName: barberMap[r.barber_id] || 'Barbeiro',
+        rating: r.rating,
+        comment: r.comment || '',
+        createdAt: r.created_at
+      }))
+    }
+
     const { data: dbBarbers } = await supabase
       .from('barbers')
       .select('id, bio, avatar_url, is_active, about_quote, experience_years, specialties, photo_url, profiles(full_name, role)')
@@ -103,7 +163,21 @@ export default async function Barbeiros() {
                 <div className="flex-grow space-y-6 text-center md:text-left">
                   <div className="space-y-2">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
-                      <h2 className="text-2xl font-serif font-bold text-foreground">{barber.name}</h2>
+                      <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
+                        <h2 className="text-2xl font-serif font-bold text-foreground">{barber.name}</h2>
+                        
+                        {/* Star Rating Badge: Only display if barber has at least 1 approved review */}
+                        {ratingsMap[barber.id] && ratingsMap[barber.id].count > 0 && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/25 text-amber-400 text-xs font-bold">
+                            <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                            <span>{ratingsMap[barber.id].avg.toFixed(1)}</span>
+                            <span className="text-[10px] text-muted-foreground font-normal">
+                              ({ratingsMap[barber.id].count} {ratingsMap[barber.id].count === 1 ? 'avaliação' : 'avaliações'})
+                            </span>
+                          </span>
+                        )}
+                      </div>
+
                       <span className="inline-flex items-center gap-1 bg-primary/10 text-primary px-3 py-1 rounded text-xs font-semibold self-center md:self-start">
                         <Award className="w-3.5 h-3.5" />
                         {barber.role}
@@ -151,6 +225,9 @@ export default async function Barbeiros() {
             ))}
           </div>
         </div>
+
+        {/* Approved Testimonials Carousel / Grid */}
+        <TestimonialsSection testimonials={approvedTestimonials} />
       </main>
 
       <Footer initialSettings={settings || undefined} />

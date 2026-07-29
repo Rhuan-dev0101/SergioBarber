@@ -15,10 +15,12 @@ interface Barber {
   experience_years?: number | null
   specialties?: string[] | null
   photo_url?: string | null
+  ratingStats?: { avg: number; count: number }
 }
 
 interface BarbersSectionProps {
   initialBarbers: Barber[]
+  ratingsMap?: Record<string, { avg: number; count: number }>
 }
 
 const BARBER_RICH_DETAILS: Record<string, {
@@ -33,7 +35,7 @@ const BARBER_RICH_DETAILS: Record<string, {
   }
 }
 
-export function BarbersSection({ initialBarbers }: BarbersSectionProps) {
+export function BarbersSection({ initialBarbers, ratingsMap }: BarbersSectionProps) {
   const [activeBarberId, setActiveBarberId] = useState<string | null>(null)
 
   // Listen to escape key to collapse
@@ -64,6 +66,9 @@ export function BarbersSection({ initialBarbers }: BarbersSectionProps) {
         const id = barber.id || barber.full_name
         const isActive = activeBarberId === id
         
+        // Grab rating stats from prop or barber object
+        const rating = barber.ratingStats || (barber.id && ratingsMap ? ratingsMap[barber.id] : undefined)
+
         // Grab rich details or fall back to generic data
         const rich = BARBER_RICH_DETAILS[barber.full_name] || {
           history: 'Profissional dedicado da equipe Osanchez, focado em oferecer a melhor experiência e estilo para cada cliente.',
@@ -102,9 +107,20 @@ export function BarbersSection({ initialBarbers }: BarbersSectionProps) {
                 )}
               </div>
               
-              <div className="space-y-3 text-center md:text-left flex-grow">
+              <div className="space-y-2 text-center md:text-left flex-grow">
                 <div>
-                  <h3 className="font-serif font-bold text-xl text-foreground">{barber.full_name}</h3>
+                  <h3 className="font-serif font-bold text-xl text-foreground flex flex-wrap items-center justify-center md:justify-start gap-2">
+                    <span>{barber.full_name}</span>
+                    
+                    {/* Star Rating Badge: Display only if barber has at least 1 approved review */}
+                    {rating && rating.count > 0 && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/25 text-amber-400 text-xs font-bold">
+                        <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                        <span>{rating.avg.toFixed(1)}</span>
+                        <span className="text-[10px] text-muted-foreground font-normal">({rating.count} {rating.count === 1 ? 'avaliação' : 'avaliações'})</span>
+                      </span>
+                    )}
+                  </h3>
                   <span className="text-[10px] uppercase font-semibold text-primary tracking-wider">
                     {barber.full_name.includes('Sergio') ? 'Fundador & Master' : 'Barbeiro Especialista'}
                   </span>
