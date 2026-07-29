@@ -369,7 +369,7 @@ export default function PainelAgendamentos() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen bg-background text-foreground">
+      <div className="flex flex-col md:flex-row min-h-screen bg-background text-foreground">
         <DashboardSidebar />
         <main className="flex-1 p-8 flex flex-col items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -380,7 +380,7 @@ export default function PainelAgendamentos() {
   }
 
   return (
-    <div className="flex min-h-screen bg-background text-foreground">
+    <div className="flex flex-col md:flex-row min-h-screen bg-background text-foreground">
       <DashboardSidebar />
 
       <main className="flex-1 p-4 sm:p-8 space-y-6 max-w-7xl mx-auto w-full">

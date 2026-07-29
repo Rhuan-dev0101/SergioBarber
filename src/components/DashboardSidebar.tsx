@@ -67,7 +67,7 @@ export function DashboardSidebar() {
   return (
     <>
       {/* Mobile Top Header */}
-      <div className="md:hidden flex items-center justify-between bg-card border-b border-border px-4 py-3 sticky top-0 z-30">
+      <div className="md:hidden w-full flex items-center justify-between bg-card border-b border-border px-4 py-3 sticky top-0 z-30">
         <div className="flex items-center gap-2">
           <Scissors className="w-5 h-5 text-primary rotate-45" />
           <span className="font-serif font-bold text-sm tracking-wider">OSANCHEZ PAINEL</span>
