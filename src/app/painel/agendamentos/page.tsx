@@ -52,6 +52,7 @@ export default function PainelAgendamentos() {
 
   const [errorMsg, setErrorMsg] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const [isPending, startTransition] = useTransition()
 
   // Delete confirmation modal state (admin only)
@@ -367,6 +368,12 @@ export default function PainelAgendamentos() {
     cancelled: appointments.filter(a => a.status === 'cancelled' || a.status === 'no_show').length
   }
 
+  const handleManualRefresh = async () => {
+    setIsRefreshing(true)
+    await loadData()
+    setTimeout(() => setIsRefreshing(false), 400)
+  }
+
   if (loading) {
     return (
       <div className="flex flex-col md:flex-row min-h-screen bg-background text-foreground">
@@ -404,12 +411,12 @@ export default function PainelAgendamentos() {
 
           <div className="flex items-center gap-2.5 w-full sm:w-auto">
             <button
-              onClick={() => loadData()}
-              disabled={isPending}
-              className="p-2.5 bg-secondary hover:bg-muted border border-border/80 text-foreground text-xs font-semibold rounded-xl transition-all shadow-sm cursor-pointer"
-              title="Atualizar lista"
+              onClick={handleManualRefresh}
+              disabled={isPending || isRefreshing}
+              className="p-2.5 bg-secondary hover:bg-muted border border-border/80 text-foreground text-xs font-semibold rounded-xl transition-all shadow-sm cursor-pointer disabled:opacity-50"
+              title="Atualizar lista de agendamentos"
             >
-              <RefreshCw className={`w-4 h-4 ${isPending ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-4 h-4 ${isRefreshing || isPending ? 'animate-spin' : ''}`} />
             </button>
             <button
               onClick={() => setShowWalkInModal(true)}
