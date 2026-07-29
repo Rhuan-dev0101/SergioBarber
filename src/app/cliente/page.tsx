@@ -106,7 +106,7 @@ export default function ClientePanel() {
       // Fetch customer's existing reviews to check which appointments have been reviewed
       const { data: customerReviews } = await supabase
         .from('reviews')
-        .select('id, appointment_id, rating, status, comment')
+        .select('id, appointment_id, rating, status, comment, photo_url')
         .eq('customer_id', session.user.id)
 
       const reviewMap = (customerReviews || []).reduce((acc: any, r: any) => {
@@ -391,16 +391,16 @@ export default function ClientePanel() {
                                 })
                                 setIsReviewModalOpen(true)
                               }}
-                              className="px-3 py-1.5 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-400 font-bold rounded text-[11px] flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+                              className="px-3.5 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-black font-bold rounded-lg text-xs flex items-center gap-1.5 transition-all shadow-md hover:shadow-amber-500/20 active:scale-95 cursor-pointer animate-pulse"
                             >
-                              <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                              Avaliar Atendimento
+                              <Star className="w-3.5 h-3.5 fill-black text-black" />
+                              Avaliar Corte
                             </button>
                           )}
 
                           {appt.status === 'completed' && appt.review && (
-                            <span className="text-[10px] font-semibold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-1 rounded flex items-center gap-1">
-                              <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                            <span className="text-[11px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/25 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
+                              <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
                               {appt.review.status === 'pending' ? `Avaliação em Análise (${appt.review.rating}★)` : `Avaliado (${appt.review.rating}★)`}
                             </span>
                           )}

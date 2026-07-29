@@ -112,14 +112,14 @@ export function BarbersSection({ initialBarbers, ratingsMap }: BarbersSectionPro
                   <h3 className="font-serif font-bold text-xl text-foreground flex flex-wrap items-center justify-center md:justify-start gap-2">
                     <span>{barber.full_name}</span>
                     
-                    {/* Star Rating Badge: Display only if barber has at least 1 approved review */}
-                    {rating && rating.count > 0 && (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/25 text-amber-400 text-xs font-bold">
-                        <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                        <span>{rating.avg.toFixed(1)}</span>
-                        <span className="text-[10px] text-muted-foreground font-normal">({rating.count} {rating.count === 1 ? 'avaliação' : 'avaliações'})</span>
+                    {/* Star Rating Badge: Shows real average or 0.0 if no approved reviews yet */}
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/25 text-amber-400 text-xs font-bold">
+                      <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                      <span>{rating && rating.count > 0 ? rating.avg.toFixed(1) : '0.0'}</span>
+                      <span className="text-[10px] text-muted-foreground font-normal">
+                        ({rating?.count || 0} {rating?.count === 1 ? 'avaliação' : 'avaliações'})
                       </span>
-                    )}
+                    </span>
                   </h3>
                   <span className="text-[10px] uppercase font-semibold text-primary tracking-wider">
                     {barber.full_name.includes('Sergio') ? 'Fundador & Master' : 'Barbeiro Especialista'}

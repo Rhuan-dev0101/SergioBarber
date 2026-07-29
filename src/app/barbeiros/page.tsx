@@ -166,16 +166,14 @@ export default async function Barbeiros() {
                       <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
                         <h2 className="text-2xl font-serif font-bold text-foreground">{barber.name}</h2>
                         
-                        {/* Star Rating Badge: Only display if barber has at least 1 approved review */}
-                        {ratingsMap[barber.id] && ratingsMap[barber.id].count > 0 && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/25 text-amber-400 text-xs font-bold">
-                            <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                            <span>{ratingsMap[barber.id].avg.toFixed(1)}</span>
-                            <span className="text-[10px] text-muted-foreground font-normal">
-                              ({ratingsMap[barber.id].count} {ratingsMap[barber.id].count === 1 ? 'avaliação' : 'avaliações'})
-                            </span>
+                        {/* Star Rating Badge: Display real rating or 0.0 for initial state */}
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/25 text-amber-400 text-xs font-bold">
+                          <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                          <span>{ratingsMap[barber.id] && ratingsMap[barber.id].count > 0 ? ratingsMap[barber.id].avg.toFixed(1) : '0.0'}</span>
+                          <span className="text-[10px] text-muted-foreground font-normal">
+                            ({ratingsMap[barber.id]?.count || 0} {ratingsMap[barber.id]?.count === 1 ? 'avaliação' : 'avaliações'})
                           </span>
-                        )}
+                        </span>
                       </div>
 
                       <span className="inline-flex items-center gap-1 bg-primary/10 text-primary px-3 py-1 rounded text-xs font-semibold self-center md:self-start">

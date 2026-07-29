@@ -11,10 +11,14 @@ CREATE TABLE IF NOT EXISTS public.reviews (
   barber_id UUID NOT NULL REFERENCES public.barbers(id) ON DELETE CASCADE,
   rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
   comment TEXT,
+  photo_url TEXT,
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- Ensure photo_url column exists if table was created previously
+ALTER TABLE public.reviews ADD COLUMN IF NOT EXISTS photo_url TEXT;
 
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_reviews_status ON public.reviews(status);

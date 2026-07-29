@@ -35,7 +35,7 @@ const STATIC_BARBERS = [
     avatar_url: '/barbers/sergio.jpg',
     specialties: ['Cortes Clássicos', 'Visagismo Facial', 'Barba Terapia'],
     experience_years: 10,
-    rating: '5.0'
+    rating: '0.0'
   },
   {
     id: 'enzo-uuid',
@@ -45,7 +45,7 @@ const STATIC_BARBERS = [
     avatar_url: '',
     specialties: ['Fade / Degradê', 'Design de Barba', 'Corte Moderno'],
     experience_years: 5,
-    rating: '4.9'
+    rating: '0.0'
   }
 ]
 
@@ -157,12 +157,30 @@ function AgendarWizardInner() {
           .select('id, is_active, bio, avatar_url, photo_url, specialties, experience_years, profiles(full_name, role)')
           .eq('is_active', true)
 
+        // Fetch approved reviews to compute real rating
+        const { data: approvedReviews } = await supabase
+          .from('reviews')
+          .select('barber_id, rating')
+          .eq('status', 'approved')
+
+        const ratingsMap: Record<string, { total: number; count: number }> = {}
+        if (approvedReviews && approvedReviews.length > 0) {
+          approvedReviews.forEach(r => {
+            if (!ratingsMap[r.barber_id]) ratingsMap[r.barber_id] = { total: 0, count: 0 }
+            ratingsMap[r.barber_id].total += r.rating
+            ratingsMap[r.barber_id].count += 1
+          })
+        }
+
         if (dbBarbers && dbBarbers.length > 0) {
           const formatted = dbBarbers
             .filter((b: any) => b.profiles)
             .map((b: any) => {
               const fullName = (b.profiles as any).full_name || 'Barbeiro'
               const isSergio = fullName.toLowerCase().includes('sergio')
+              const stats = ratingsMap[b.id]
+              const calcRating = stats && stats.count > 0 ? (stats.total / stats.count).toFixed(1) : '0.0'
+
               return {
                 id: b.id,
                 name: fullName,
@@ -173,7 +191,7 @@ function AgendarWizardInner() {
                   ? b.specialties
                   : (isSergio ? ['Cortes Clássicos', 'Visagismo Facial', 'Barba Terapia'] : ['Fade / Degradê', 'Design de Barba', 'Corte Moderno']),
                 experience_years: b.experience_years || (isSergio ? 10 : 5),
-                rating: '5.0'
+                rating: calcRating
               }
             })
           setBarbers(formatted)
