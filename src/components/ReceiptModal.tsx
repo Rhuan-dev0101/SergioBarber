@@ -71,9 +71,11 @@ export function ReceiptModal({ paymentId, appointmentId, onClose }: ReceiptModal
 
       const element = receiptRef.current
 
+      // Scale 2 is optimal across mobile Safari (iOS), Chrome & Desktop without exceeding canvas memory limits
       const canvas = await html2canvas(element, {
-        scale: 3,
+        scale: 2,
         useCORS: true,
+        allowTaint: true,
         logging: false,
         backgroundColor: '#09090b'
       })
@@ -104,9 +106,29 @@ export function ReceiptModal({ paymentId, appointmentId, onClose }: ReceiptModal
       const fileName = `Recibo_${data.receiptNumber}.pdf`
 
       return { blob, fileName }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error generating PDF:', err)
-      return null
+      // Retry once with scale 1 if high-res canvas fails on memory-constrained devices
+      try {
+        const html2canvas = (await import('html2canvas')).default
+        const { jsPDF } = await import('jspdf')
+        const element = receiptRef.current
+        const canvas = await html2canvas(element, { scale: 1, useCORS: true, allowTaint: true, backgroundColor: '#09090b' })
+        const imgData = canvas.toDataURL('image/png')
+        const cardWidth = 140
+        const cardHeight = (canvas.height * cardWidth) / canvas.width
+        const margin = 6
+        const pdfWidth = cardWidth + (margin * 2)
+        const pdfHeight = cardHeight + (margin * 2)
+        const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [pdfWidth, pdfHeight] })
+        pdf.setFillColor(9, 9, 11)
+        pdf.rect(0, 0, pdfWidth, pdfHeight, 'F')
+        pdf.addImage(imgData, 'PNG', margin, margin, cardWidth, cardHeight)
+        return { blob: pdf.output('blob'), fileName: `Recibo_${data.receiptNumber}.pdf` }
+      } catch (retryErr) {
+        console.error('Retry PDF generation failed:', retryErr)
+        return null
+      }
     }
   }
 
