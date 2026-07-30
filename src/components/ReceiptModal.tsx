@@ -65,13 +65,13 @@ export function ReceiptModal({ paymentId, appointmentId, onClose }: ReceiptModal
     if (!receiptRef.current || !data) return null
 
     try {
-      // Dynamic imports of client-side libraries
-      const html2canvas = (await import('html2canvas')).default
+      // Dynamic imports of client-side libraries (html2canvas-pro supports Tailwind v4 oklch/oklab color functions)
+      const html2canvas = (await import('html2canvas-pro')).default
       const { jsPDF } = await import('jspdf')
 
       const element = receiptRef.current
 
-      // CRITICAL: allowTaint MUST be false, otherwise canvas.toDataURL() throws a SecurityError ("Tainted canvases may not be exported")
+      // Scale 2 is optimal across mobile Safari (iOS), Chrome & Desktop without exceeding canvas memory limits
       const canvas = await html2canvas(element, {
         scale: 2,
         useCORS: true,
@@ -108,9 +108,9 @@ export function ReceiptModal({ paymentId, appointmentId, onClose }: ReceiptModal
       return { blob, fileName }
     } catch (err: any) {
       console.error('Error generating PDF:', err)
-      // Retry once with scale 1 and allowTaint: false
+      // Retry once with scale 1 using html2canvas-pro
       try {
-        const html2canvas = (await import('html2canvas')).default
+        const html2canvas = (await import('html2canvas-pro')).default
         const { jsPDF } = await import('jspdf')
         const element = receiptRef.current
         if (!element) return null
