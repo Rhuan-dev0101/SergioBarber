@@ -71,11 +71,11 @@ export function ReceiptModal({ paymentId, appointmentId, onClose }: ReceiptModal
 
       const element = receiptRef.current
 
-      // Scale 2 is optimal across mobile Safari (iOS), Chrome & Desktop without exceeding canvas memory limits
+      // CRITICAL: allowTaint MUST be false, otherwise canvas.toDataURL() throws a SecurityError ("Tainted canvases may not be exported")
       const canvas = await html2canvas(element, {
         scale: 2,
         useCORS: true,
-        allowTaint: true,
+        allowTaint: false,
         logging: false,
         backgroundColor: '#09090b'
       })
@@ -108,12 +108,20 @@ export function ReceiptModal({ paymentId, appointmentId, onClose }: ReceiptModal
       return { blob, fileName }
     } catch (err: any) {
       console.error('Error generating PDF:', err)
-      // Retry once with scale 1 if high-res canvas fails on memory-constrained devices
+      // Retry once with scale 1 and allowTaint: false
       try {
         const html2canvas = (await import('html2canvas')).default
         const { jsPDF } = await import('jspdf')
         const element = receiptRef.current
-        const canvas = await html2canvas(element, { scale: 1, useCORS: true, allowTaint: true, backgroundColor: '#09090b' })
+        if (!element) return null
+
+        const canvas = await html2canvas(element, { 
+          scale: 1, 
+          useCORS: true, 
+          allowTaint: false, 
+          logging: false,
+          backgroundColor: '#09090b' 
+        })
         const imgData = canvas.toDataURL('image/png')
         const cardWidth = 140
         const cardHeight = (canvas.height * cardWidth) / canvas.width
@@ -125,9 +133,9 @@ export function ReceiptModal({ paymentId, appointmentId, onClose }: ReceiptModal
         pdf.rect(0, 0, pdfWidth, pdfHeight, 'F')
         pdf.addImage(imgData, 'PNG', margin, margin, cardWidth, cardHeight)
         return { blob: pdf.output('blob'), fileName: `Recibo_${data.receiptNumber}.pdf` }
-      } catch (retryErr) {
+      } catch (retryErr: any) {
         console.error('Retry PDF generation failed:', retryErr)
-        return null
+        throw new Error(retryErr?.message || err?.message || 'Erro de renderização gráfica')
       }
     }
   }
@@ -145,9 +153,9 @@ export function ReceiptModal({ paymentId, appointmentId, onClose }: ReceiptModal
         a.click()
         document.body.removeChild(a)
         URL.revokeObjectURL(url)
-      } else {
-        alert('Erro ao gerar arquivo PDF.')
       }
+    } catch (err: any) {
+      alert(`Erro ao gerar PDF: ${err?.message || 'Tente novamente.'}`)
     } finally {
       setIsGeneratingPdf(false)
     }
@@ -163,10 +171,7 @@ export function ReceiptModal({ paymentId, appointmentId, onClose }: ReceiptModal
     setShareSuccess(false)
     try {
       const result = await generatePdfBlob()
-      if (!result) {
-        alert('Erro ao gerar arquivo para compartilhamento.')
-        return
-      }
+      if (!result) return
 
       const file = new File([result.blob], result.fileName, { type: 'application/pdf' })
 
@@ -180,18 +185,16 @@ export function ReceiptModal({ paymentId, appointmentId, onClose }: ReceiptModal
           setShareSuccess(true)
           setTimeout(() => setShareSuccess(false), 3000)
         } catch (shareErr: any) {
-          // User cancelled native share sheet or abort — do not show error alert
           if (shareErr.name === 'AbortError' || shareErr.code === 20) {
             return
           }
           console.error('Share execution error:', shareErr)
         }
       } else {
-        // Fallback to download if Web Share API with files is not available
         handleDownload()
       }
     } catch (err: any) {
-      console.error('Share error:', err)
+      alert(`Erro ao compartilhar: ${err?.message || 'Tente novamente.'}`)
     } finally {
       setIsGeneratingPdf(false)
     }
