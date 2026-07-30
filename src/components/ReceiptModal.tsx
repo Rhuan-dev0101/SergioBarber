@@ -41,15 +41,23 @@ export function ReceiptModal({ paymentId, appointmentId, onClose }: ReceiptModal
 
   // Check Web Share API capability with files support
   useEffect(() => {
-    if (typeof navigator !== 'undefined' && 'canShare' in navigator && typeof File !== 'undefined') {
+    if (
+      typeof navigator !== 'undefined' &&
+      typeof navigator.canShare === 'function' &&
+      typeof File !== 'undefined'
+    ) {
       try {
         const dummyFile = new File(['test'], 'test.pdf', { type: 'application/pdf' })
         if (navigator.canShare({ files: [dummyFile] })) {
           setCanShare(true)
+        } else {
+          setCanShare(false)
         }
       } catch (e) {
         setCanShare(false)
       }
+    } else {
+      setCanShare(false)
     }
   }, [])
 
@@ -58,7 +66,7 @@ export function ReceiptModal({ paymentId, appointmentId, onClose }: ReceiptModal
 
     try {
       // Dynamic imports of client-side libraries
-      const html2canvas = (await import('html2canvas')).default
+      const html2canvas = (await import('html2canvas-pro')).default
       const { jsPDF } = await import('jspdf')
 
       const element = receiptRef.current
@@ -117,6 +125,11 @@ export function ReceiptModal({ paymentId, appointmentId, onClose }: ReceiptModal
   }
 
   const handleShare = async () => {
+    if (!canShare) {
+      handleDownload()
+      return
+    }
+
     setIsGeneratingPdf(true)
     setShareSuccess(false)
     try {
@@ -129,21 +142,27 @@ export function ReceiptModal({ paymentId, appointmentId, onClose }: ReceiptModal
       const file = new File([result.blob], result.fileName, { type: 'application/pdf' })
 
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          title: `Recibo #${data?.receiptNumber} - ${data?.businessName}`,
-          text: `Segue o comprovante de pagamento do recibo #${data?.receiptNumber}.`,
-          files: [file]
-        })
-        setShareSuccess(true)
-        setTimeout(() => setShareSuccess(false), 3000)
+        try {
+          await navigator.share({
+            title: `Recibo #${data?.receiptNumber} - ${data?.businessName}`,
+            text: `Segue o comprovante de pagamento do recibo #${data?.receiptNumber}.`,
+            files: [file]
+          })
+          setShareSuccess(true)
+          setTimeout(() => setShareSuccess(false), 3000)
+        } catch (shareErr: any) {
+          // User cancelled native share sheet or abort — do not show error alert
+          if (shareErr.name === 'AbortError' || shareErr.code === 20) {
+            return
+          }
+          console.error('Share execution error:', shareErr)
+        }
       } else {
         // Fallback to download if Web Share API with files is not available
         handleDownload()
       }
     } catch (err: any) {
-      if (err.name !== 'AbortError') {
-        console.error('Share error:', err)
-      }
+      console.error('Share error:', err)
     } finally {
       setIsGeneratingPdf(false)
     }
