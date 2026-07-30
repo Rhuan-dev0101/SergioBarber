@@ -66,13 +66,13 @@ export function ReceiptModal({ paymentId, appointmentId, onClose }: ReceiptModal
 
     try {
       // Dynamic imports of client-side libraries
-      const html2canvas = (await import('html2canvas-pro')).default
+      const html2canvas = (await import('html2canvas')).default
       const { jsPDF } = await import('jspdf')
 
       const element = receiptRef.current
 
       const canvas = await html2canvas(element, {
-        scale: 2.5,
+        scale: 3,
         useCORS: true,
         logging: false,
         backgroundColor: '#09090b'
@@ -80,18 +80,25 @@ export function ReceiptModal({ paymentId, appointmentId, onClose }: ReceiptModal
 
       const imgData = canvas.toDataURL('image/png')
 
-      // Create A4 PDF format
+      // Calculate dynamic PDF dimensions so receipt is 100% visible without clipping
+      const cardWidth = 140 // mm
+      const cardHeight = (canvas.height * cardWidth) / canvas.width
+      const margin = 6 // mm
+      const pdfWidth = cardWidth + (margin * 2)
+      const pdfHeight = cardHeight + (margin * 2)
+
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
-        format: 'a4'
+        format: [pdfWidth, pdfHeight]
       })
 
-      const pdfWidth = pdf.internal.pageSize.getWidth()
-      const imgProps = pdf.getImageProperties(imgData)
-      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width
+      // Fill matching dark background
+      pdf.setFillColor(9, 9, 11) // #09090b
+      pdf.rect(0, 0, pdfWidth, pdfHeight, 'F')
 
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight)
+      // Draw receipt image centered with margin
+      pdf.addImage(imgData, 'PNG', margin, margin, cardWidth, cardHeight)
 
       const blob = pdf.output('blob')
       const fileName = `Recibo_${data.receiptNumber}.pdf`
