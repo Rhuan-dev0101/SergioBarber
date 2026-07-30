@@ -5,10 +5,11 @@ import { useRouter } from 'next/navigation'
 import { 
   Scissors, Calendar, Clock, Search, Edit2, Trash2, CheckCircle2, 
   AlertCircle, Plus, Loader2, Save, X, User, Sparkles, Check, AlertTriangle, UserX,
-  Filter, RotateCcw, CheckCircle, ChevronRight, Wallet, DollarSign, RefreshCw
+  Filter, RotateCcw, CheckCircle, ChevronRight, Wallet, DollarSign, RefreshCw, FileText
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
+import { ReceiptModal } from '@/components/ReceiptModal'
 import { 
   updateAppointmentStatusAction, 
   updateAppointmentNotesAction, 
@@ -60,6 +61,9 @@ export default function PainelAgendamentos() {
 
   // No-show confirmation modal state
   const [noShowTarget, setNoShowTarget] = useState<any>(null)
+
+  // Receipt modal state
+  const [selectedReceiptApptId, setSelectedReceiptApptId] = useState<string | null>(null)
 
   const supabase = createClient()
 
@@ -828,6 +832,18 @@ export default function PainelAgendamentos() {
                         </button>
                       )}
 
+                      {/* Emitir Recibo button (For paid/completed appointments or confirmed payments) */}
+                      {(appt.status === 'completed' || (Array.isArray(appt.payments) ? appt.payments[0]?.status : appt.payments?.status) === 'confirmed_manually' || (Array.isArray(appt.payments) ? appt.payments[0]?.status : appt.payments?.status) === 'paid') && (
+                        <button
+                          onClick={() => setSelectedReceiptApptId(appt.id)}
+                          className="min-h-[44px] py-2.5 px-3 bg-primary/10 hover:bg-primary/20 border border-primary/30 text-primary font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95 shadow-sm"
+                          title="Emitir Recibo de Pagamento"
+                        >
+                          <FileText className="w-4 h-4 text-primary" />
+                          <span>Emitir Recibo</span>
+                        </button>
+                      )}
+
                       {/* Admin Permanent Delete button */}
                       {userRole === 'admin' && (
                         <button
@@ -1106,6 +1122,14 @@ export default function PainelAgendamentos() {
               </form>
             </div>
           </div>
+        )}
+
+        {/* Receipt Modal */}
+        {selectedReceiptApptId && (
+          <ReceiptModal
+            appointmentId={selectedReceiptApptId}
+            onClose={() => setSelectedReceiptApptId(null)}
+          />
         )}
 
       </main>

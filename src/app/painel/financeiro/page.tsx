@@ -4,10 +4,11 @@ import React, { useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { 
   Scissors, DollarSign, Calendar, Clock, Check, X, 
-  AlertCircle, CheckCircle2, Loader2, ArrowUpRight, TrendingUp, Search, Crown
+  AlertCircle, CheckCircle2, Loader2, ArrowUpRight, TrendingUp, Search, Crown, FileText
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
+import { ReceiptModal } from '@/components/ReceiptModal'
 import { confirmPaymentAction } from './actions'
 
 export default function PainelFinanceiro() {
@@ -16,6 +17,8 @@ export default function PainelFinanceiro() {
   const [filteredPayments, setFilteredPayments] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(true)
+
+  const [selectedReceiptPaymentId, setSelectedReceiptPaymentId] = useState<string | null>(null)
 
   const [errorMsg, setErrorMsg] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
@@ -400,13 +403,23 @@ export default function PainelFinanceiro() {
                             </>
                           )}
                           {p.status === 'paid' && (
-                            <button
-                              onClick={() => handleConfirmPayment(p.id, 'refunded')}
-                              disabled={isPending}
-                              className="px-2.5 py-1 bg-destructive/10 hover:bg-destructive/20 border border-destructive/20 text-destructive rounded-lg text-[10px] font-bold cursor-pointer transition-all"
-                            >
-                              Estornar
-                            </button>
+                            <>
+                              <button
+                                onClick={() => setSelectedReceiptPaymentId(p.id)}
+                                className="px-2.5 py-1 bg-primary/15 hover:bg-primary/25 border border-primary/30 text-primary font-bold rounded-lg text-[10px] cursor-pointer transition-all inline-flex items-center gap-1 shadow-sm"
+                                title="Emitir Recibo"
+                              >
+                                <FileText className="w-3 h-3 text-primary" />
+                                <span>Recibo</span>
+                              </button>
+                              <button
+                                onClick={() => handleConfirmPayment(p.id, 'refunded')}
+                                disabled={isPending}
+                                className="px-2.5 py-1 bg-destructive/10 hover:bg-destructive/20 border border-destructive/20 text-destructive rounded-lg text-[10px] font-bold cursor-pointer transition-all"
+                              >
+                                Estornar
+                              </button>
+                            </>
                           )}
                         </>
                       ) : (
@@ -430,13 +443,23 @@ export default function PainelFinanceiro() {
                             </>
                           )}
                           {(p.status === 'confirmed_manually' || p.status === 'paid') && (
-                            <button
-                              onClick={() => handleConfirmPayment(p.id, 'refunded')}
-                              disabled={isPending}
-                              className="px-2.5 py-1 bg-destructive/10 hover:bg-destructive/20 border border-destructive/20 text-destructive rounded-lg text-[10px] font-bold cursor-pointer transition-all"
-                            >
-                              Estornar
-                            </button>
+                            <>
+                              <button
+                                onClick={() => setSelectedReceiptPaymentId(p.id)}
+                                className="px-2.5 py-1 bg-primary/15 hover:bg-primary/25 border border-primary/30 text-primary font-bold rounded-lg text-[10px] cursor-pointer transition-all inline-flex items-center gap-1 shadow-sm"
+                                title="Emitir Recibo"
+                              >
+                                <FileText className="w-3 h-3 text-primary" />
+                                <span>Recibo</span>
+                              </button>
+                              <button
+                                onClick={() => handleConfirmPayment(p.id, 'refunded')}
+                                disabled={isPending}
+                                className="px-2.5 py-1 bg-destructive/10 hover:bg-destructive/20 border border-destructive/20 text-destructive rounded-lg text-[10px] font-bold cursor-pointer transition-all"
+                              >
+                                Estornar
+                              </button>
+                            </>
                           )}
                         </>
                       )}
@@ -453,6 +476,14 @@ export default function PainelFinanceiro() {
             </tbody>
           </table>
         </div>
+
+        {/* Receipt Modal */}
+        {selectedReceiptPaymentId && (
+          <ReceiptModal
+            paymentId={selectedReceiptPaymentId}
+            onClose={() => setSelectedReceiptPaymentId(null)}
+          />
+        )}
 
       </main>
     </div>
