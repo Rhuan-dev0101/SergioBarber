@@ -192,9 +192,13 @@ export default function PainelFinanceiro() {
     } else {
       if (p.status === 'confirmed_manually' || p.status === 'paid') {
         totalConfirmed += Number(p.total_amount)
-        totalDeposits += Number(p.deposit_amount)
+        if (p.method === 'pix') {
+          totalDeposits += Number(p.deposit_amount)
+        }
       } else if (p.status === 'pending') {
-        totalPending += Number(p.deposit_amount)
+        if (p.method === 'pix') {
+          totalPending += Number(p.deposit_amount)
+        }
       }
     }
   })

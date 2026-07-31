@@ -180,24 +180,21 @@ function SignUpForm() {
   if (isSignedUp) {
     return (
       <div className="animated-gradient-card p-8 sm:p-10 rounded-2xl space-y-6 shadow-2xl relative overflow-hidden text-center animate-in zoom-in-95 duration-300">
-        <div className="w-16 h-16 rounded-2xl bg-primary/15 text-primary flex items-center justify-center mx-auto border border-primary/30 shadow-lg shadow-primary/10">
-          <Mail className="w-8 h-8" />
+        <div className="w-16 h-16 rounded-2xl bg-emerald-500/15 text-emerald-500 flex items-center justify-center mx-auto border border-emerald-500/30 shadow-lg shadow-emerald-500/10">
+          <CheckCircle className="w-8 h-8" />
         </div>
 
         <div className="space-y-3">
           <h2 className="text-2xl font-serif font-bold text-foreground">
-            Conta criada com sucesso! ✉️
+            Conta criada com sucesso! 🎉
           </h2>
           
-          <div className="p-4 bg-secondary/50 border border-primary/20 rounded-xl text-xs sm:text-sm text-foreground/90 text-left space-y-2.5 leading-relaxed">
-            <p className="font-semibold text-primary">
-              Enviamos um link de confirmação para o seu e-mail: <span className="underline font-mono text-foreground">{email}</span>
+          <div className="p-4 bg-secondary/50 border border-border/60 rounded-xl text-xs sm:text-sm text-foreground/90 text-center space-y-2 leading-relaxed">
+            <p className="font-semibold text-foreground">
+              Sua conta foi cadastrada com sucesso.
             </p>
-            <p>
-              Você precisa clicar nesse link para ativar sua conta antes de conseguir fazer login.
-            </p>
-            <p className="text-[11px] text-muted-foreground pt-2 border-t border-border/40">
-              💡 <strong>Não encontrou o e-mail?</strong> Verifique também a sua caixa de <strong>spam</strong> ou lixo eletrônico.
+            <p className="text-muted-foreground text-xs">
+              Você já pode fazer login imediatamente para agendar seus horários e gerenciar sua conta.
             </p>
           </div>
         </div>
@@ -205,7 +202,7 @@ function SignUpForm() {
         <div className="pt-2">
           <Link
             href="/entrar"
-            className="inline-flex items-center justify-center gap-2 w-full py-3.5 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl text-xs shadow-lg transition-all"
+            className="inline-flex items-center justify-center gap-2 w-full py-3.5 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl text-xs shadow-lg transition-all cursor-pointer"
           >
             <span>Ir para a Tela de Entrar (Login)</span>
             <ArrowRight className="w-4 h-4" />

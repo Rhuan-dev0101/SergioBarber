@@ -407,14 +407,44 @@ function AgendarWizardInner() {
 
   const handleCopyPix = async () => {
     if (!pixPayload) return
+    let copySuccessful = false
     try {
-      await navigator.clipboard.writeText(pixPayload)
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(pixPayload)
+        copySuccessful = true
+      } else {
+        const textarea = document.createElement('textarea')
+        textarea.value = pixPayload
+        textarea.style.position = 'fixed'
+        textarea.style.opacity = '0'
+        document.body.appendChild(textarea)
+        textarea.focus()
+        textarea.select()
+        copySuccessful = document.execCommand('copy')
+        document.body.removeChild(textarea)
+      }
+    } catch (err) {
+      console.error('Failed to copy Pix payload using clipboard API, trying fallback:', err)
+      try {
+        const textarea = document.createElement('textarea')
+        textarea.value = pixPayload
+        textarea.style.position = 'fixed'
+        textarea.style.opacity = '0'
+        document.body.appendChild(textarea)
+        textarea.focus()
+        textarea.select()
+        copySuccessful = document.execCommand('copy')
+        document.body.removeChild(textarea)
+      } catch (fallbackErr) {
+        console.error('Fallback copy also failed:', fallbackErr)
+      }
+    }
+
+    if (copySuccessful) {
       setCopiedPix(true)
       setTimeout(() => {
         setCopiedPix(false)
-      }, 2000)
-    } catch (err) {
-      console.error('Failed to copy Pix payload:', err)
+      }, 3000)
     }
   }
 
@@ -658,28 +688,37 @@ function AgendarWizardInner() {
                     <p className="text-[10px] text-muted-foreground leading-normal font-sans">
                       Você pode escanear o QR Code ao lado ou copiar o código Pix abaixo para realizar o pagamento no aplicativo do seu banco.
                     </p>
-                    <button
-                      type="button"
-                      onClick={handleCopyPix}
-                      disabled={!pixPayload}
-                      className={`w-full sm:w-auto px-4 py-2 rounded text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer ${
-                        copiedPix
-                          ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                          : 'bg-primary hover:bg-primary-hover text-primary-foreground'
-                      }`}
-                    >
-                      {copiedPix ? (
-                        <>
-                          <Check className="w-3.5 h-3.5 text-white" />
-                          Copiado!
-                        </>
-                      ) : (
-                        <>
-                          <Clock className="w-3.5 h-3.5" />
-                          Copiar código Pix
-                        </>
+                    <div className="flex flex-col sm:flex-row items-center gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={handleCopyPix}
+                        disabled={!pixPayload}
+                        className={`w-full sm:w-auto px-4 py-2 rounded text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer ${
+                          copiedPix
+                            ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20'
+                            : 'bg-primary hover:bg-primary-hover text-primary-foreground'
+                        }`}
+                      >
+                        {copiedPix ? (
+                          <>
+                            <Check className="w-3.5 h-3.5 text-white" />
+                            Copiado com Sucesso!
+                          </>
+                        ) : (
+                          <>
+                            <Clock className="w-3.5 h-3.5" />
+                            Copiar código Pix
+                          </>
+                        )}
+                      </button>
+
+                      {copiedPix && (
+                        <div className="text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg flex items-center gap-1.5 animate-in fade-in zoom-in-95 duration-200">
+                          <Check className="w-3.5 h-3.5 shrink-0 text-emerald-400" />
+                          <span>Código Pix copiado para a área de transferência!</span>
+                        </div>
                       )}
-                    </button>
+                    </div>
                   </div>
                 </div>
               </div>

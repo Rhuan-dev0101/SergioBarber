@@ -145,7 +145,7 @@ export async function signUpAction(prevState: any, formData: FormData): Promise<
 
     return { 
       success: true, 
-      message: 'Cadastro realizado com sucesso! Se necessário, confirme seu e-mail ou faça login.' 
+      message: 'Cadastro realizado com sucesso! Você já pode fazer login.' 
     }
   } catch (err) {
     console.error('Signup action error:', err)

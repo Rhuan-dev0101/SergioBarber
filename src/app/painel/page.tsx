@@ -40,8 +40,8 @@ export default async function PainelDashboard() {
       start_time,
       status,
       services (name, price),
-      payments (total_amount, deposit_amount, status),
-      customer:profiles (full_name),
+      payments (total_amount, deposit_amount, status, method),
+      customer:profiles!customer_id (full_name),
       barber_id
     `)
 
@@ -112,13 +112,13 @@ export default async function PainelDashboard() {
     }
 
     // Revenue counting
-    const payment = appt.payments?.[0]
+    const payment = Array.isArray(appt.payments) ? appt.payments[0] : appt.payments
     const service = appt.services
     if (payment) {
       if (payment.status === 'paid' || payment.status === 'confirmed_manually') {
         totalRevenue += Number(payment.total_amount)
-      } else if (payment.status === 'pending') {
-        // Pending signal is deposit
+      } else if (payment.status === 'pending' && payment.method === 'pix') {
+        // Pending signal is Pix deposit awaiting approval
         pendingRevenue += Number(payment.deposit_amount)
       }
     } else if (service && appt.status === 'completed') {
@@ -137,11 +137,11 @@ export default async function PainelDashboard() {
     totalRevenue += Number(pkg.package_price)
   })
 
-  // Fetch all barbers to map names
+  // Fetch all barbers and admins to map names properly
   const { data: barbersList } = await supabase
     .from('profiles')
     .select('id, full_name')
-    .eq('role', 'barber')
+    .in('role', ['barber', 'admin'])
 
   const barberMap = (barbersList || []).reduce((acc: any, b: any) => {
     acc[b.id] = b.full_name
@@ -158,7 +158,7 @@ export default async function PainelDashboard() {
       }
       barberStats[barberName].count++
       
-      const payment = appt.payments?.[0]
+      const payment = Array.isArray(appt.payments) ? appt.payments[0] : appt.payments
       if (payment && (payment.status === 'paid' || payment.status === 'confirmed_manually')) {
         barberStats[barberName].revenue += Number(payment.total_amount)
       }
