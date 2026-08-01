@@ -332,9 +332,23 @@ export default function ClientePanel() {
                               Cancelar
                             </button>
                           ) : (
-                            <span className="text-[10px] text-muted-foreground text-right block max-w-[150px] leading-normal italic">
-                              Cancelamento indisponível (limite de 1 hora atingido)
-                            </span>
+                            <div className="flex flex-col items-end gap-2 w-full sm:w-auto">
+                              <span className="text-[10px] text-muted-foreground text-right block max-w-[170px] leading-normal italic">
+                                Cancelamento indisponível (limite de 1 hora atingido)
+                              </span>
+                              <a
+                                href={formatWhatsAppLink(
+                                  settings?.whatsapp,
+                                  `Olá! Sou ${profile?.full_name || 'Cliente'} e preciso cancelar meu agendamento com urgência.\nCódigo: ${apptShortCode(appt.id)}\nServiço: ${appt.services?.name || 'Serviço'} — ${appt.barberName || 'Barbeiro'}\nData: ${formatDate(appt.start_time)} às ${formatTime(appt.start_time)}`
+                                )}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="px-3 py-1.5 bg-secondary hover:bg-muted border border-border text-foreground font-medium rounded text-[11px] flex items-center justify-center gap-1.5 transition-all w-full sm:w-auto text-center shadow-xs"
+                              >
+                                <Phone className="w-3 h-3 text-emerald-500 shrink-0" />
+                                Cancelar pelo WhatsApp
+                              </a>
+                            </div>
                           )}
                         </div>
                       </div>
