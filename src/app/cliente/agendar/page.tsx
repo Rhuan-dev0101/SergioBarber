@@ -1534,7 +1534,7 @@ function AgendarWizardInner() {
                 <div className="p-4 bg-secondary/30 rounded-xl border border-border/60 flex items-center gap-3 text-xs text-muted-foreground">
                   <ShieldCheck className="w-5 h-5 text-primary shrink-0" />
                   <p className="leading-relaxed">
-                    <strong className="text-foreground font-semibold">Garantia Osanchez Barbearia:</strong> Seu agendamento é protegido. Você pode reagendar ou cancelar sem custos com até 2 horas de antecedência.
+                    <strong className="text-foreground font-semibold">Garantia Osanchez Barbearia:</strong> Seu agendamento é protegido. Você pode reagendar ou cancelar sem custos com até 1 hora de antecedência.
                   </p>
                 </div>
               </div>
@@ -1633,7 +1633,7 @@ function AgendarWizardInner() {
                   />
                   <span>
                     Confirmo o agendamento e declaro-me ciente de que atrasos superiores a <strong>10 minutos</strong> configuram no-show, e de que o cancelamento do sinal integral exige aviso de{' '}
-                    <strong>2 horas</strong> de antecedência.
+                    <strong>1 hora</strong> de antecedência.
                   </span>
                 </label>
               </div>

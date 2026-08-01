@@ -50,7 +50,7 @@ export default function TermosDeUso() {
                 <strong>Sinal de Reserva:</strong> Para garantir o horário, poderá ser solicitado o pagamento de um sinal de <strong>50% (cinquenta por cento)</strong> do valor do serviço contratado via Pix.
               </li>
               <li>
-                <strong>Política de Cancelamento:</strong> O cancelamento ou reagendamento de um horário deve ser realizado com no mínimo <strong>2 horas de antecedência</strong> através do painel do cliente. Cancelamentos fora desse prazo podem acarretar a perda do sinal de reserva.
+                <strong>Política de Cancelamento:</strong> O cancelamento ou reagendamento de um horário deve ser realizado com no mínimo <strong>1 hora de antecedência</strong> através do painel do cliente. Cancelamentos fora desse prazo podem acarretar a perda do sinal de reserva.
               </li>
               <li>
                 <strong>Atrasos:</strong> Toleramos um atraso máximo de <strong>10 minutos</strong>. Passado esse período, o agendamento poderá ser marcado como &quot;não comparecido&quot; (No-show) e a realização do serviço ficará sujeita à disponibilidade da agenda do barbeiro, sem reembolso de sinal.

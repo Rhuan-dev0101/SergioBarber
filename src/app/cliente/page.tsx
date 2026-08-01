@@ -168,7 +168,7 @@ export default function ClientePanel() {
     const now = new Date()
     const start = new Date(startTimeStr)
     const diffHours = (start.getTime() - now.getTime()) / (1000 * 60 * 60)
-    return diffHours >= 2
+    return diffHours >= 1
   }
 
   const formatDate = (dateStr: string) => {
@@ -333,7 +333,7 @@ export default function ClientePanel() {
                             </button>
                           ) : (
                             <span className="text-[10px] text-muted-foreground text-right block max-w-[150px] leading-normal italic">
-                              Cancelamento indisponível (limite de 2 horas atingido)
+                              Cancelamento indisponível (limite de 1 hora atingido)
                             </span>
                           )}
                         </div>
@@ -462,7 +462,7 @@ export default function ClientePanel() {
                   <AlertCircle className="w-4 h-4 text-primary" /> Regras Osanchez
                 </h4>
                 <ul className="list-disc pl-4 space-y-1.5 text-[11px] leading-normal">
-                  <li>O cancelamento online livre expira <strong>2 horas</strong> antes da reserva.</li>
+                  <li>O cancelamento online livre expira <strong>1 hora</strong> antes da reserva.</li>
                   <li>Tolerância máxima a atrasos de <strong>10 minutos</strong>.</li>
                   <li>Reservas sem sinal Pix em até 2 horas podem ser canceladas pela barbearia.</li>
                 </ul>

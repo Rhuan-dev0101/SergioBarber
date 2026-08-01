@@ -9,7 +9,7 @@ export type CancelResponse = {
 
 /**
  * Server Action to cancel a customer appointment.
- * Validates ownership and the 2-hour cancellation time window.
+ * Validates ownership and the 1-hour cancellation time window.
  */
 export async function cancelAppointmentAction(appointmentId: string): Promise<CancelResponse> {
   if (!appointmentId) {
@@ -41,7 +41,7 @@ export async function cancelAppointmentAction(appointmentId: string): Promise<Ca
       return { success: false, message: 'Este agendamento já está cancelado.' }
     }
 
-    // 3. Verify cancellation time window (minimum 2 hours before appointment start)
+    // 3. Verify cancellation time window (minimum 1 hour before appointment start)
     const nowObj = new Date()
     const startTimeObj = new Date(appointment.start_time)
     
@@ -49,10 +49,10 @@ export async function cancelAppointmentAction(appointmentId: string): Promise<Ca
     const diffMs = startTimeObj.getTime() - nowObj.getTime()
     const diffHours = diffMs / (1000 * 60 * 60)
 
-    if (diffHours < 2) {
+    if (diffHours < 1) {
       return { 
         success: false, 
-        message: 'Cancelamentos só são permitidos com antecedência mínima de 2 horas. Caso precise cancelar urgente, entre em contato via WhatsApp.' 
+        message: 'Cancelamentos só são permitidos com antecedência mínima de 1 hora. Caso precise cancelar urgente, entre em contato via WhatsApp.' 
       }
     }
 
