@@ -190,7 +190,8 @@ export async function createWalkInAppointmentAction(
   serviceId: string,
   dateStr: string,
   timeStr: string,
-  notes: string
+  notes: string,
+  paymentMethod: string = 'cash'
 ): Promise<ActionResponse> {
   const staff = await verifyStaffSession()
   if (!staff) {
@@ -227,7 +228,7 @@ export async function createWalkInAppointmentAction(
     const startDate = new Date(startTimeStr)
     const endDate = addMinutes(startDate, duration)
 
-    // 4. Insert appointment (customer_id is null for anonymous walk-ins)
+    // 4. Insert appointment directly as 'confirmed' (customer_id is null for anonymous walk-ins)
     const formattedNotes = `[Walk-in] Cliente: ${clientName}. ${notes}`
     const { data: appt, error: apptError } = await supabase
       .from('appointments')
@@ -237,7 +238,7 @@ export async function createWalkInAppointmentAction(
         service_id: serviceId,
         start_time: startDate.toISOString(),
         end_time: endDate.toISOString(),
-        status: 'confirmed', // immediately confirmed
+        status: 'confirmed', // immediately confirmed, skipping any deposit requirement
         notes: formattedNotes
       })
       .select('id')
@@ -248,16 +249,16 @@ export async function createWalkInAppointmentAction(
       return { success: false, message: 'Erro ao registrar agendamento presencial.' }
     }
 
-    // 5. Create paid payment record for walk-in
+    // 5. Create payment record for walk-in (no deposit calculated, initial status pending for in-person collection)
     await supabase
       .from('payments')
       .insert({
         appointment_id: appt.id,
         total_amount: service.price,
         deposit_amount: 0.00,
-        status: 'confirmed_manually',
-        method: 'cash',
-        notes: 'Pagamento presencial registrado no painel'
+        status: 'pending',
+        method: paymentMethod || 'cash',
+        notes: 'Pagamento presencial (Walk-in) registrado no painel'
       })
 
     return { success: true, message: 'Agendamento presencial registrado com sucesso.' }

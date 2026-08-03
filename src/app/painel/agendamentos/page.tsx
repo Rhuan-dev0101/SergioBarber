@@ -40,6 +40,7 @@ export default function PainelAgendamentos() {
   const [walkInDate, setWalkInDate] = useState('')
   const [walkInTime, setWalkInTime] = useState('')
   const [walkInNotes, setWalkInNotes] = useState('')
+  const [walkInPaymentMethod, setWalkInPaymentMethod] = useState('cash')
   
   // Data for selectors
   const [barbers, setBarbers] = useState<any[]>([])
@@ -90,10 +91,21 @@ export default function PainelAgendamentos() {
 
       // Fetch active barbers and services for walk-in form
       const { data: dbBarbers } = await supabase
-        .from('profiles')
-        .select('id, full_name, role')
-        .eq('role', 'barber')
-      setBarbers(dbBarbers || [])
+        .from('barbers')
+        .select('id, is_active, profiles(id, full_name)')
+        .eq('is_active', true)
+
+      if (dbBarbers) {
+        const formatted = dbBarbers
+          .filter((b: any) => b.profiles)
+          .map((b: any) => ({
+            id: b.id,
+            full_name: b.profiles.full_name
+          }))
+        setBarbers(formatted)
+      } else {
+        setBarbers([])
+      }
 
       const { data: dbServices } = await supabase
         .from('services')
@@ -283,7 +295,8 @@ export default function PainelAgendamentos() {
         selectedServiceId,
         walkInDate,
         walkInTime,
-        walkInNotes
+        walkInNotes,
+        walkInPaymentMethod
       )
 
       if (!res.success) {
@@ -298,6 +311,7 @@ export default function PainelAgendamentos() {
         setWalkInDate('')
         setWalkInTime('')
         setWalkInNotes('')
+        setWalkInPaymentMethod('cash')
 
         loadData()
       }
@@ -1087,6 +1101,22 @@ export default function PainelAgendamentos() {
                       Selecione barbeiro, serviço e data para carregar horários disponíveis.
                     </p>
                   )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <label htmlFor="wPaymentMethod" className="text-xs font-semibold text-muted-foreground uppercase">Forma de Pagamento (Presencial)</label>
+                  <select
+                    id="wPaymentMethod"
+                    value={walkInPaymentMethod}
+                    onChange={(e) => setWalkInPaymentMethod(e.target.value)}
+                    disabled={isPending}
+                    className="w-full px-3.5 py-2.5 bg-secondary/50 border border-border focus:border-primary rounded-xl text-xs text-foreground outline-none cursor-pointer"
+                  >
+                    <option value="cash">Dinheiro</option>
+                    <option value="card">Cartão (Débito / Crédito)</option>
+                    <option value="pix">Pix (No local)</option>
+                    <option value="other">Outro</option>
+                  </select>
                 </div>
 
                 <div className="space-y-1.5">

@@ -86,12 +86,23 @@ export default function PainelPacotes() {
         .order('full_name')
       setCustomers(dbCustomers || [])
 
-      // Fetch barbers
+      // Fetch active barbers
       const { data: dbBarbers } = await supabase
-        .from('profiles')
-        .select('id, full_name, role')
-        .in('role', ['barber', 'admin'])
-      setBarbers(dbBarbers || [])
+        .from('barbers')
+        .select('id, is_active, profiles(id, full_name)')
+        .eq('is_active', true)
+
+      if (dbBarbers) {
+        const formatted = dbBarbers
+          .filter((b: any) => b.profiles)
+          .map((b: any) => ({
+            id: b.id,
+            full_name: b.profiles.full_name
+          }))
+        setBarbers(formatted)
+      } else {
+        setBarbers([])
+      }
 
       // Fetch active services
       const { data: dbServices } = await supabase
