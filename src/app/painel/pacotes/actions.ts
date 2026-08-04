@@ -24,7 +24,7 @@ async function verifyAdminSession() {
     .eq('id', user.id)
     .single()
 
-  if (!profile || profile.role !== 'admin') {
+  if (!profile || (profile.role !== 'admin' && profile.role !== 'barber')) {
     return null
   }
   return { user, role: profile.role }
@@ -44,14 +44,15 @@ export async function createPackageAction(
   startDate: string, // YYYY-MM-DD
   packagePrice: number,
   durationMonths: number, // 1, 4, or 6
-  selectedDates?: string[]
+  selectedDates?: string[],
+  customCustomerName?: string
 ): Promise<PackageActionResponse> {
   const admin = await verifyAdminSession()
   if (!admin) {
     return { success: false, message: 'Apenas administradores podem criar pacotes.' }
   }
 
-  if (!customerId || !barberId || !serviceId || !timeSlot || !startDate || !packagePrice || !durationMonths) {
+  if ((!customerId && !customCustomerName?.trim()) || !barberId || !serviceId || !timeSlot || !startDate || !packagePrice || !durationMonths) {
     return { success: false, message: 'Todos os campos são obrigatórios.' }
   }
 
@@ -61,6 +62,38 @@ export async function createPackageAction(
 
   try {
     const supabase = await createServerSupabaseClient()
+    let finalCustomerId = customerId
+
+    // If no customerId provided but customCustomerName was typed, create a guest profile on the fly
+    if (!finalCustomerId && customCustomerName?.trim()) {
+      const newGuestId = crypto.randomUUID()
+      const { createClient: createBaseClient } = await import('@supabase/supabase-js')
+      const supabaseAdmin = createBaseClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        { auth: { autoRefreshToken: false, persistSession: false } }
+      )
+
+      const guestEmail = `cliente_${Date.now()}_${Math.floor(Math.random() * 1000)}@barbearia.local`
+
+      const { data: newProfile, error: profileErr } = await supabaseAdmin
+        .from('profiles')
+        .insert({
+          id: newGuestId,
+          full_name: customCustomerName.trim(),
+          email: guestEmail,
+          role: 'customer'
+        })
+        .select('id')
+        .single()
+
+      if (profileErr || !newProfile) {
+        console.error('Error creating guest customer profile:', profileErr)
+        return { success: false, message: 'Erro ao cadastrar novo cliente sem conta.' }
+      }
+
+      finalCustomerId = newProfile.id
+    }
 
     // 1. Fetch service details (duration needed for slot checking)
     const { data: barberService } = await supabase
@@ -130,7 +163,7 @@ export async function createPackageAction(
     const { data: pkg, error: pkgError } = await supabase
       .from('package_subscriptions')
       .insert({
-        customer_id: customerId,
+        customer_id: finalCustomerId,
         barber_id: barberId,
         service_id: serviceId,
         day_of_week: dayOfWeek,
@@ -162,7 +195,7 @@ export async function createPackageAction(
       const { data: appt, error: apptError } = await supabase
         .from('appointments')
         .insert({
-          customer_id: customerId,
+          customer_id: finalCustomerId,
           barber_id: barberId,
           service_id: serviceId,
           start_time: startDateObj.toISOString(),

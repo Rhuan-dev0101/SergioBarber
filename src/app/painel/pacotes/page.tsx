@@ -87,16 +87,16 @@ export default function PainelPacotes() {
         .eq('id', session.user.id)
         .single()
 
-      if (!profile || profile.role !== 'admin') { router.push('/painel'); return }
+      if (!profile || (profile.role !== 'admin' && profile.role !== 'barber')) { router.push('/painel'); return }
       setUserRole(profile.role)
 
-      // Fetch customers (role = customer or null/empty role for regular users)
+      // Fetch customers (all non-admin profiles)
       const { data: dbCustomers } = await supabase
         .from('profiles')
         .select('id, full_name, phone, role')
-        .or('role.eq.customer,role.is.null')
         .order('full_name')
-      setCustomers(dbCustomers || [])
+      const validCustomers = (dbCustomers || []).filter((c: any) => c.role !== 'admin')
+      setCustomers(validCustomers)
 
       // Fetch active barbers
       const { data: dbBarbers } = await supabase
@@ -112,16 +112,18 @@ export default function PainelPacotes() {
             full_name: b.profiles.full_name
           }))
         setBarbers(formatted)
+        if (formatted.length === 1) {
+          setBarberId(formatted[0].id)
+        }
       } else {
         setBarbers([])
       }
 
-      // Fetch active package services (name starts with 'Pacote')
+      // Fetch all active services for package selection
       const { data: dbServices } = await supabase
         .from('services')
         .select('id, name, price, duration')
         .eq('is_active', true)
-        .ilike('name', 'Pacote%')
         .order('name')
       setServices(dbServices || [])
 
@@ -379,7 +381,7 @@ export default function PainelPacotes() {
     setErrorMsg('')
     setSuccessMsg('')
 
-    if (!customerId || !barberId || !serviceId || !timeSlot || !startDate || !packagePrice) {
+    if ((!customerId && !customerSearch.trim()) || !barberId || !serviceId || !timeSlot || !startDate || !packagePrice) {
       setErrorMsg('Todos os campos são obrigatórios.')
       return
     }
@@ -392,7 +394,8 @@ export default function PainelPacotes() {
     startTransition(async () => {
       const res = await createPackageAction(
         customerId, barberId, serviceId, dayOfWeek, timeSlot,
-        startDate, parseFloat(packagePrice), durationMonths, selectedDates
+        startDate, parseFloat(packagePrice), durationMonths, selectedDates,
+        customerSearch
       )
 
       if (!res.success) {
@@ -997,49 +1000,51 @@ export default function PainelPacotes() {
                 <div className="space-y-4 bg-secondary/20 p-4 rounded-xl border border-border/60">
                   <span className="text-[10px] uppercase font-bold text-primary tracking-wider block">1. Cliente & Profissional</span>
 
-                  {/* Customer Search */}
-                  <div className="space-y-1.5 relative">
+                  {/* Customer Selector */}
+                  <div className="space-y-1.5">
                     <label className="text-xs font-bold text-foreground">Cliente</label>
-                    <div className="relative">
-                      <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <input
-                        type="text"
-                        placeholder="Buscar cliente por nome ou telefone..."
-                        value={customerSearch}
-                        onChange={(e) => {
-                          setCustomerSearch(e.target.value)
-                          setShowCustomerDropdown(true)
-                          if (!e.target.value) setCustomerId('')
-                        }}
-                        onFocus={() => setShowCustomerDropdown(true)}
-                        className="w-full pl-10 pr-9 py-2.5 bg-background border border-border focus:border-primary rounded-lg text-base outline-none transition-all text-foreground"
-                      />
-                      {customerId && (
-                        <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500 font-bold" />
-                      )}
-                    </div>
-
-                    {showCustomerDropdown && customerSearch && filteredCustomers.length > 0 && (
-                      <div className="absolute z-20 w-full mt-1 bg-card border border-border/80 rounded-xl shadow-2xl max-h-48 overflow-y-auto divide-y divide-border/40">
-                        {filteredCustomers.map(c => (
-                          <button
-                            key={c.id}
-                            type="button"
-                            onClick={() => {
-                              setCustomerId(c.id)
-                              setCustomerSearch(c.full_name)
-                              setShowCustomerDropdown(false)
-                            }}
-                            className={`w-full text-left px-4 py-2.5 text-xs hover:bg-secondary/60 transition-colors cursor-pointer flex justify-between items-center ${
-                              customerId === c.id ? 'bg-primary/10 text-primary font-bold' : 'text-foreground'
-                            }`}
-                          >
-                            <span>{c.full_name}</span>
-                            {c.phone && <span className="text-[11px] text-muted-foreground font-mono">{c.phone}</span>}
-                          </button>
-                        ))}
+                    <div className="space-y-2">
+                      <div className="relative">
+                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <input
+                          type="text"
+                          placeholder="Filtrar cliente por nome ou telefone..."
+                          value={customerSearch}
+                          onChange={(e) => {
+                            const val = e.target.value
+                            setCustomerSearch(val)
+                            const matches = customers.filter(c => 
+                              c.full_name?.toLowerCase().includes(val.toLowerCase()) ||
+                              c.phone?.toLowerCase().includes(val.toLowerCase())
+                            )
+                            if (matches.length === 1) {
+                              setCustomerId(matches[0].id)
+                            } else if (!val) {
+                              setCustomerId('')
+                            }
+                          }}
+                          className="w-full pl-10 pr-4 py-2 bg-background border border-border focus:border-primary rounded-lg text-base outline-none transition-all text-foreground"
+                        />
                       </div>
-                    )}
+
+                      <select
+                        value={customerId}
+                        onChange={(e) => {
+                          setCustomerId(e.target.value)
+                          const selected = customers.find(c => c.id === e.target.value)
+                          if (selected) setCustomerSearch(selected.full_name)
+                        }}
+                        className="w-full px-3.5 py-2.5 bg-background border border-border focus:border-primary rounded-lg text-base text-foreground outline-none cursor-pointer font-medium"
+                        required
+                      >
+                        <option value="">Selecione o cliente ({filteredCustomers.length} encontrado{filteredCustomers.length !== 1 ? 's' : ''})</option>
+                        {filteredCustomers.map(c => (
+                          <option key={c.id} value={c.id}>
+                            {c.full_name} {c.phone ? `(${c.phone})` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
 
                   {/* Barber Selector */}
@@ -1292,19 +1297,45 @@ export default function PainelPacotes() {
                   </div>
                 )}
 
+                {/* Helper hints explaining why button is disabled */}
+                {!customerId && !customerSearch.trim() && (
+                  <p className="text-[11px] text-amber-400 font-semibold bg-amber-500/10 p-2.5 rounded-lg border border-amber-500/20 text-center">
+                    💡 Selecione um cliente no menu ou digite o nome no campo 1.
+                  </p>
+                )}
+                {!customerId && customerSearch.trim() && (
+                  <p className="text-[11px] text-emerald-400 font-semibold bg-emerald-500/10 p-2.5 rounded-lg border border-emerald-500/20 text-center">
+                    ✨ O pacote será gerado para o novo cliente <strong>"{customerSearch.trim()}"</strong>!
+                  </p>
+                )}
+                {(customerId || customerSearch.trim()) && !barberId && (
+                  <p className="text-[11px] text-amber-400 font-semibold bg-amber-500/10 p-2.5 rounded-lg border border-amber-500/20 text-center">
+                    💡 Selecione o barbeiro responsável no campo 1.
+                  </p>
+                )}
+                {(customerId || customerSearch.trim()) && barberId && !serviceId && (
+                  <p className="text-[11px] text-amber-400 font-semibold bg-amber-500/10 p-2.5 rounded-lg border border-amber-500/20 text-center">
+                    💡 Selecione o serviço do pacote no campo 2.
+                  </p>
+                )}
+                {(customerId || customerSearch.trim()) && barberId && serviceId && !timeSlot && (
+                  <p className="text-[11px] text-amber-400 font-semibold bg-amber-500/10 p-2.5 rounded-lg border border-amber-500/20 text-center">
+                    💡 Escolha o horário fixo das sessões no campo 3.
+                  </p>
+                )}
+
                 {/* Submit */}
                 <button
                   type="submit"
                   disabled={
                     isPending ||
                     loadingValidation ||
-                    !customerId ||
+                    (!customerId && !customerSearch.trim()) ||
                     !barberId ||
                     !serviceId ||
                     !timeSlot ||
                     !startDate ||
                     !packagePrice ||
-                    selectedDates.length !== targetSessions ||
                     hasConflict
                   }
                   className="w-full py-3.5 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl text-xs flex items-center justify-center gap-2 transition-all duration-200 cursor-pointer shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 disabled:opacity-50 disabled:cursor-not-allowed"
