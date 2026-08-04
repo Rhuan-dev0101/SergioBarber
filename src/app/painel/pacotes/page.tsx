@@ -50,6 +50,7 @@ export default function PainelPacotes() {
   // Form state
   const [customerId, setCustomerId] = useState('')
   const [customerSearch, setCustomerSearch] = useState('')
+  const [isManualClient, setIsManualClient] = useState(false)
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false)
   const [barberId, setBarberId] = useState('')
   const [serviceId, setServiceId] = useState('')
@@ -545,6 +546,7 @@ export default function PainelPacotes() {
   const resetForm = () => {
     setCustomerId('')
     setCustomerSearch('')
+    setIsManualClient(false)
     setBarberId('')
     setServiceId('')
     setDayOfWeek(3)
@@ -1082,54 +1084,135 @@ export default function PainelPacotes() {
                 
                 {/* Section 1: Cliente & Barbeiro */}
                 <div className="space-y-4 bg-secondary/20 p-4 rounded-xl border border-border/60">
-                  <span className="text-[10px] uppercase font-bold text-primary tracking-wider block">1. Cliente & Profissional</span>
-
-                  {/* Customer Selector */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-foreground">Cliente</label>
-                    <div className="space-y-2">
-                      <div className="relative">
-                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <input
-                          type="text"
-                          placeholder="Filtrar cliente por nome ou telefone..."
-                          value={customerSearch}
-                          onChange={(e) => {
-                            const val = e.target.value
-                            setCustomerSearch(val)
-                            const matches = customers.filter(c => 
-                              c.full_name?.toLowerCase().includes(val.toLowerCase()) ||
-                              c.phone?.toLowerCase().includes(val.toLowerCase())
-                            )
-                            if (matches.length === 1) {
-                              setCustomerId(matches[0].id)
-                            } else if (!val) {
-                              setCustomerId('')
-                            }
-                          }}
-                          className="w-full pl-10 pr-4 py-2 bg-background border border-border focus:border-primary rounded-lg text-base outline-none transition-all text-foreground"
-                        />
-                      </div>
-
-                      <select
-                        value={customerId}
-                        onChange={(e) => {
-                          setCustomerId(e.target.value)
-                          const selected = customers.find(c => c.id === e.target.value)
-                          if (selected) setCustomerSearch(selected.full_name)
+                  <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 border-b border-border/40 pb-2.5">
+                    <span className="text-[10px] uppercase font-bold text-primary tracking-wider block">1. Cliente & Profissional</span>
+                    
+                    {/* Mode Toggle Tabs */}
+                    <div className="flex items-center gap-1 bg-background p-1 rounded-lg border border-border/60 self-start sm:self-auto">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsManualClient(false)
+                          setCustomerId('')
+                          setCustomerSearch('')
                         }}
-                        className="w-full px-3.5 py-2.5 bg-background border border-border focus:border-primary rounded-lg text-base text-foreground outline-none cursor-pointer font-medium"
-                        required
+                        className={`px-2.5 py-1 text-[10px] font-bold rounded-md transition-all cursor-pointer ${
+                          !isManualClient
+                            ? 'bg-primary text-primary-foreground shadow-sm'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
                       >
-                        <option value="">Selecione o cliente ({filteredCustomers.length} encontrado{filteredCustomers.length !== 1 ? 's' : ''})</option>
-                        {filteredCustomers.map(c => (
-                          <option key={c.id} value={c.id}>
-                            {c.full_name} {c.phone ? `(${c.phone})` : ''}
-                          </option>
-                        ))}
-                      </select>
+                        Cliente Cadastrado
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsManualClient(true)
+                          setCustomerId('')
+                        }}
+                        className={`px-2.5 py-1 text-[10px] font-bold rounded-md transition-all cursor-pointer ${
+                          isManualClient
+                            ? 'bg-primary text-primary-foreground shadow-sm'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        Sem Cadastro / Apelido
+                      </button>
                     </div>
                   </div>
+
+                  {!isManualClient ? (
+                    /* Mode A: Registered Client Selector */
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-foreground">Cliente Cadastrado</label>
+                      <div className="space-y-2">
+                        <div className="relative">
+                          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <input
+                            type="text"
+                            placeholder="Buscar cliente por nome ou telefone..."
+                            value={customerSearch}
+                            onChange={(e) => {
+                              const val = e.target.value
+                              setCustomerSearch(val)
+                              const matches = customers.filter(c => 
+                                c.full_name?.toLowerCase().includes(val.toLowerCase()) ||
+                                c.phone?.toLowerCase().includes(val.toLowerCase())
+                              )
+                              if (matches.length === 1) {
+                                setCustomerId(matches[0].id)
+                              } else if (!val) {
+                                setCustomerId('')
+                              }
+                            }}
+                            className="w-full pl-10 pr-4 py-2 bg-background border border-border focus:border-primary rounded-lg text-base outline-none transition-all text-foreground"
+                          />
+                        </div>
+
+                        <select
+                          value={customerId}
+                          onChange={(e) => {
+                            setCustomerId(e.target.value)
+                            const selected = customers.find(c => c.id === e.target.value)
+                            if (selected) setCustomerSearch(selected.full_name)
+                          }}
+                          className="w-full px-3.5 py-2.5 bg-background border border-border focus:border-primary rounded-lg text-base text-foreground outline-none cursor-pointer font-medium"
+                        >
+                          <option value="">Selecione o cliente ({filteredCustomers.length} encontrado{filteredCustomers.length !== 1 ? 's' : ''})</option>
+                          {filteredCustomers.map(c => (
+                            <option key={c.id} value={c.id}>
+                              {c.full_name} {c.phone ? `(${c.phone})` : ''}
+                            </option>
+                          ))}
+                        </select>
+
+                        {/* Quick fallback button if 0 clients matched search */}
+                        {customerSearch.trim() && filteredCustomers.length === 0 && (
+                          <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl space-y-2 text-left">
+                            <p className="text-xs text-amber-400 font-medium">
+                              Nenhum cliente cadastrado encontrado para <strong>"{customerSearch.trim()}"</strong>.
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsManualClient(true)
+                                setCustomerId('')
+                              }}
+                              className="px-3 py-1.5 bg-primary text-primary-foreground text-xs font-bold rounded-lg cursor-pointer hover:bg-primary/90 transition-all flex items-center gap-1.5"
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                              Criar pacote para "{customerSearch.trim()}" sem cadastro
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    /* Mode B: Manual / Unregistered Nickname Input */
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-foreground">Nome ou Apelido do Cliente (Sem Cadastro)</label>
+                      <input
+                        type="text"
+                        placeholder="Digite o nome/apelido (ex: Beiço, Seu Zé)..."
+                        value={customerSearch}
+                        onChange={(e) => {
+                          setCustomerSearch(e.target.value)
+                          setCustomerId('')
+                        }}
+                        className="w-full px-3.5 py-2.5 bg-background border border-primary focus:border-primary rounded-lg text-base font-bold text-foreground outline-none shadow-sm"
+                        autoFocus
+                      />
+                      {customerSearch.trim() ? (
+                        <p className="text-[11px] text-emerald-400 font-semibold bg-emerald-500/10 p-2 rounded-lg border border-emerald-500/20">
+                          ✨ O pacote será gerado para o cliente sem cadastro: <strong>"{customerSearch.trim()}"</strong>
+                        </p>
+                      ) : (
+                        <p className="text-[10px] text-muted-foreground italic">
+                          Digite o nome ou apelido para prosseguir sem vincular a uma conta cadastrada.
+                        </p>
+                      )}
+                    </div>
+                  )}
 
                   {/* Barber Selector */}
                   <div className="space-y-1.5">
