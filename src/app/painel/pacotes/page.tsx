@@ -262,6 +262,9 @@ export default function PainelPacotes() {
     async function loadBarberPackageServices() {
       setLoadingBarberServices(true)
       try {
+        const selectedBarber = barbers.find(b => b.id === barberId)
+        const isSergio = selectedBarber?.full_name?.toLowerCase().includes('sergio')
+
         const { data: dbBS } = await supabase
           .from('barber_services')
           .select('price, duration, is_active, service_id, services(id, name, price, duration)')
@@ -275,7 +278,11 @@ export default function PainelPacotes() {
             .filter((bs: any) => {
               if (!bs.services) return false
               const n = bs.services.name.toLowerCase()
-              return n.includes('pacote') && !n.includes('progressiva')
+              const isPkg = n.includes('pacote')
+              if (!isPkg) return false
+              // Only exclude progressiva for Sergio's packages
+              if (isSergio && n.includes('progressiva')) return false
+              return true
             })
             .map((bs: any) => ({
               id: bs.service_id,
@@ -286,13 +293,17 @@ export default function PainelPacotes() {
         }
 
         if (pkgSvcs.length === 0) {
-          const { data: baseServices } = await supabase
+          let query = supabase
             .from('services')
             .select('id, name, price, duration')
             .eq('is_active', true)
             .ilike('name', '%pacote%')
-            .not('name', 'ilike', '%progressiva%')
-            .order('name')
+
+          if (isSergio) {
+            query = query.not('name', 'ilike', '%progressiva%')
+          }
+
+          const { data: baseServices } = await query.order('name')
 
           pkgSvcs = (baseServices || []).map(s => ({
             id: s.id,
