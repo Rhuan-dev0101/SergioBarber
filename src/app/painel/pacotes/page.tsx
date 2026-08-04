@@ -245,39 +245,12 @@ export default function PainelPacotes() {
     loadSlots()
   }, [barberId, serviceId, startDate, services])
 
-  // ──── Auto-fill package price when barber + service + durationMonths + startDate change ────
+  // ──── Auto-fill package price (FLAT rate: R$150/month) ────
   useEffect(() => {
-    if (!barberId || !serviceId || !startDate) return
-
-    const sessionDates = getSessionDatesForDuration(startDate, durationMonths)
-    const numSessions = sessionDates.length
-    if (numSessions === 0) return
-
-    async function fetchBarberPrice() {
-      const { data: bs } = await supabase
-        .from('barber_services')
-        .select('price')
-        .eq('barber_id', barberId)
-        .eq('service_id', serviceId)
-        .single()
-
-      let unitPrice = 0
-      if (bs) {
-        unitPrice = Number(bs.price)
-      } else {
-        const service = services.find(s => s.id === serviceId)
-        if (service) unitPrice = Number(service.price)
-      }
-
-      if (unitPrice > 0) {
-        const regularTotal = unitPrice * numSessions
-        const discountFactor = durationMonths === 1 ? 0.90 : durationMonths === 4 ? 0.85 : 0.80
-        const suggestedPrice = Math.round(regularTotal * discountFactor)
-        setPackagePrice(suggestedPrice.toFixed(2))
-      }
+    if (durationMonths) {
+      setPackagePrice((durationMonths * 150).toFixed(2))
     }
-    fetchBarberPrice()
-  }, [barberId, serviceId, startDate, durationMonths, services])
+  }, [durationMonths])
 
   // Compute expanded candidate dates & selected dates
   const { baseDates, candidateDates, selectedDates, targetSessions } = getExpandedSessionDates(
@@ -490,7 +463,7 @@ export default function PainelPacotes() {
     setDayOfWeek(3)
     setTimeSlot('')
     setStartDate('')
-    setPackagePrice('')
+    setPackagePrice('150.00')
     setDurationMonths(1)
     setExcludedDates([])
     setValidationResult([])
@@ -1202,7 +1175,7 @@ export default function PainelPacotes() {
                     />
                   </div>
                   <p className="text-[11px] text-muted-foreground">
-                    Preço sugerido calculado automaticamente com desconto de pacote recorrente.
+                    Preço sugerido calculado automaticamente (R$&nbsp;150 por mês). Você pode alterar manualmente se desejar.
                   </p>
                 </div>
 
@@ -1315,7 +1288,18 @@ export default function PainelPacotes() {
                 {/* Submit */}
                 <button
                   type="submit"
-                  disabled={isPending || !customerId || selectedDates.length !== targetSessions || hasConflict}
+                  disabled={
+                    isPending ||
+                    loadingValidation ||
+                    !customerId ||
+                    !barberId ||
+                    !serviceId ||
+                    !timeSlot ||
+                    !startDate ||
+                    !packagePrice ||
+                    selectedDates.length !== targetSessions ||
+                    hasConflict
+                  }
                   className="w-full py-3.5 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl text-xs flex items-center justify-center gap-2 transition-all duration-200 cursor-pointer shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isPending ? (
