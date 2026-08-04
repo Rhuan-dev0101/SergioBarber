@@ -9,13 +9,13 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
+import { getSessionDatesForDuration } from '@/lib/package-utils'
 import {
   createPackageAction,
   cancelPackageAction,
   validatePackageSlotsAction,
   markPackageAsPaidAction,
-  deletePackageAction,
-  getSessionDatesForDuration
+  deletePackageAction
 } from './actions'
 
 const WEEKDAY_NAMES = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado']
