@@ -105,11 +105,13 @@ export default function PainelPacotes() {
         setBarbers([])
       }
 
-      // Fetch active services
+      // Fetch active package services (name starts with 'Pacote')
       const { data: dbServices } = await supabase
         .from('services')
         .select('id, name, price, duration')
         .eq('is_active', true)
+        .ilike('name', 'Pacote%')
+        .order('name')
       setServices(dbServices || [])
 
       // Fetch packages with linked appointments
