@@ -66,7 +66,6 @@ export async function createPackageAction(
 
     // If no customerId provided but customCustomerName was typed, create a guest profile on the fly
     if (!finalCustomerId && customCustomerName?.trim()) {
-      const newGuestId = crypto.randomUUID()
       const { createClient: createBaseClient } = await import('@supabase/supabase-js')
       const supabaseAdmin = createBaseClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -74,25 +73,34 @@ export async function createPackageAction(
         { auth: { autoRefreshToken: false, persistSession: false } }
       )
 
-      const guestEmail = `cliente_${Date.now()}_${Math.floor(Math.random() * 1000)}@barbearia.local`
+      const sanitizeSlug = customCustomerName.trim().toLowerCase().replace(/[^a-z0-9]/g, '')
+      const guestEmail = `cliente_${sanitizeSlug}_${Date.now()}@barbearia.local`
 
-      const { data: newProfile, error: profileErr } = await supabaseAdmin
+      const { data: authData, error: createError } = await supabaseAdmin.auth.admin.createUser({
+        email: guestEmail,
+        email_confirm: true,
+        user_metadata: {
+          full_name: customCustomerName.trim()
+        }
+      })
+
+      if (createError || !authData?.user) {
+        console.error('Error creating guest auth user:', createError)
+        return { success: false, message: `Erro ao cadastrar cliente "${customCustomerName.trim()}": ${createError?.message || 'Falha no servidor.'}` }
+      }
+
+      const guestUserId = authData.user.id
+
+      await supabaseAdmin
         .from('profiles')
-        .insert({
-          id: newGuestId,
+        .upsert({
+          id: guestUserId,
           full_name: customCustomerName.trim(),
           email: guestEmail,
           role: 'customer'
         })
-        .select('id')
-        .single()
 
-      if (profileErr || !newProfile) {
-        console.error('Error creating guest customer profile:', profileErr)
-        return { success: false, message: 'Erro ao cadastrar novo cliente sem conta.' }
-      }
-
-      finalCustomerId = newProfile.id
+      finalCustomerId = guestUserId
     }
 
     // 1. Fetch service details (duration needed for slot checking)

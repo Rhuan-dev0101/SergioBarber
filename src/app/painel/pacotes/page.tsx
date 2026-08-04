@@ -1081,6 +1081,12 @@ export default function PainelPacotes() {
               </div>
 
               <form onSubmit={handleCreatePackage} className="space-y-5">
+                {errorMsg && (
+                  <div className="p-3.5 bg-destructive/10 border border-destructive/20 rounded-xl flex items-start gap-2 text-xs text-destructive">
+                    <AlertCircle className="w-4.5 h-4.5 shrink-0" />
+                    <span>{errorMsg}</span>
+                  </div>
+                )}
                 
                 {/* Section 1: Cliente & Barbeiro */}
                 <div className="space-y-4 bg-secondary/20 p-4 rounded-xl border border-border/60">
