@@ -147,7 +147,7 @@ function LoginForm() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               disabled={isPending}
-              className="block px-3.5 pb-2.5 pt-5 w-full text-sm text-foreground bg-transparent border-0 appearance-none focus:outline-none focus:ring-0 peer disabled:opacity-50"
+              className="block px-3.5 pb-2.5 pt-5 w-full text-base text-foreground bg-transparent border-0 appearance-none focus:outline-none focus:ring-0 peer disabled:opacity-50"
               required
             />
             <label
@@ -169,7 +169,7 @@ function LoginForm() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={isPending}
-              className="block pl-3.5 pr-11 pb-2.5 pt-5 w-full text-sm text-foreground bg-transparent border-0 appearance-none focus:outline-none focus:ring-0 peer disabled:opacity-50"
+              className="block pl-3.5 pr-11 pb-2.5 pt-5 w-full text-base text-foreground bg-transparent border-0 appearance-none focus:outline-none focus:ring-0 peer disabled:opacity-50"
               required
             />
             <label

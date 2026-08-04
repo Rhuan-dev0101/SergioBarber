@@ -899,7 +899,7 @@ export default function PainelPacotes() {
                                   type="date"
                                   value={rescheduleDate}
                                   onChange={(e) => setRescheduleDate(e.target.value)}
-                                  className="w-full p-2 bg-secondary border border-border rounded text-xs outline-none text-foreground font-medium"
+                                  className="w-full p-2 bg-secondary border border-border rounded text-base outline-none text-foreground font-medium"
                                 />
                               </div>
                               <div className="space-y-1">
@@ -912,7 +912,7 @@ export default function PainelPacotes() {
                                   <select
                                     value={rescheduleTime}
                                     onChange={(e) => setRescheduleTime(e.target.value)}
-                                    className="w-full p-2 bg-secondary border border-border rounded text-xs outline-none text-foreground font-bold cursor-pointer"
+                                    className="w-full p-2 bg-secondary border border-border rounded text-base outline-none text-foreground font-bold cursor-pointer"
                                   >
                                     <option value="">Selecione o horário</option>
                                     {rescheduleSlots.map(t => (
@@ -1005,7 +1005,7 @@ export default function PainelPacotes() {
                           if (!e.target.value) setCustomerId('')
                         }}
                         onFocus={() => setShowCustomerDropdown(true)}
-                        className="w-full pl-10 pr-9 py-2.5 bg-background border border-border focus:border-primary rounded-lg text-xs outline-none transition-all text-foreground"
+                        className="w-full pl-10 pr-9 py-2.5 bg-background border border-border focus:border-primary rounded-lg text-base outline-none transition-all text-foreground"
                       />
                       {customerId && (
                         <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500 font-bold" />
@@ -1041,7 +1041,7 @@ export default function PainelPacotes() {
                     <select
                       value={barberId}
                       onChange={(e) => setBarberId(e.target.value)}
-                      className="w-full px-3.5 py-2.5 bg-background border border-border focus:border-primary rounded-lg text-xs text-foreground outline-none cursor-pointer font-medium"
+                      className="w-full px-3.5 py-2.5 bg-background border border-border focus:border-primary rounded-lg text-base text-foreground outline-none cursor-pointer font-medium"
                       required
                     >
                       <option value="">Selecione o profissional</option>
@@ -1062,7 +1062,7 @@ export default function PainelPacotes() {
                     <select
                       value={serviceId}
                       onChange={(e) => setServiceId(e.target.value)}
-                      className="w-full px-3.5 py-2.5 bg-background border border-border focus:border-primary rounded-lg text-xs text-foreground outline-none cursor-pointer font-medium"
+                      className="w-full px-3.5 py-2.5 bg-background border border-border focus:border-primary rounded-lg text-base text-foreground outline-none cursor-pointer font-medium"
                       required
                     >
                       <option value="">Selecione o serviço</option>
@@ -1079,7 +1079,7 @@ export default function PainelPacotes() {
                       <select
                         value={dayOfWeek}
                         onChange={(e) => setDayOfWeek(parseInt(e.target.value))}
-                        className="w-full px-3.5 py-2.5 bg-background border border-border focus:border-primary rounded-lg text-xs text-foreground outline-none cursor-pointer font-medium"
+                        className="w-full px-3.5 py-2.5 bg-background border border-border focus:border-primary rounded-lg text-base text-foreground outline-none cursor-pointer font-medium"
                       >
                         {WEEKDAY_NAMES.map((name, i) => (
                           <option key={i} value={i}>{name}</option>
@@ -1092,7 +1092,7 @@ export default function PainelPacotes() {
                       <select
                         value={durationMonths}
                         onChange={(e) => setDurationMonths(parseInt(e.target.value) as 1 | 4 | 6)}
-                        className="w-full px-3.5 py-2.5 bg-background border border-border focus:border-primary rounded-lg text-xs text-foreground outline-none cursor-pointer font-bold text-primary"
+                        className="w-full px-3.5 py-2.5 bg-background border border-border focus:border-primary rounded-lg text-base text-foreground outline-none cursor-pointer font-bold text-primary"
                       >
                         <option value={1}>
                           1 mês {startDate ? `(${getSessionDatesForDuration(startDate, 1).length} sessões)` : ''}
@@ -1120,7 +1120,7 @@ export default function PainelPacotes() {
                         type="date"
                         value={startDate}
                         onChange={(e) => setStartDate(e.target.value)}
-                        className="w-full px-3.5 py-2.5 bg-background border border-border focus:border-primary rounded-lg text-xs text-foreground outline-none font-medium"
+                        className="w-full px-3.5 py-2.5 bg-background border border-border focus:border-primary rounded-lg text-base text-foreground outline-none font-medium"
                         required
                       />
                       <p className="text-[10px] text-muted-foreground">
@@ -1139,7 +1139,7 @@ export default function PainelPacotes() {
                         <select
                           value={timeSlot}
                           onChange={(e) => setTimeSlot(e.target.value)}
-                          className="w-full px-3.5 py-2.5 bg-background border border-border focus:border-primary rounded-lg text-xs text-foreground outline-none cursor-pointer font-bold"
+                          className="w-full px-3.5 py-2.5 bg-background border border-border focus:border-primary rounded-lg text-base text-foreground outline-none cursor-pointer font-bold"
                           required
                         >
                           <option value="">Escolha o horário fixo</option>
@@ -1170,7 +1170,7 @@ export default function PainelPacotes() {
                       value={packagePrice}
                       onChange={(e) => setPackagePrice(e.target.value)}
                       placeholder="0.00"
-                      className="w-full pl-9 pr-4 py-2.5 bg-background border border-border focus:border-primary rounded-lg text-sm font-serif font-bold text-foreground outline-none"
+                      className="w-full pl-9 pr-4 py-2.5 bg-background border border-border focus:border-primary rounded-lg text-base font-serif font-bold text-foreground outline-none"
                       required
                     />
                   </div>

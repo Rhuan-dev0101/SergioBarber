@@ -166,7 +166,7 @@ export default function PainelConfiguracoes() {
                   value={whatsapp}
                   onChange={(e) => setWhatsapp(e.target.value)}
                   disabled={isPending}
-                  className="w-full pl-10 pr-4 py-2.5 bg-background border border-border focus:border-primary rounded-xl text-xs text-foreground outline-none font-medium"
+                  className="w-full pl-10 pr-4 py-2.5 bg-background border border-border focus:border-primary rounded-xl text-base text-foreground outline-none font-medium"
                   required
                 />
               </div>
@@ -185,7 +185,7 @@ export default function PainelConfiguracoes() {
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   disabled={isPending}
-                  className="w-full pl-10 pr-4 py-2.5 bg-background border border-border focus:border-primary rounded-xl text-xs text-foreground outline-none font-medium"
+                  className="w-full pl-10 pr-4 py-2.5 bg-background border border-border focus:border-primary rounded-xl text-base text-foreground outline-none font-medium"
                   required
                 />
               </div>
@@ -203,7 +203,7 @@ export default function PainelConfiguracoes() {
                   value={instagram}
                   onChange={(e) => setInstagram(e.target.value)}
                   disabled={isPending}
-                  className="w-full pl-10 pr-4 py-2.5 bg-background border border-border focus:border-primary rounded-xl text-xs text-foreground outline-none font-medium"
+                  className="w-full pl-10 pr-4 py-2.5 bg-background border border-border focus:border-primary rounded-xl text-base text-foreground outline-none font-medium"
                 />
               </div>
             </div>
@@ -223,7 +223,7 @@ export default function PainelConfiguracoes() {
                 value={pixType}
                 onChange={(e) => setPixType(e.target.value)}
                 disabled={isPending}
-                className="w-full px-4 py-2.5 bg-background border border-border focus:border-primary rounded-xl text-xs text-foreground outline-none cursor-pointer font-medium"
+                className="w-full px-4 py-2.5 bg-background border border-border focus:border-primary rounded-xl text-base text-foreground outline-none cursor-pointer font-medium"
               >
                 <option value="cnpj">CNPJ</option>
                 <option value="email">E-mail</option>
@@ -242,7 +242,7 @@ export default function PainelConfiguracoes() {
                 value={pixKey}
                 onChange={(e) => setPixKey(e.target.value)}
                 disabled={isPending}
-                className="w-full px-4 py-2.5 bg-background border border-border focus:border-primary rounded-xl text-xs text-foreground outline-none font-mono font-bold"
+                className="w-full px-4 py-2.5 bg-background border border-border focus:border-primary rounded-xl text-base text-foreground outline-none font-mono font-bold"
                 required
               />
             </div>
@@ -259,7 +259,7 @@ export default function PainelConfiguracoes() {
                   value={pixName}
                   onChange={(e) => setPixName(e.target.value)}
                   disabled={isPending}
-                  className="w-full pl-10 pr-4 py-2.5 bg-background border border-border focus:border-primary rounded-xl text-xs text-foreground outline-none font-medium"
+                  className="w-full pl-10 pr-4 py-2.5 bg-background border border-border focus:border-primary rounded-xl text-base text-foreground outline-none font-medium"
                   required
                 />
               </div>
@@ -289,7 +289,7 @@ export default function PainelConfiguracoes() {
                   value={tutorialVideoDesktop}
                   onChange={(e) => setTutorialVideoDesktop(e.target.value)}
                   disabled={isPending}
-                  className="w-full pl-10 pr-4 py-2.5 bg-background border border-border focus:border-primary rounded-xl text-xs text-foreground outline-none font-mono"
+                  className="w-full pl-10 pr-4 py-2.5 bg-background border border-border focus:border-primary rounded-xl text-base text-foreground outline-none font-mono"
                 />
               </div>
             </div>
@@ -308,7 +308,7 @@ export default function PainelConfiguracoes() {
                   value={tutorialVideoMobile}
                   onChange={(e) => setTutorialVideoMobile(e.target.value)}
                   disabled={isPending}
-                  className="w-full pl-10 pr-4 py-2.5 bg-background border border-border focus:border-primary rounded-xl text-xs text-foreground outline-none font-mono"
+                  className="w-full pl-10 pr-4 py-2.5 bg-background border border-border focus:border-primary rounded-xl text-base text-foreground outline-none font-mono"
                 />
               </div>
             </div>

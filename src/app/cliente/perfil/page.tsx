@@ -130,7 +130,7 @@ export default function ClientePerfil() {
                     type="email"
                     value={email}
                     disabled
-                    className="w-full pl-10 pr-4 py-2.5 bg-secondary/50 border border-border text-xs text-muted-foreground rounded outline-none cursor-not-allowed"
+                    className="w-full pl-10 pr-4 py-2.5 bg-secondary/50 border border-border text-base text-muted-foreground rounded outline-none cursor-not-allowed"
                   />
                 </div>
               </div>
@@ -147,7 +147,7 @@ export default function ClientePerfil() {
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     disabled={isPending || !!successMsg}
-                    className="w-full pl-10 pr-4 py-2.5 bg-secondary border border-border focus:border-primary rounded text-sm text-foreground placeholder:text-muted-foreground outline-none transition-all"
+                    className="w-full pl-10 pr-4 py-2.5 bg-secondary border border-border focus:border-primary rounded text-base text-foreground placeholder:text-muted-foreground outline-none transition-all"
                     required
                   />
                 </div>
@@ -165,7 +165,7 @@ export default function ClientePerfil() {
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     disabled={isPending || !!successMsg}
-                    className="w-full pl-10 pr-4 py-2.5 bg-secondary border border-border focus:border-primary rounded text-sm text-foreground placeholder:text-muted-foreground outline-none transition-all"
+                    className="w-full pl-10 pr-4 py-2.5 bg-secondary border border-border focus:border-primary rounded text-base text-foreground placeholder:text-muted-foreground outline-none transition-all"
                     required
                   />
                 </div>

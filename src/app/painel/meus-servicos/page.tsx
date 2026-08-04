@@ -304,7 +304,7 @@ export default function MeusServicos() {
             <select
               value={selectedBarberId}
               onChange={(e) => setSelectedBarberId(e.target.value)}
-              className="bg-secondary/60 border border-border text-foreground px-4 py-2 rounded-lg text-xs font-bold focus:ring-1 focus:ring-primary focus:outline-none cursor-pointer"
+              className="bg-secondary/60 border border-border text-foreground px-4 py-2 rounded-lg text-base font-bold focus:ring-1 focus:ring-primary focus:outline-none cursor-pointer"
             >
               {barbers.map((b) => (
                 <option key={b.id} value={b.id}>
@@ -475,7 +475,7 @@ export default function MeusServicos() {
                         <select
                           value={selectedCatalogServiceId}
                           onChange={handleCatalogServiceChange}
-                          className="w-full bg-background border border-border text-foreground px-4 py-2.5 rounded-lg text-xs font-medium focus:ring-1 focus:ring-primary focus:outline-none cursor-pointer"
+                          className="w-full bg-background border border-border text-foreground px-4 py-2.5 rounded-lg text-base font-medium focus:ring-1 focus:ring-primary focus:outline-none cursor-pointer"
                           required
                         >
                           <option value="">Selecione um serviço...</option>
@@ -501,7 +501,7 @@ export default function MeusServicos() {
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         placeholder="Ex: Barba Terapia Imperial com Toalha Quente"
-                        className="w-full bg-background border border-border text-foreground px-4 py-2.5 rounded-lg text-xs focus:ring-1 focus:ring-primary focus:outline-none font-medium"
+                        className="w-full bg-background border border-border text-foreground px-4 py-2.5 rounded-lg text-base focus:ring-1 focus:ring-primary focus:outline-none font-medium"
                         required={addTab === 'new'}
                       />
                     </div>
@@ -511,7 +511,7 @@ export default function MeusServicos() {
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
                         placeholder="Explique o serviço e o capricho envolvido..."
-                        className="w-full bg-background border border-border text-foreground p-3 rounded-lg text-xs focus:ring-1 focus:ring-primary focus:outline-none h-20 resize-none"
+                        className="w-full bg-background border border-border text-foreground p-3 rounded-lg text-base focus:ring-1 focus:ring-primary focus:outline-none h-20 resize-none"
                       />
                     </div>
                   </div>
@@ -529,7 +529,7 @@ export default function MeusServicos() {
                           step="0.01"
                           value={price}
                           onChange={(e) => setPrice(e.target.value)}
-                          className="w-full bg-background border border-border text-foreground pl-9 pr-3 py-2.5 rounded-lg text-xs focus:ring-1 focus:ring-primary focus:outline-none font-mono font-bold"
+                          className="w-full bg-background border border-border text-foreground pl-9 pr-3 py-2.5 rounded-lg text-base focus:ring-1 focus:ring-primary focus:outline-none font-mono font-bold"
                           required
                         />
                       </div>
@@ -542,7 +542,7 @@ export default function MeusServicos() {
                           type="number"
                           value={duration}
                           onChange={(e) => setDuration(e.target.value)}
-                          className="w-full bg-background border border-border text-foreground pl-9 pr-3 py-2.5 rounded-lg text-xs focus:ring-1 focus:ring-primary focus:outline-none font-mono font-bold"
+                          className="w-full bg-background border border-border text-foreground pl-9 pr-3 py-2.5 rounded-lg text-base focus:ring-1 focus:ring-primary focus:outline-none font-mono font-bold"
                           required
                         />
                       </div>
@@ -600,7 +600,7 @@ export default function MeusServicos() {
                         step="0.01"
                         value={editPrice}
                         onChange={(e) => setEditPrice(e.target.value)}
-                        className="w-full bg-background border border-border text-foreground pl-9 pr-3 py-2.5 rounded-lg text-xs focus:ring-1 focus:ring-primary focus:outline-none font-mono font-bold"
+                        className="w-full bg-background border border-border text-foreground pl-9 pr-3 py-2.5 rounded-lg text-base focus:ring-1 focus:ring-primary focus:outline-none font-mono font-bold"
                         required
                       />
                     </div>
@@ -613,7 +613,7 @@ export default function MeusServicos() {
                         type="number"
                         value={editDuration}
                         onChange={(e) => setEditDuration(e.target.value)}
-                        className="w-full bg-background border border-border text-foreground pl-9 pr-3 py-2.5 rounded-lg text-xs focus:ring-1 focus:ring-primary focus:outline-none font-mono font-bold"
+                        className="w-full bg-background border border-border text-foreground pl-9 pr-3 py-2.5 rounded-lg text-base focus:ring-1 focus:ring-primary focus:outline-none font-mono font-bold"
                         required
                       />
                     </div>
@@ -628,7 +628,7 @@ export default function MeusServicos() {
                     value={editDescription}
                     onChange={(e) => setEditDescription(e.target.value)}
                     placeholder="Ex: A partir de R$50 — valor pode variar conforme o tipo de corte ou barba"
-                    className="w-full bg-background border border-border text-foreground p-3 rounded-lg text-xs focus:ring-1 focus:ring-primary focus:outline-none h-20 resize-none"
+                    className="w-full bg-background border border-border text-foreground p-3 rounded-lg text-base focus:ring-1 focus:ring-primary focus:outline-none h-20 resize-none"
                   />
                   <p className="text-[10px] text-muted-foreground">
                     Se deixado em branco, será exibida a descrição padrão do catálogo.

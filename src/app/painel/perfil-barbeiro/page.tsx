@@ -246,7 +246,7 @@ export default function PerfilBarbeiroPage() {
                   rows={2}
                   value={bio}
                   onChange={(e) => setBio(e.target.value)}
-                  className="w-full p-3.5 bg-background border border-border focus:border-primary rounded-xl text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
+                  className="w-full p-3.5 bg-background border border-border focus:border-primary rounded-xl text-base text-foreground focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
                   placeholder="Ex: Especialista em cortes clássicos executivos e barba terapia com mais de 8 anos..."
                   required
                 />
@@ -262,7 +262,7 @@ export default function PerfilBarbeiroPage() {
                   rows={3}
                   value={aboutQuote}
                   onChange={(e) => setAboutQuote(e.target.value)}
-                  className="w-full p-3.5 bg-background border border-border focus:border-primary rounded-xl text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
+                  className="w-full p-3.5 bg-background border border-border focus:border-primary rounded-xl text-base text-foreground focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
                   placeholder="Compartilhe um pouco da sua trajetória de vida e compromisso com o cliente..."
                   required
                 />
@@ -281,7 +281,7 @@ export default function PerfilBarbeiroPage() {
                     onChange={(e) => setExperienceYears(Number(e.target.value))}
                     min={0}
                     max={60}
-                    className="w-full p-3.5 bg-background border border-border focus:border-primary rounded-xl text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary transition-colors font-mono font-bold"
+                    className="w-full p-3.5 bg-background border border-border focus:border-primary rounded-xl text-base text-foreground focus:outline-none focus:ring-1 focus:ring-primary transition-colors font-mono font-bold"
                     required
                   />
                 </div>
@@ -296,7 +296,7 @@ export default function PerfilBarbeiroPage() {
                     id="specialties"
                     value={specialtiesText}
                     onChange={(e) => setSpecialtiesText(e.target.value)}
-                    className="w-full p-3.5 bg-background border border-border focus:border-primary rounded-xl text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
+                    className="w-full p-3.5 bg-background border border-border focus:border-primary rounded-xl text-base text-foreground focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
                     placeholder="Ex: Degradê Americano, Visagismo, Freestyle"
                     required
                   />

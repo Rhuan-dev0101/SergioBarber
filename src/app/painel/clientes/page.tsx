@@ -325,7 +325,7 @@ export default function PainelClientes() {
                 placeholder="Buscar por nome, e-mail ou WhatsApp..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-9 py-2.5 bg-secondary/40 border border-border focus:border-primary rounded-xl text-xs outline-none text-foreground transition-all"
+                className="w-full pl-10 pr-9 py-2.5 bg-secondary/40 border border-border focus:border-primary rounded-xl text-base outline-none text-foreground transition-all"
               />
               {searchQuery && (
                 <button
@@ -470,7 +470,7 @@ export default function PainelClientes() {
                     onChange={(e) => setPrivateNotes(e.target.value)}
                     disabled={isPending}
                     rows={4}
-                    className="w-full p-4 bg-secondary/40 border border-border/80 focus:border-primary rounded-xl text-xs text-foreground placeholder:text-muted-foreground outline-none resize-none transition-all shadow-inner"
+                    className="w-full p-4 bg-secondary/40 border border-border/80 focus:border-primary rounded-xl text-base text-foreground placeholder:text-muted-foreground outline-none resize-none transition-all shadow-inner"
                   />
                   <div className="flex justify-end">
                     <button
@@ -642,7 +642,7 @@ export default function PainelClientes() {
                       required
                       placeholder="Ex: João da Silva"
                       disabled={regPending}
-                      className="w-full p-2.5 bg-secondary border border-border focus:border-primary rounded text-xs outline-none text-foreground"
+                      className="w-full p-2.5 bg-secondary border border-border focus:border-primary rounded text-base outline-none text-foreground"
                     />
                   </div>
 
@@ -659,7 +659,7 @@ export default function PainelClientes() {
                       required
                       placeholder="Ex: cliente@email.com"
                       disabled={regPending}
-                      className="w-full p-2.5 bg-secondary border border-border focus:border-primary rounded text-xs outline-none text-foreground"
+                      className="w-full p-2.5 bg-secondary border border-border focus:border-primary rounded text-base outline-none text-foreground"
                     />
                     <p className="text-[10px] text-muted-foreground leading-normal mt-1">
                       Use o mesmo e-mail que a pessoa utiliza no Google ou Facebook, para que ela consiga entrar automaticamente depois usando login social.
@@ -679,7 +679,7 @@ export default function PainelClientes() {
                       required
                       placeholder="Ex: (11) 99999-9999"
                       disabled={regPending}
-                      className="w-full p-2.5 bg-secondary border border-border focus:border-primary rounded text-xs outline-none text-foreground"
+                      className="w-full p-2.5 bg-secondary border border-border focus:border-primary rounded text-base outline-none text-foreground"
                     />
                   </div>
 

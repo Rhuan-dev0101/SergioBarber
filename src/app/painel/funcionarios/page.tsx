@@ -738,7 +738,7 @@ export default function PainelFuncionarios() {
                                       type="time" 
                                       value={openTime} 
                                       onChange={(e) => setOpenTime(e.target.value)} 
-                                      className="w-full p-2 bg-secondary border border-border rounded outline-none text-foreground focus:border-primary transition-colors duration-200" 
+                                      className="w-full p-2 bg-secondary border border-border rounded text-base outline-none text-foreground focus:border-primary transition-colors duration-200" 
                                       required
                                     />
                                   </label>
@@ -748,7 +748,7 @@ export default function PainelFuncionarios() {
                                       type="time" 
                                       value={closeTime} 
                                       onChange={(e) => setCloseTime(e.target.value)} 
-                                      className="w-full p-2 bg-secondary border border-border rounded outline-none text-foreground focus:border-primary transition-colors duration-200" 
+                                      className="w-full p-2 bg-secondary border border-border rounded text-base outline-none text-foreground focus:border-primary transition-colors duration-200" 
                                       required
                                     />
                                   </label>
@@ -780,7 +780,7 @@ export default function PainelFuncionarios() {
                                         type="time"
                                         value={lunchBreakStart}
                                         onChange={(e) => setLunchBreakStart(e.target.value)}
-                                        className="w-full sm:w-40 p-2 bg-secondary border border-border rounded outline-none text-foreground focus:border-primary transition-colors duration-200"
+                                        className="w-full sm:w-40 p-2 bg-secondary border border-border rounded text-base outline-none text-foreground focus:border-primary transition-colors duration-200"
                                       />
                                     </div>
                                     <span className="text-[11px] text-muted-foreground font-medium bg-secondary/60 px-3 py-2 rounded border border-border/40 shrink-0">
@@ -824,7 +824,7 @@ export default function PainelFuncionarios() {
                           value={blockStart}
                           onChange={(e) => setBlockStart(e.target.value)}
                           disabled={isPending}
-                          className="w-full p-2 bg-secondary border border-border rounded text-foreground text-xs"
+                          className="w-full p-2 bg-secondary border border-border rounded text-foreground text-base"
                           required
                         />
                       </label>
@@ -835,7 +835,7 @@ export default function PainelFuncionarios() {
                           value={blockEnd}
                           onChange={(e) => setBlockEnd(e.target.value)}
                           disabled={isPending}
-                          className="w-full p-2 bg-secondary border border-border rounded text-foreground text-xs"
+                          className="w-full p-2 bg-secondary border border-border rounded text-foreground text-base"
                           required
                         />
                       </label>
@@ -847,7 +847,7 @@ export default function PainelFuncionarios() {
                           value={blockReason}
                           onChange={(e) => setBlockReason(e.target.value)}
                           disabled={isPending}
-                          className="w-full p-2 bg-secondary border border-border rounded text-foreground text-xs"
+                          className="w-full p-2 bg-secondary border border-border rounded text-foreground text-base"
                           required
                         />
                       </label>
@@ -911,7 +911,7 @@ export default function PainelFuncionarios() {
                           value={dayOffDate}
                           onChange={(e) => setDayOffDate(e.target.value)}
                           disabled={isPending}
-                          className="w-full p-2 bg-secondary border border-border rounded text-foreground text-xs"
+                          className="w-full p-2 bg-secondary border border-border rounded text-foreground text-base"
                           required
                         />
                       </label>
@@ -923,7 +923,7 @@ export default function PainelFuncionarios() {
                           value={dayOffReason}
                           onChange={(e) => setDayOffReason(e.target.value)}
                           disabled={isPending}
-                          className="w-full p-2 bg-secondary border border-border rounded text-foreground text-xs"
+                          className="w-full p-2 bg-secondary border border-border rounded text-foreground text-base"
                           required
                         />
                       </label>
@@ -1016,7 +1016,7 @@ export default function PainelFuncionarios() {
                           rows={2}
                           value={editBio}
                           onChange={(e) => setEditBio(e.target.value)}
-                          className="w-full p-2.5 bg-secondary/30 border border-border/80 focus:border-primary rounded text-xs text-foreground focus:outline-none focus:ring-0"
+                          className="w-full p-2.5 bg-secondary/30 border border-border/80 focus:border-primary rounded text-base text-foreground focus:outline-none focus:ring-0"
                           placeholder="Frase curta para o card fechado..."
                           required
                         />
@@ -1029,7 +1029,7 @@ export default function PainelFuncionarios() {
                           rows={3}
                           value={editAboutQuote}
                           onChange={(e) => setEditAboutQuote(e.target.value)}
-                          className="w-full p-2.5 bg-secondary/30 border border-border/80 focus:border-primary rounded text-xs text-foreground focus:outline-none focus:ring-0"
+                          className="w-full p-2.5 bg-secondary/30 border border-border/80 focus:border-primary rounded text-base text-foreground focus:outline-none focus:ring-0"
                           placeholder="Trajetória de vida exibida no detalhe..."
                           required
                         />
@@ -1043,7 +1043,7 @@ export default function PainelFuncionarios() {
                             id="editExp"
                             value={editExperienceYears}
                             onChange={(e) => setEditExperienceYears(Number(e.target.value))}
-                            className="w-full p-2.5 bg-secondary/30 border border-border/80 focus:border-primary rounded text-xs text-foreground focus:outline-none focus:ring-0"
+                            className="w-full p-2.5 bg-secondary/30 border border-border/80 focus:border-primary rounded text-base text-foreground focus:outline-none focus:ring-0"
                             required
                           />
                         </div>
@@ -1055,7 +1055,7 @@ export default function PainelFuncionarios() {
                             id="editSpecs"
                             value={editSpecialtiesText}
                             onChange={(e) => setEditSpecialtiesText(e.target.value)}
-                            className="w-full p-2.5 bg-secondary/30 border border-border/80 focus:border-primary rounded text-xs text-foreground focus:outline-none focus:ring-0"
+                            className="w-full p-2.5 bg-secondary/30 border border-border/80 focus:border-primary rounded text-base text-foreground focus:outline-none focus:ring-0"
                             placeholder="Degradê, Barba, Visagismo"
                             required
                           />
@@ -1115,7 +1115,7 @@ export default function PainelFuncionarios() {
                           value={editEmail}
                           onChange={(e) => setEditEmail(e.target.value)}
                           disabled={isPending}
-                          className="w-full p-2.5 bg-secondary/30 border border-border/80 focus:border-primary rounded text-xs text-foreground focus:outline-none focus:ring-0"
+                          className="w-full p-2.5 bg-secondary/30 border border-border/80 focus:border-primary rounded text-base text-foreground focus:outline-none focus:ring-0"
                           placeholder="exemplo@barbearia.com"
                           required
                         />
@@ -1174,7 +1174,7 @@ export default function PainelFuncionarios() {
                       value={addName}
                       onChange={(e) => setAddName(e.target.value)}
                       placeholder="Ex: João Silva"
-                      className="w-full bg-secondary border border-border text-foreground pl-8 pr-3 py-2 rounded text-xs focus:ring-1 focus:ring-primary focus:outline-none"
+                      className="w-full bg-secondary border border-border text-foreground pl-8 pr-3 py-2 rounded text-base focus:ring-1 focus:ring-primary focus:outline-none"
                       required
                     />
                   </div>
@@ -1189,7 +1189,7 @@ export default function PainelFuncionarios() {
                       value={addEmail}
                       onChange={(e) => setAddEmail(e.target.value)}
                       placeholder="Ex: joao@barbearia.com"
-                      className="w-full bg-secondary border border-border text-foreground pl-8 pr-3 py-2 rounded text-xs focus:ring-1 focus:ring-primary focus:outline-none"
+                      className="w-full bg-secondary border border-border text-foreground pl-8 pr-3 py-2 rounded text-base focus:ring-1 focus:ring-primary focus:outline-none"
                       required
                     />
                   </div>

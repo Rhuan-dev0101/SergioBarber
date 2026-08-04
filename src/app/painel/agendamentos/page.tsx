@@ -578,7 +578,7 @@ export default function PainelAgendamentos() {
                 placeholder="Buscar cliente, serviço..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-8 pr-3 py-2 bg-background border border-border text-xs text-foreground placeholder:text-muted-foreground/60 rounded-xl focus:outline-none focus:ring-1 focus:ring-primary"
+                className="w-full pl-8 pr-3 py-2 bg-background border border-border text-base text-foreground placeholder:text-muted-foreground/60 rounded-xl focus:outline-none focus:ring-1 focus:ring-primary"
               />
               {searchQuery && (
                 <button
@@ -595,7 +595,7 @@ export default function PainelAgendamentos() {
                 type="date"
                 value={filterDate}
                 onChange={(e) => setFilterDate(e.target.value)}
-                className="w-full sm:w-auto px-3 py-2 bg-background border border-border text-xs text-foreground rounded-xl focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer font-medium"
+                className="w-full sm:w-auto px-3 py-2 bg-background border border-border text-base text-foreground rounded-xl focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer font-medium"
               />
             </div>
 
@@ -1023,7 +1023,7 @@ export default function PainelAgendamentos() {
                       value={clientName}
                       onChange={(e) => setClientName(e.target.value)}
                       disabled={isPending}
-                      className="w-full pl-10 pr-4 py-2.5 bg-secondary/50 border border-border focus:border-primary rounded-xl text-xs outline-none text-foreground"
+                      className="w-full pl-10 pr-4 py-2.5 bg-secondary/50 border border-border focus:border-primary rounded-xl text-base outline-none text-foreground"
                       required
                     />
                   </div>
@@ -1036,7 +1036,7 @@ export default function PainelAgendamentos() {
                     value={selectedBarberId}
                     onChange={(e) => setSelectedBarberId(e.target.value)}
                     disabled={isPending}
-                    className="w-full px-3.5 py-2.5 bg-secondary/50 border border-border focus:border-primary rounded-xl text-xs text-foreground outline-none cursor-pointer"
+                    className="w-full px-3.5 py-2.5 bg-secondary/50 border border-border focus:border-primary rounded-xl text-base text-foreground outline-none cursor-pointer"
                     required
                   >
                     <option value="">Selecione o profissional</option>
@@ -1053,7 +1053,7 @@ export default function PainelAgendamentos() {
                     value={selectedServiceId}
                     onChange={(e) => setSelectedServiceId(e.target.value)}
                     disabled={isPending}
-                    className="w-full px-3.5 py-2.5 bg-secondary/50 border border-border focus:border-primary rounded-xl text-xs text-foreground outline-none cursor-pointer"
+                    className="w-full px-3.5 py-2.5 bg-secondary/50 border border-border focus:border-primary rounded-xl text-base text-foreground outline-none cursor-pointer"
                     required
                   >
                     <option value="">Selecione o serviço</option>
@@ -1071,7 +1071,7 @@ export default function PainelAgendamentos() {
                     value={walkInDate}
                     onChange={(e) => setWalkInDate(e.target.value)}
                     disabled={isPending}
-                    className="w-full px-3 py-2.5 bg-secondary/50 border border-border focus:border-primary rounded-xl text-xs text-foreground outline-none cursor-pointer"
+                    className="w-full px-3 py-2.5 bg-secondary/50 border border-border focus:border-primary rounded-xl text-base text-foreground outline-none cursor-pointer"
                     required
                   />
                 </div>
@@ -1088,7 +1088,7 @@ export default function PainelAgendamentos() {
                       value={walkInTime}
                       onChange={(e) => setWalkInTime(e.target.value)}
                       disabled={isPending}
-                      className="w-full px-3.5 py-2.5 bg-secondary/50 border border-border focus:border-primary rounded-xl text-xs text-foreground outline-none cursor-pointer"
+                      className="w-full px-3.5 py-2.5 bg-secondary/50 border border-border focus:border-primary rounded-xl text-base text-foreground outline-none cursor-pointer"
                       required
                     >
                       <option value="">Escolha um horário livre</option>

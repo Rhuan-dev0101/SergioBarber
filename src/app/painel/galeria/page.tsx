@@ -623,7 +623,7 @@ export default function PainelGaleria() {
                           onChange={(e) => handleUpdateQueueItem(item.id, 'title', e.target.value)}
                           disabled={uploading}
                           placeholder="Ex: Corte Fade com Barba Desenhada"
-                          className="w-full px-3 py-2 bg-secondary/30 border border-border/80 focus:border-primary rounded text-xs text-foreground outline-none transition-colors"
+                          className="w-full px-3 py-2 bg-secondary/30 border border-border/80 focus:border-primary rounded text-base text-foreground outline-none transition-colors"
                           required
                         />
                       </div>
@@ -634,7 +634,7 @@ export default function PainelGaleria() {
                           value={item.category}
                           onChange={(e) => handleUpdateQueueItem(item.id, 'category', e.target.value)}
                           disabled={uploading}
-                          className="w-full px-3 py-2 bg-secondary/30 border border-border/80 focus:border-primary rounded text-xs text-foreground outline-none transition-colors"
+                          className="w-full px-3 py-2 bg-secondary/30 border border-border/80 focus:border-primary rounded text-base text-foreground outline-none transition-colors"
                         >
                           <option value="Corte">Corte</option>
                           <option value="Barba">Barba</option>
@@ -653,7 +653,7 @@ export default function PainelGaleria() {
                         onChange={(e) => handleUpdateQueueItem(item.id, 'description', e.target.value)}
                         disabled={uploading}
                         placeholder="Ex: Degradê limpo com tesoura no topo e barba alinhada."
-                        className="w-full px-3 py-2 bg-secondary/30 border border-border/80 focus:border-primary rounded text-xs text-foreground outline-none transition-colors"
+                        className="w-full px-3 py-2 bg-secondary/30 border border-border/80 focus:border-primary rounded text-base text-foreground outline-none transition-colors"
                       />
                     </div>
 
@@ -803,7 +803,7 @@ export default function PainelGaleria() {
                       value={editingImage.title || ''}
                       onChange={(e) => setEditingImage({ ...editingImage, title: e.target.value })}
                       disabled={isPending || uploading}
-                      className="w-full px-3.5 py-2.5 bg-secondary/30 border border-border/80 focus:border-primary rounded text-xs text-foreground outline-none transition-colors"
+                      className="w-full px-3.5 py-2.5 bg-secondary/30 border border-border/80 focus:border-primary rounded text-base text-foreground outline-none transition-colors"
                       required
                     />
                   </div>
@@ -815,7 +815,7 @@ export default function PainelGaleria() {
                       value={editingImage.category || 'Corte'}
                       onChange={(e) => setEditingImage({ ...editingImage, category: e.target.value })}
                       disabled={isPending || uploading}
-                      className="w-full px-3.5 py-2.5 bg-secondary/30 border border-border/80 focus:border-primary rounded text-xs text-foreground outline-none transition-colors"
+                      className="w-full px-3.5 py-2.5 bg-secondary/30 border border-border/80 focus:border-primary rounded text-base text-foreground outline-none transition-colors"
                     >
                       <option value="Corte">Corte</option>
                       <option value="Barba">Barba</option>
@@ -834,7 +834,7 @@ export default function PainelGaleria() {
                     value={editingImage.description || ''}
                     onChange={(e) => setEditingImage({ ...editingImage, description: e.target.value })}
                     disabled={isPending || uploading}
-                    className="w-full px-3.5 py-2.5 bg-secondary/30 border border-border/80 focus:border-primary rounded text-xs text-foreground outline-none transition-colors"
+                    className="w-full px-3.5 py-2.5 bg-secondary/30 border border-border/80 focus:border-primary rounded text-base text-foreground outline-none transition-colors"
                   />
                 </div>
 

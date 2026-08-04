@@ -450,7 +450,7 @@ export default function AdminAvaliacoesPage() {
                 <select
                   value={barberFilter}
                   onChange={(e) => setBarberFilter(e.target.value)}
-                  className="w-full sm:w-auto px-3 py-2 rounded-xl bg-background border border-border text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer pr-8"
+                  className="w-full sm:w-auto px-3 py-2 rounded-xl bg-background border border-border text-base text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer pr-8"
                 >
                   <option value="all">Todos Barbeiros</option>
                   {barberList.map(b => (
@@ -468,7 +468,7 @@ export default function AdminAvaliacoesPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Buscar cliente, barbeiro, comentário..."
-                className="w-full pl-8 pr-3 py-2 rounded-xl bg-background border border-border text-xs text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary"
+                className="w-full pl-8 pr-3 py-2 rounded-xl bg-background border border-border text-base text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary"
               />
               {searchQuery && (
                 <button

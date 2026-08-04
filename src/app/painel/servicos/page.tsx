@@ -302,7 +302,7 @@ export default function PainelServicos() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     disabled={isPending}
-                    className="w-full px-4 py-2.5 bg-background border border-border focus:border-primary rounded-lg text-xs text-foreground outline-none font-medium"
+                    className="w-full px-4 py-2.5 bg-background border border-border focus:border-primary rounded-lg text-base text-foreground outline-none font-medium"
                     required
                   />
                 </div>
@@ -317,7 +317,7 @@ export default function PainelServicos() {
                     onChange={(e) => setDescription(e.target.value)}
                     disabled={isPending}
                     rows={3}
-                    className="w-full p-3 bg-background border border-border focus:border-primary rounded-lg text-xs text-foreground outline-none resize-none"
+                    className="w-full p-3 bg-background border border-border focus:border-primary rounded-lg text-base text-foreground outline-none resize-none"
                   />
                 </div>
 
@@ -335,7 +335,7 @@ export default function PainelServicos() {
                         onChange={(e) => setDuration(e.target.value)}
                         disabled={isPending}
                         min="1"
-                        className="w-full bg-background border border-border text-foreground pl-9 pr-3 py-2.5 rounded-lg text-xs focus:ring-1 focus:ring-primary focus:outline-none font-mono font-bold"
+                        className="w-full bg-background border border-border text-foreground pl-9 pr-3 py-2.5 rounded-lg text-base focus:ring-1 focus:ring-primary focus:outline-none font-mono font-bold"
                         required
                       />
                     </div>
@@ -354,7 +354,7 @@ export default function PainelServicos() {
                         onChange={(e) => setPrice(e.target.value)}
                         disabled={isPending}
                         min="0"
-                        className="w-full bg-background border border-border text-foreground pl-9 pr-3 py-2.5 rounded-lg text-xs focus:ring-1 focus:ring-primary focus:outline-none font-mono font-bold"
+                        className="w-full bg-background border border-border text-foreground pl-9 pr-3 py-2.5 rounded-lg text-base focus:ring-1 focus:ring-primary focus:outline-none font-mono font-bold"
                         required
                       />
                     </div>

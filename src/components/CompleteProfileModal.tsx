@@ -122,7 +122,7 @@ export function CompleteProfileModal({
               required
               disabled={isPending}
               placeholder="Nome e sobrenome"
-              className="w-full p-2.5 bg-secondary border border-border focus:border-primary rounded text-xs outline-none text-foreground"
+              className="w-full p-2.5 bg-secondary border border-border focus:border-primary rounded text-base outline-none text-foreground"
             />
           </div>
 
@@ -139,7 +139,7 @@ export function CompleteProfileModal({
               required
               disabled={isPending}
               placeholder="Ex: 5511999999999"
-              className="w-full p-2.5 bg-secondary border border-border focus:border-primary rounded text-xs outline-none text-foreground"
+              className="w-full p-2.5 bg-secondary border border-border focus:border-primary rounded text-base outline-none text-foreground"
             />
           </div>
 

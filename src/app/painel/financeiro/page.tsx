@@ -298,7 +298,7 @@ export default function PainelFinanceiro() {
             placeholder="Buscar por cliente, serviço ou status..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-secondary/50 border border-border focus:border-primary rounded-xl text-xs outline-none text-foreground font-medium"
+            className="w-full pl-10 pr-4 py-2.5 bg-secondary/50 border border-border focus:border-primary rounded-xl text-base outline-none text-foreground font-medium"
           />
         </div>
 

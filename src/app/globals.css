@@ -100,6 +100,13 @@ body {
   min-height: 100vh;
 }
 
+/* Enforce minimum 16px font-size on inputs/selects/textareas to prevent iOS Safari auto-zoom on focus */
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea {
+  font-size: 16px;
+}
+
 /* Glassmorphism utility */
 .glass {
   background: rgba(18, 18, 22, 0.7);

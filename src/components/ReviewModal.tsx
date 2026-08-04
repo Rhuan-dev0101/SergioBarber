@@ -263,7 +263,7 @@ export function ReviewModal({ isOpen, onClose, appointment, onSuccess }: ReviewM
               onChange={(e) => setComment(e.target.value)}
               placeholder="Escreva aqui detalhes do corte, atendimento ou ambiente..."
               maxLength={500}
-              className="w-full p-3 rounded-xl bg-secondary/40 border border-border text-xs text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary resize-none"
+              className="w-full p-3 rounded-xl bg-secondary/40 border border-border text-base text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary resize-none"
             />
             <div className="text-[10px] text-muted-foreground text-right">
               {comment.length}/500 caracteres
