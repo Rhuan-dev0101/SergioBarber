@@ -492,9 +492,9 @@ export default function PainelPacotes() {
         {/* Title & Top button */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border/40 pb-6">
           <div className="space-y-1">
-            <h1 className="text-3xl font-serif font-bold text-foreground flex items-center gap-2.5">
-              <Crown className="w-7 h-7 text-primary shrink-0" />
-              Pacotes Mensais VIP 👑
+            <h1 className="text-2xl sm:text-3xl font-serif font-bold text-foreground flex items-center gap-2.5">
+              <Crown className="w-6 h-6 sm:w-7 sm:h-7 text-primary shrink-0" />
+              Pacotes Mensais VIP
             </h1>
             <p className="text-xs text-muted-foreground">Gestão de assinaturas recorrentes com horários fixos e verificação em tempo real da agenda</p>
           </div>
@@ -531,140 +531,147 @@ export default function PainelPacotes() {
               return (
                 <div
                   key={pkg.id}
-                  className="glass p-6 rounded-xl border border-border/80 hover:border-primary/40 transition-all duration-200 space-y-4 shadow-sm relative overflow-hidden"
+                  className="glass p-5 sm:p-6 rounded-2xl border border-border/80 hover:border-primary/40 transition-all duration-200 space-y-4 shadow-xl relative overflow-hidden flex flex-col justify-between"
                 >
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full blur-xl pointer-events-none" />
+                  <div className="absolute top-0 right-0 w-28 h-28 bg-primary/5 rounded-full blur-2xl pointer-events-none" />
 
-                  {/* Header */}
-                  <div className="flex justify-between items-start gap-3 relative z-10">
-                    <div className="space-y-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-serif font-bold text-base text-foreground">{pkg.customerName}</span>
-                        <span className={`text-[9px] uppercase font-bold px-2.5 py-0.5 rounded-full ${
-                          pkg.status === 'active'
-                            ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/25'
-                            : pkg.status === 'completed'
-                            ? 'bg-primary/15 text-primary border border-primary/25'
-                            : 'bg-destructive/15 text-destructive border border-destructive/25'
-                        }`}>
-                          {pkg.status === 'active' ? 'Ativo' : pkg.status === 'completed' ? 'Concluído' : 'Cancelado'}
-                        </span>
-                        <span className={`text-[9px] uppercase font-bold px-2.5 py-0.5 rounded-full ${
-                          pkg.payment_status === 'paid'
-                            ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/25'
-                            : pkg.payment_status === 'cancelled'
-                            ? 'bg-destructive/15 text-destructive border border-destructive/25'
-                            : 'bg-amber-500/15 text-amber-400 border border-amber-500/25'
-                        }`}>
-                          {pkg.payment_status === 'paid' ? 'Pago ✓' : pkg.payment_status === 'cancelled' ? 'Cancelado' : 'Pagamento Pendente'}
-                        </span>
+                  <div className="space-y-4 relative z-10">
+                    {/* Header: Customer Name & Badges */}
+                    <div className="space-y-2">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <h3 className="font-serif font-bold text-lg sm:text-xl text-foreground tracking-tight">{pkg.customerName}</h3>
+                        
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className={`text-[10px] uppercase font-extrabold px-2.5 py-1 rounded-full ${
+                            pkg.status === 'active'
+                              ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                              : pkg.status === 'completed'
+                              ? 'bg-primary/15 text-primary border border-primary/30'
+                              : 'bg-destructive/15 text-destructive border border-destructive/30'
+                          }`}>
+                            {pkg.status === 'active' ? 'Ativo' : pkg.status === 'completed' ? 'Concluído' : 'Cancelado'}
+                          </span>
+
+                          <span className={`text-[10px] uppercase font-extrabold px-2.5 py-1 rounded-full ${
+                            pkg.payment_status === 'paid'
+                              ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                              : pkg.payment_status === 'cancelled'
+                              ? 'bg-destructive/15 text-destructive border border-destructive/30'
+                              : 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+                          }`}>
+                            {pkg.payment_status === 'paid' ? 'Pago ✓' : pkg.payment_status === 'cancelled' ? 'Cancelado' : 'Pagamento Pendente'}
+                          </span>
+                        </div>
                       </div>
-                      <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                        <Scissors className="w-3.5 h-3.5 text-primary" />
+
+                      <p className="text-xs text-muted-foreground flex items-center gap-1.5 font-medium">
+                        <Scissors className="w-3.5 h-3.5 text-primary shrink-0" />
                         <span>{pkg.serviceName} com <strong className="text-foreground">{pkg.barberName}</strong></span>
                       </p>
                     </div>
+
+                    {/* Schedule summary bar */}
+                    <div className="flex items-center justify-between gap-3 text-xs bg-secondary/40 p-3 rounded-xl border border-border/60 shadow-inner">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <span className="flex items-center gap-1.5 font-semibold text-foreground">
+                          <Calendar className="w-3.5 h-3.5 text-primary shrink-0" />
+                          Toda {WEEKDAY_SHORT[pkg.day_of_week]}
+                        </span>
+                        <span className="flex items-center gap-1.5 font-semibold text-foreground">
+                          <Clock className="w-3.5 h-3.5 text-primary shrink-0" />
+                          {pkg.time_slot}
+                        </span>
+                      </div>
+                      <span className="font-mono font-extrabold text-primary text-sm sm:text-base shrink-0">
+                        R$&nbsp;{Number(pkg.package_price).toFixed(2)}
+                      </span>
+                    </div>
+
+                    {/* Progress bar */}
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between text-xs font-semibold">
+                        <span className="text-foreground">{pkg.completedSessions} de {pkg.total_sessions} sessões concluídas</span>
+                        <span className="text-primary font-mono">{remaining > 0 ? `${remaining} restante(s)` : 'Finalizado'}</span>
+                      </div>
+                      <div className="h-2.5 bg-secondary/80 rounded-full overflow-hidden p-0.5 border border-border/50">
+                        <div
+                          className="h-full bg-gradient-to-r from-primary/80 via-primary to-primary-hover rounded-full transition-all duration-500 shadow-sm"
+                          style={{ width: `${progressPct}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Scheduled dates grid */}
+                    <div className="space-y-1.5">
+                      <span className="text-[10px] uppercase font-extrabold text-muted-foreground tracking-wider block">Datas Agendadas:</span>
+                      <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 gap-1.5">
+                        {pkg.appointments
+                          .sort((a: any, b: any) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
+                          .map((appt: any) => {
+                            const d = new Date(appt.start_time)
+                            const dateLabel = d.toLocaleDateString('pt-BR', {
+                              timeZone: 'America/Sao_Paulo',
+                              day: '2-digit', month: '2-digit'
+                            })
+                            return (
+                              <span
+                                key={appt.id}
+                                className={`text-[10px] font-bold py-1 px-1 text-center rounded-lg border transition-all ${
+                                  appt.status === 'completed'
+                                    ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                                    : appt.status === 'cancelled'
+                                    ? 'bg-destructive/15 text-destructive border-destructive/30 line-through opacity-60'
+                                    : 'bg-secondary/60 text-foreground/90 border-border/60'
+                                }`}
+                              >
+                                {dateLabel}
+                              </span>
+                            )
+                          })}
+                      </div>
+                    </div>
                   </div>
 
-                  {/* Schedule summary */}
-                  <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground bg-secondary/30 p-3 rounded-lg border border-border/50">
-                    <span className="flex items-center gap-1.5 font-medium text-foreground">
-                      <Calendar className="w-3.5 h-3.5 text-primary" />
-                      Toda {WEEKDAY_SHORT[pkg.day_of_week]}
-                    </span>
-                    <span className="flex items-center gap-1.5 font-medium text-foreground">
-                      <Clock className="w-3.5 h-3.5 text-primary" />
-                      {pkg.time_slot}
-                    </span>
-                    <span className="font-mono font-bold text-primary ml-auto text-sm">
-                      R$&nbsp;{Number(pkg.package_price).toFixed(2)}
-                    </span>
-                  </div>
+                  {/* Action buttons bar */}
+                  <div className="flex flex-col sm:flex-row gap-2.5 sm:items-center justify-between border-t border-border/40 pt-3.5 mt-4">
+                    {pkg.payment_status === 'pending' && pkg.status === 'active' && (
+                      <button
+                        onClick={() => handleMarkAsPaid(pkg.id)}
+                        disabled={isPending}
+                        className="w-full sm:w-auto px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold cursor-pointer transition-all shadow-md flex items-center justify-center gap-1.5 active:scale-95"
+                      >
+                        <Check className="w-4 h-4" />
+                        <span>Marcar como Pago</span>
+                      </button>
+                    )}
 
-                  {/* Progress bar */}
-                  <div className="space-y-1.5">
-                    <div className="flex justify-between text-xs font-semibold">
-                      <span className="text-foreground">{pkg.completedSessions} de {pkg.total_sessions} sessões concluídas</span>
-                      <span className="text-primary font-mono">{remaining > 0 ? `${remaining} restante(s)` : 'Finalizado'}</span>
-                    </div>
-                    <div className="h-2 bg-secondary rounded-full overflow-hidden p-0.5 border border-border/40">
-                      <div
-                        className="h-full bg-gradient-to-r from-primary via-primary/90 to-primary-hover rounded-full transition-all duration-500 shadow-sm"
-                        style={{ width: `${progressPct}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Session dates mini list */}
-                  <div className="space-y-1">
-                    <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block">Datas Agendadas:</span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {pkg.appointments
-                        .sort((a: any, b: any) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
-                        .map((appt: any) => {
-                          const d = new Date(appt.start_time)
-                          const dateLabel = d.toLocaleDateString('pt-BR', {
-                            timeZone: 'America/Sao_Paulo',
-                            day: '2-digit', month: '2-digit'
-                          })
-                          return (
-                            <span
-                              key={appt.id}
-                              className={`text-[10px] font-bold px-2.5 py-0.5 rounded-md border ${
-                                appt.status === 'completed'
-                                  ? 'bg-emerald-500/15 text-emerald-500 border-emerald-500/30'
-                                  : appt.status === 'cancelled'
-                                  ? 'bg-destructive/15 text-destructive border-destructive/30 line-through'
-                                  : 'bg-primary/15 text-primary border-primary/30'
-                              }`}
-                            >
-                              {dateLabel}
-                            </span>
-                          )
-                        })}
-                    </div>
-                  </div>
-
-                  {/* Action buttons */}
-                  <div className="flex gap-2 justify-between border-t border-border/40 pt-3.5 mt-1">
-                    <div>
-                      {pkg.payment_status === 'pending' && pkg.status === 'active' && (
-                        <button
-                          onClick={() => handleMarkAsPaid(pkg.id)}
-                          disabled={isPending}
-                          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold cursor-pointer transition-all shadow-sm flex items-center gap-1"
-                        >
-                          <Check className="w-3.5 h-3.5" />
-                          <span>Marcar como Pago</span>
-                        </button>
-                      )}
-                    </div>
-                    
-                    <div className="flex gap-2">
+                    <div className="flex items-center gap-2 w-full sm:w-auto sm:ml-auto">
                       <button
                         onClick={() => setEditPackageTarget(pkg)}
                         disabled={isPending}
-                        className="px-3 py-1.5 bg-primary/10 hover:bg-primary/20 border border-primary/25 text-primary rounded-lg text-xs font-bold cursor-pointer transition-all flex items-center gap-1"
+                        className="flex-1 sm:flex-initial px-3.5 py-2.5 bg-primary/10 hover:bg-primary/20 border border-primary/30 text-primary rounded-xl text-xs font-bold cursor-pointer transition-all flex items-center justify-center gap-1.5 active:scale-95"
                       >
                         <Edit className="w-3.5 h-3.5" />
                         <span>Editar Sessões</span>
                       </button>
+                      
                       {pkg.status === 'active' && (
                         <button
                           onClick={() => setCancelTarget(pkg)}
                           disabled={isPending}
-                          className="px-3 py-1.5 bg-destructive/10 hover:bg-destructive/20 border border-destructive/25 text-destructive rounded-lg text-xs font-bold cursor-pointer transition-all"
+                          className="flex-1 sm:flex-initial px-3.5 py-2.5 bg-destructive/10 hover:bg-destructive/20 border border-destructive/30 text-destructive rounded-xl text-xs font-bold cursor-pointer transition-all flex items-center justify-center active:scale-95"
                         >
                           Cancelar
                         </button>
                       )}
+
                       <button
                         onClick={() => setDeleteTarget(pkg)}
                         disabled={isPending}
-                        className="p-1.5 bg-red-950/20 hover:bg-red-950/40 border border-red-900/30 text-red-400 hover:text-red-300 rounded-lg cursor-pointer transition-all"
+                        className="p-2.5 bg-rose-950/20 hover:bg-rose-950/40 border border-rose-900/30 text-rose-400 hover:text-rose-300 rounded-xl cursor-pointer transition-all shrink-0 flex items-center justify-center active:scale-95"
                         title="Excluir permanentemente"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
