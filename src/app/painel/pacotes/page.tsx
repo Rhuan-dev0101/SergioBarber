@@ -826,34 +826,22 @@ export default function PainelPacotes() {
                     </div>
 
                     <div className="space-y-1.5">
-                      <div className="flex justify-between items-center">
-                        <label className="text-xs font-bold text-foreground">Duração do Pacote</label>
-                        {startDate && (
-                          <span className="text-[10px] text-primary font-bold">
-                            {getSessionDatesForDuration(startDate, durationMonths).length} sessões
-                          </span>
-                        )}
-                      </div>
-                      <div className="grid grid-cols-3 gap-1 p-1 bg-background border border-border rounded-lg">
-                        {[
-                          { months: 1, label: '1 mês' },
-                          { months: 4, label: '4 meses' },
-                          { months: 6, label: '6 meses' }
-                        ].map((opt) => (
-                          <button
-                            key={opt.months}
-                            type="button"
-                            onClick={() => setDurationMonths(opt.months as 1 | 4 | 6)}
-                            className={`py-2 text-xs font-bold rounded transition-all cursor-pointer text-center ${
-                              durationMonths === opt.months
-                                ? 'bg-primary text-primary-foreground shadow'
-                                : 'text-muted-foreground hover:text-foreground hover:bg-secondary/40'
-                            }`}
-                          >
-                            {opt.label}
-                          </button>
-                        ))}
-                      </div>
+                      <label className="text-xs font-bold text-foreground">Duração / Frequência do Plano</label>
+                      <select
+                        value={durationMonths}
+                        onChange={(e) => setDurationMonths(parseInt(e.target.value) as 1 | 4 | 6)}
+                        className="w-full px-3.5 py-2.5 bg-background border border-border focus:border-primary rounded-lg text-xs text-foreground outline-none cursor-pointer font-bold text-primary"
+                      >
+                        <option value={1}>
+                          1 mês {startDate ? `(${getSessionDatesForDuration(startDate, 1).length} sessões)` : ''}
+                        </option>
+                        <option value={4}>
+                          4 meses {startDate ? `(${getSessionDatesForDuration(startDate, 4).length} sessões)` : ''}
+                        </option>
+                        <option value={6}>
+                          6 meses {startDate ? `(${getSessionDatesForDuration(startDate, 6).length} sessões)` : ''}
+                        </option>
+                      </select>
                     </div>
                   </div>
                 </div>
