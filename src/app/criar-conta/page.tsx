@@ -1,11 +1,9 @@
 'use client'
 
-import React, { useState, useTransition, useEffect, useRef, Suspense } from 'react'
+import React, { useState, useEffect, useRef, Suspense } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
-import { Scissors, User, Mail, Phone, Lock, ArrowRight, AlertCircle, CheckCircle, Loader2, Sun, Moon, Crown, Check, MessageCircle } from 'lucide-react'
-import { signUpAction } from '@/app/auth/actions'
+import { Scissors, AlertCircle, Sun, Moon, Check, MessageCircle, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { useTheme } from '@/components/ThemeProvider'
 import { formatWhatsAppLink } from '@/lib/settings'
@@ -108,59 +106,21 @@ function ParticlesBackground() {
 }
 
 function SignUpForm() {
-  const [fullName, setFullName] = useState('')
-  const [email, setEmail] = useState('')
-  const [phone, setPhone] = useState('')
-  const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
   const [acceptTerms, setAcceptTerms] = useState(false)
   const [acceptPrivacy, setAcceptPrivacy] = useState(false)
-
   const [errorMsg, setErrorMsg] = useState('')
-  const [isSignedUp, setIsSignedUp] = useState(false)
-  const [isPending, startTransition] = useTransition()
-  const router = useRouter()
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    setErrorMsg('')
-
-    if (!fullName || !email || !phone || !password || !confirmPassword) {
-      setErrorMsg('Por favor, preencha todos os campos obrigatórios.')
-      return
-    }
-
-    if (password !== confirmPassword) {
-      setErrorMsg('As senhas não coincidem.')
-      return
-    }
-
+  const checkConsent = () => {
     if (!acceptTerms || !acceptPrivacy) {
       setErrorMsg('Você precisa aceitar os Termos de Uso e a Política de Privacidade para prosseguir.')
-      return
+      return false
     }
-
-    startTransition(async () => {
-      const formData = new FormData()
-      formData.append('fullName', fullName)
-      formData.append('email', email)
-      formData.append('phone', phone)
-      formData.append('password', password)
-      formData.append('confirmPassword', confirmPassword)
-      formData.append('acceptTerms', acceptTerms ? 'true' : 'false')
-      formData.append('acceptPrivacy', acceptPrivacy ? 'true' : 'false')
-
-      const response = await signUpAction(null, formData)
-      if (!response.success) {
-        setErrorMsg(response.message)
-      } else {
-        setIsSignedUp(true)
-      }
-    })
+    return true
   }
 
   const handleGoogleSignUp = async () => {
     setErrorMsg('')
+    if (!checkConsent()) return
     try {
       const supabase = createClient()
       const { error } = await supabase.auth.signInWithOAuth({
@@ -179,6 +139,7 @@ function SignUpForm() {
 
   const handleFacebookSignUp = async () => {
     setErrorMsg('')
+    if (!checkConsent()) return
     try {
       const supabase = createClient()
       const { error } = await supabase.auth.signInWithOAuth({
@@ -195,41 +156,6 @@ function SignUpForm() {
     }
   }
 
-  if (isSignedUp) {
-    return (
-      <div className="animated-gradient-card p-8 sm:p-10 rounded-2xl space-y-6 shadow-2xl relative overflow-hidden text-center animate-in zoom-in-95 duration-300">
-        <div className="w-16 h-16 rounded-2xl bg-emerald-500/15 text-emerald-500 flex items-center justify-center mx-auto border border-emerald-500/30 shadow-lg shadow-emerald-500/10">
-          <CheckCircle className="w-8 h-8" />
-        </div>
-
-        <div className="space-y-3">
-          <h2 className="text-2xl font-serif font-bold text-foreground">
-            Conta criada com sucesso! 🎉
-          </h2>
-          
-          <div className="p-4 bg-secondary/50 border border-border/60 rounded-xl text-xs sm:text-sm text-foreground/90 text-center space-y-2 leading-relaxed">
-            <p className="font-semibold text-foreground">
-              Sua conta foi cadastrada com sucesso.
-            </p>
-            <p className="text-muted-foreground text-xs">
-              Você já pode fazer login imediatamente para agendar seus horários e gerenciar sua conta.
-            </p>
-          </div>
-        </div>
-
-        <div className="pt-2">
-          <Link
-            href="/entrar"
-            className="inline-flex items-center justify-center gap-2 w-full py-3.5 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl text-xs shadow-lg transition-all cursor-pointer"
-          >
-            <span>Ir para a Tela de Entrar (Login)</span>
-            <ArrowRight className="w-4 h-4" />
-          </Link>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="animated-gradient-card p-8 sm:p-10 rounded-2xl space-y-6 shadow-2xl relative overflow-hidden transition-all duration-300">
       
@@ -240,192 +166,17 @@ function SignUpForm() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        
-        {/* Full Name Floating input */}
-        <div className="relative">
-          <div className="relative border border-border/80 focus-within:border-primary rounded-lg transition-all duration-200 bg-secondary/30">
-            <input
-              type="text"
-              id="fullName"
-              placeholder=" "
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              disabled={isPending}
-              className="block px-3.5 pb-2.5 pt-5 w-full text-sm text-foreground bg-transparent border-0 appearance-none focus:outline-none focus:ring-0 peer disabled:opacity-50"
-              required
-            />
-            <label
-              htmlFor="fullName"
-              className="absolute text-xs sm:text-sm text-muted-foreground duration-200 transform -translate-y-4 scale-75 top-2 z-10 origin-[0] px-3.5 peer-focus:text-primary peer-placeholder-shown:scale-100 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:top-1/2 peer-focus:top-2 peer-focus:scale-75 peer-focus:-translate-y-4 select-none pointer-events-none"
-            >
-              Nome Completo
-            </label>
-          </div>
-        </div>
-
-        {/* Email Floating input */}
-        <div className="relative">
-          <div className="relative border border-border/80 focus-within:border-primary rounded-lg transition-all duration-200 bg-secondary/30">
-            <input
-              type="email"
-              id="email"
-              placeholder=" "
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={isPending}
-              className="block px-3.5 pb-2.5 pt-5 w-full text-sm text-foreground bg-transparent border-0 appearance-none focus:outline-none focus:ring-0 peer disabled:opacity-50"
-              required
-            />
-            <label
-              htmlFor="email"
-              className="absolute text-xs sm:text-sm text-muted-foreground duration-200 transform -translate-y-4 scale-75 top-2 z-10 origin-[0] px-3.5 peer-focus:text-primary peer-placeholder-shown:scale-100 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:top-1/2 peer-focus:top-2 peer-focus:scale-75 peer-focus:-translate-y-4 select-none pointer-events-none"
-            >
-              E-mail
-            </label>
-          </div>
-        </div>
-
-        {/* Phone Floating input */}
-        <div className="relative">
-          <div className="relative border border-border/80 focus-within:border-primary rounded-lg transition-all duration-200 bg-secondary/30">
-            <input
-              type="tel"
-              id="phone"
-              placeholder=" "
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              disabled={isPending}
-              className="block px-3.5 pb-2.5 pt-5 w-full text-sm text-foreground bg-transparent border-0 appearance-none focus:outline-none focus:ring-0 peer disabled:opacity-50"
-              required
-            />
-            <label
-              htmlFor="phone"
-              className="absolute text-xs sm:text-sm text-muted-foreground duration-200 transform -translate-y-4 scale-75 top-2 z-10 origin-[0] px-3.5 peer-focus:text-primary peer-placeholder-shown:scale-100 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:top-1/2 peer-focus:top-2 peer-focus:scale-75 peer-focus:-translate-y-4 select-none pointer-events-none"
-            >
-              Telefone (WhatsApp)
-            </label>
-          </div>
-        </div>
-
-        {/* Password Floating input */}
-        <div className="relative">
-          <div className="relative border border-border/80 focus-within:border-primary rounded-lg transition-all duration-200 bg-secondary/30">
-            <input
-              type="password"
-              id="password"
-              placeholder=" "
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={isPending}
-              className="block px-3.5 pb-2.5 pt-5 w-full text-sm text-foreground bg-transparent border-0 appearance-none focus:outline-none focus:ring-0 peer disabled:opacity-50"
-              required
-            />
-            <label
-              htmlFor="password"
-              className="absolute text-xs sm:text-sm text-muted-foreground duration-200 transform -translate-y-4 scale-75 top-2 z-10 origin-[0] px-3.5 peer-focus:text-primary peer-placeholder-shown:scale-100 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:top-1/2 peer-focus:top-2 peer-focus:scale-75 peer-focus:-translate-y-4 select-none pointer-events-none"
-            >
-              Senha
-            </label>
-          </div>
-        </div>
-
-        {/* Confirm Password Floating input */}
-        <div className="relative">
-          <div className="relative border border-border/80 focus-within:border-primary rounded-lg transition-all duration-200 bg-secondary/30">
-            <input
-              type="password"
-              id="confirmPassword"
-              placeholder=" "
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              disabled={isPending}
-              className="block px-3.5 pb-2.5 pt-5 w-full text-sm text-foreground bg-transparent border-0 appearance-none focus:outline-none focus:ring-0 peer disabled:opacity-50"
-              required
-            />
-            <label
-              htmlFor="confirmPassword"
-              className="absolute text-xs sm:text-sm text-muted-foreground duration-200 transform -translate-y-4 scale-75 top-2 z-10 origin-[0] px-3.5 peer-focus:text-primary peer-placeholder-shown:scale-100 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:top-1/2 peer-focus:top-2 peer-focus:scale-75 peer-focus:-translate-y-4 select-none pointer-events-none"
-            >
-              Confirmar Senha
-            </label>
-          </div>
-        </div>
-
-        {/* Terms Checkboxes */}
-        <div className="space-y-3 pt-2">
-          <label className="flex items-start gap-2.5 text-xs text-muted-foreground cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={acceptTerms}
-              onChange={(e) => setAcceptTerms(e.target.checked)}
-              disabled={isPending}
-              className="mt-0.5 rounded accent-primary w-4 h-4 cursor-pointer"
-              required
-            />
-            <span>
-              Eu aceito e concordo com os{' '}
-              <Link href="/termos-de-uso" target="_blank" className="text-primary hover:underline font-semibold">
-                Termos de Uso
-              </Link>{' '}
-              da barbearia.
-            </span>
-          </label>
-
-          <label className="flex items-start gap-2.5 text-xs text-muted-foreground cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={acceptPrivacy}
-              onChange={(e) => setAcceptPrivacy(e.target.checked)}
-              disabled={isPending}
-              className="mt-0.5 rounded accent-primary w-4 h-4 cursor-pointer"
-              required
-            />
-            <span>
-              Eu aceito a{' '}
-              <Link href="/politica-de-privacidade" target="_blank" className="text-primary hover:underline font-semibold">
-                Política de Privacidade
-              </Link>{' '}
-              e autorizo o tratamento dos dados.
-            </span>
-          </label>
-        </div>
-
-        {/* Submit Button */}
-        <button
-          type="submit"
-          disabled={isPending}
-          className="w-full py-3 bg-primary hover:bg-primary-hover text-primary-foreground font-bold rounded-lg text-xs transition-all shadow-md hover:shadow-lg hover:scale-[1.01] active:scale-[0.99] disabled:opacity-75 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer mt-2"
-        >
-          {isPending ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin text-primary-foreground" />
-              Criando sua Conta...
-            </>
-          ) : (
-            <>
-              Cadastrar
-              <ArrowRight className="w-4 h-4 text-primary-foreground" />
-            </>
-          )}
-        </button>
-      </form>
-
-      {/* "ou continue com" divider */}
-      <div className="relative flex items-center justify-center my-4">
-        <div className="border-t border-border/40 w-full absolute z-0" />
-        <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground bg-secondary/80 backdrop-blur px-3.5 relative z-10 rounded-full border border-border/30">
-          ou continue com
-        </span>
-      </div>
+      {/* Explanatory text */}
+      <p className="text-xs text-muted-foreground text-center leading-relaxed">
+        Crie sua conta rapidamente com Google ou Facebook — sem burocracia.
+      </p>
 
       {/* Social login action buttons */}
-      <div className="space-y-2.5">
+      <div className="space-y-3">
         <button
           type="button"
           onClick={handleGoogleSignUp}
-          disabled={isPending}
-          className="w-full py-3 bg-secondary hover:bg-muted border border-border text-foreground font-semibold rounded-lg text-xs transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2.5 cursor-pointer shadow-md disabled:opacity-50"
+          className="w-full py-3 bg-secondary hover:bg-muted border border-border text-foreground font-semibold rounded-lg text-xs transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2.5 cursor-pointer shadow-md"
         >
           <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">
             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -433,20 +184,54 @@ function SignUpForm() {
             <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>
             <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335"/>
           </svg>
-          <span>Cadastrar com Google</span>
+          <span>Continuar com Google</span>
         </button>
 
         <button
           type="button"
           onClick={handleFacebookSignUp}
-          disabled={isPending}
-          className="w-full py-3 bg-secondary hover:bg-muted border border-border text-foreground font-semibold rounded-lg text-xs transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2.5 cursor-pointer shadow-md disabled:opacity-50"
+          className="w-full py-3 bg-secondary hover:bg-muted border border-border text-foreground font-semibold rounded-lg text-xs transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2.5 cursor-pointer shadow-md"
         >
           <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="#1877F2">
             <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
           </svg>
-          <span>Cadastrar com Facebook</span>
+          <span>Continuar com Facebook</span>
         </button>
+      </div>
+
+      {/* Terms Checkboxes */}
+      <div className="space-y-3 pt-2 border-t border-border/40">
+        <label className="flex items-start gap-2.5 text-xs text-muted-foreground cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={acceptTerms}
+            onChange={(e) => setAcceptTerms(e.target.checked)}
+            className="mt-0.5 rounded accent-primary w-4 h-4 cursor-pointer"
+          />
+          <span>
+            Eu aceito e concordo com os{' '}
+            <Link href="/termos-de-uso" target="_blank" className="text-primary hover:underline font-semibold">
+              Termos de Uso
+            </Link>{' '}
+            da barbearia.
+          </span>
+        </label>
+
+        <label className="flex items-start gap-2.5 text-xs text-muted-foreground cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={acceptPrivacy}
+            onChange={(e) => setAcceptPrivacy(e.target.checked)}
+            className="mt-0.5 rounded accent-primary w-4 h-4 cursor-pointer"
+          />
+          <span>
+            Eu aceito a{' '}
+            <Link href="/politica-de-privacidade" target="_blank" className="text-primary hover:underline font-semibold">
+              Política de Privacidade
+            </Link>{' '}
+            e autorizo o tratamento dos dados.
+          </span>
+        </label>
       </div>
 
       {/* Redirection link */}
