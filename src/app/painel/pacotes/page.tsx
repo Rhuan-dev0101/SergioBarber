@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import {
   Package, Plus, Loader2, Search, X, Check, AlertCircle,
   CheckCircle2, Calendar, Clock, User, Scissors, Trash2,
-  AlertTriangle, ChevronDown, Crown, Sparkles
+  AlertTriangle, ChevronDown, Crown, Sparkles, Edit
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
@@ -15,7 +15,9 @@ import {
   cancelPackageAction,
   validatePackageSlotsAction,
   markPackageAsPaidAction,
-  deletePackageAction
+  deletePackageAction,
+  cancelPackageSessionAction,
+  reschedulePackageSessionAction
 } from './actions'
 
 const WEEKDAY_NAMES = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado']
@@ -36,6 +38,14 @@ export default function PainelPacotes() {
   const [showModal, setShowModal] = useState(false)
   const [cancelTarget, setCancelTarget] = useState<any>(null)
   const [deleteTarget, setDeleteTarget] = useState<any>(null)
+  const [editPackageTarget, setEditPackageTarget] = useState<any>(null)
+
+  // Session Reschedule State
+  const [rescheduleAppt, setRescheduleAppt] = useState<any>(null)
+  const [rescheduleDate, setRescheduleDate] = useState('')
+  const [rescheduleTime, setRescheduleTime] = useState('')
+  const [rescheduleSlots, setRescheduleSlots] = useState<string[]>([])
+  const [loadingRescheduleSlots, setLoadingRescheduleSlots] = useState(false)
 
   // Form state
   const [customerId, setCustomerId] = useState('')
@@ -179,11 +189,14 @@ export default function PainelPacotes() {
           cancelledSessions: (apptsByPkg[p.id] || []).filter((a: any) => a.status === 'cancelled').length,
         }))
         setPackages(enriched)
+        return enriched
       } else {
         setPackages([])
+        return []
       }
     } catch (err) {
       console.error('Error loading packages data:', err)
+      return []
     } finally {
       setLoading(false)
     }
@@ -302,6 +315,82 @@ export default function PainelPacotes() {
         ? prev.filter(d => d !== dateStr)
         : [...prev, dateStr]
     )
+  }
+
+  // ──── Fetch available slots for rescheduling session ────
+  useEffect(() => {
+    if (!rescheduleAppt || !rescheduleDate || !editPackageTarget) {
+      setRescheduleSlots([])
+      return
+    }
+
+    async function fetchRescheduleSlots() {
+      setLoadingRescheduleSlots(true)
+      setRescheduleTime('')
+      const svc = services.find(s => s.id === editPackageTarget.service_id)
+      const duration = svc?.duration || 60
+
+      try {
+        const res = await fetch(`/api/booking/slots?barberId=${editPackageTarget.barber_id}&dateStr=${rescheduleDate}&duration=${duration}`)
+        const data = await res.json()
+        setRescheduleSlots(data.slots || [])
+      } catch (err) {
+        console.error('Error fetching reschedule slots:', err)
+      } finally {
+        setLoadingRescheduleSlots(false)
+      }
+    }
+    fetchRescheduleSlots()
+  }, [rescheduleAppt, rescheduleDate, editPackageTarget, services])
+
+  const handleCancelSession = (apptId: string) => {
+    setErrorMsg('')
+    setSuccessMsg('')
+
+    startTransition(async () => {
+      const res = await cancelPackageSessionAction(apptId)
+      if (!res.success) {
+        setErrorMsg(res.message)
+      } else {
+        setSuccessMsg(res.message)
+        const updatedPackages = await loadData()
+        if (editPackageTarget && updatedPackages) {
+          const freshPkg = updatedPackages.find((p: any) => p.id === editPackageTarget.id)
+          if (freshPkg) setEditPackageTarget(freshPkg)
+        }
+      }
+    })
+  }
+
+  const handleStartReschedule = (appt: any) => {
+    setRescheduleAppt(appt)
+    const apptDate = new Date(appt.start_time)
+    const y = apptDate.getFullYear()
+    const m = String(apptDate.getMonth() + 1).padStart(2, '0')
+    const d = String(apptDate.getDate()).padStart(2, '0')
+    setRescheduleDate(`${y}-${m}-${d}`)
+    setRescheduleTime('')
+  }
+
+  const handleConfirmReschedule = () => {
+    if (!rescheduleAppt || !rescheduleDate || !rescheduleTime) return
+    setErrorMsg('')
+    setSuccessMsg('')
+
+    startTransition(async () => {
+      const res = await reschedulePackageSessionAction(rescheduleAppt.id, rescheduleDate, rescheduleTime)
+      if (!res.success) {
+        setErrorMsg(res.message)
+      } else {
+        setSuccessMsg(res.message)
+        setRescheduleAppt(null)
+        const updatedPackages = await loadData()
+        if (editPackageTarget && updatedPackages) {
+          const freshPkg = updatedPackages.find((p: any) => p.id === editPackageTarget.id)
+          if (freshPkg) setEditPackageTarget(freshPkg)
+        }
+      }
+    })
   }
 
   // ──── Filtered customers for searchable dropdown ────
@@ -579,6 +668,14 @@ export default function PainelPacotes() {
                     </div>
                     
                     <div className="flex gap-2">
+                      <button
+                        onClick={() => setEditPackageTarget(pkg)}
+                        disabled={isPending}
+                        className="px-3 py-1.5 bg-primary/10 hover:bg-primary/20 border border-primary/25 text-primary rounded-lg text-xs font-bold cursor-pointer transition-all flex items-center gap-1"
+                      >
+                        <Edit className="w-3.5 h-3.5" />
+                        <span>Editar Sessões</span>
+                      </button>
                       {pkg.status === 'active' && (
                         <button
                           onClick={() => setCancelTarget(pkg)}
@@ -721,6 +818,172 @@ export default function PainelPacotes() {
                   ) : (
                     <><Trash2 className="w-3.5 h-3.5" /> Excluir Permanentemente</>
                   )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Edit Package Sessions Modal ──────────────────────── */}
+        {editPackageTarget && (
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-50 flex items-center justify-center p-4">
+            <div className="glass p-6 sm:p-8 rounded-2xl border border-primary/40 max-w-2xl w-full shadow-2xl space-y-6 relative max-h-[90vh] overflow-y-auto">
+              {/* Header */}
+              <div className="flex justify-between items-center pb-4 border-b border-border/40">
+                <div className="space-y-0.5 text-left">
+                  <h3 className="font-serif font-bold text-xl text-foreground flex items-center gap-2">
+                    <Edit className="w-5 h-5 text-primary" /> Editar Sessões do Pacote
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Cliente: <strong className="text-foreground">{editPackageTarget.customerName}</strong> • Barbeiro: <strong className="text-foreground">{editPackageTarget.barberName}</strong> • {editPackageTarget.serviceName}
+                  </p>
+                </div>
+                <button
+                  onClick={() => { setEditPackageTarget(null); setRescheduleAppt(null) }}
+                  className="text-muted-foreground hover:text-foreground p-1.5 hover:bg-secondary rounded-lg cursor-pointer transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Sessions List */}
+              <div className="space-y-3 text-left">
+                {editPackageTarget.appointments
+                  .sort((a: any, b: any) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
+                  .map((appt: any, idx: number) => {
+                    const d = new Date(appt.start_time)
+                    const dateFormatted = d.toLocaleDateString('pt-BR', {
+                      timeZone: 'America/Sao_Paulo',
+                      weekday: 'short',
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric'
+                    })
+                    const timeFormatted = d.toLocaleTimeString('pt-BR', {
+                      timeZone: 'America/Sao_Paulo',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })
+
+                    const isReschedulingThis = rescheduleAppt?.id === appt.id
+
+                    return (
+                      <div key={appt.id} className="p-3.5 bg-secondary/30 border border-border/60 rounded-xl space-y-3 transition-all">
+                        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-foreground">Sessão {idx + 1}/{editPackageTarget.total_sessions}</span>
+                              <span className={`text-[9px] uppercase font-bold px-2.5 py-0.5 rounded-full ${
+                                appt.status === 'completed'
+                                  ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/25'
+                                  : appt.status === 'cancelled'
+                                  ? 'bg-destructive/15 text-destructive border border-destructive/25 line-through'
+                                  : 'bg-primary/15 text-primary border border-primary/25'
+                              }`}>
+                                {appt.status === 'completed' ? 'Concluído ✓' : appt.status === 'cancelled' ? 'Cancelado (slot livre)' : 'Confirmado'}
+                              </span>
+                            </div>
+                            <p className="text-xs font-mono text-muted-foreground flex items-center gap-1.5">
+                              <Calendar className="w-3.5 h-3.5 text-primary" />
+                              <span className="capitalize">{dateFormatted}</span> às <strong>{timeFormatted}</strong>
+                            </p>
+                          </div>
+
+                          {/* Per-session Action Buttons */}
+                          {!isReschedulingThis && (
+                            <div className="flex flex-wrap gap-2 items-center shrink-0">
+                              {appt.status === 'confirmed' && (
+                                <button
+                                  onClick={() => handleCancelSession(appt.id)}
+                                  disabled={isPending}
+                                  className="px-2.5 py-1.5 bg-destructive/10 hover:bg-destructive/20 border border-destructive/25 text-destructive text-xs font-bold rounded-lg transition-all cursor-pointer"
+                                >
+                                  Desmarcar este dia
+                                </button>
+                              )}
+                              {appt.status !== 'completed' && (
+                                <button
+                                  onClick={() => handleStartReschedule(appt)}
+                                  disabled={isPending}
+                                  className="px-2.5 py-1.5 bg-primary/10 hover:bg-primary/20 border border-primary/25 text-primary text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1"
+                                >
+                                  <Clock className="w-3.5 h-3.5" />
+                                  <span>{appt.status === 'cancelled' ? 'Remarcar para nova data' : 'Remarcar'}</span>
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Inline Reschedule Form */}
+                        {isReschedulingThis && (
+                          <div className="p-3.5 bg-background border border-primary/40 rounded-xl space-y-3 mt-2 shadow-inner">
+                            <span className="text-[11px] uppercase font-bold text-primary tracking-wider block">Remarcar Sessão {idx + 1}</span>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              <div className="space-y-1">
+                                <label className="text-[10px] font-bold uppercase text-muted-foreground">Nova Data</label>
+                                <input
+                                  type="date"
+                                  value={rescheduleDate}
+                                  onChange={(e) => setRescheduleDate(e.target.value)}
+                                  className="w-full p-2 bg-secondary border border-border rounded text-xs outline-none text-foreground font-medium"
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <label className="text-[10px] font-bold uppercase text-muted-foreground">Novo Horário Livre</label>
+                                {loadingRescheduleSlots ? (
+                                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground py-2">
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" /> Buscando horários...
+                                  </div>
+                                ) : rescheduleSlots.length > 0 ? (
+                                  <select
+                                    value={rescheduleTime}
+                                    onChange={(e) => setRescheduleTime(e.target.value)}
+                                    className="w-full p-2 bg-secondary border border-border rounded text-xs outline-none text-foreground font-bold cursor-pointer"
+                                  >
+                                    <option value="">Selecione o horário</option>
+                                    {rescheduleSlots.map(t => (
+                                      <option key={t} value={t}>{t}</option>
+                                    ))}
+                                  </select>
+                                ) : (
+                                  <p className="text-[10px] text-muted-foreground italic py-1 bg-secondary/50 p-2 rounded">Nenhum horário livre nesta data.</p>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="flex justify-end gap-2 pt-1 border-t border-border/30">
+                              <button
+                                type="button"
+                                onClick={() => setRescheduleAppt(null)}
+                                className="px-3 py-1.5 bg-secondary hover:bg-muted text-foreground rounded-lg text-xs font-semibold cursor-pointer"
+                              >
+                                Cancelar
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleConfirmReschedule}
+                                disabled={isPending || !rescheduleDate || !rescheduleTime}
+                                className="px-3.5 py-1.5 bg-primary hover:bg-primary-hover text-primary-foreground font-bold rounded-lg text-xs flex items-center gap-1 transition-all cursor-pointer disabled:opacity-50"
+                              >
+                                {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                                Confirmar Reagendamento
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+              </div>
+
+              <div className="pt-2 border-t border-border/40 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => { setEditPackageTarget(null); setRescheduleAppt(null) }}
+                  className="px-5 py-2 bg-secondary hover:bg-muted text-foreground rounded-lg text-xs font-bold cursor-pointer transition-all"
+                >
+                  Concluir Edição
                 </button>
               </div>
             </div>

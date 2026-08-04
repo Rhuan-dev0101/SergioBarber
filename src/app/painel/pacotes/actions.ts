@@ -270,6 +270,143 @@ export async function cancelPackageAction(packageId: string): Promise<PackageAct
 }
 
 /**
+ * Cancel a single session (appointment) of an existing package.
+ * Frees up the slot for other bookings without deleting the package.
+ */
+export async function cancelPackageSessionAction(appointmentId: string): Promise<PackageActionResponse> {
+  const admin = await verifyAdminSession()
+  if (!admin) {
+    return { success: false, message: 'Apenas administradores podem gerenciar sessões de pacotes.' }
+  }
+
+  if (!appointmentId) {
+    return { success: false, message: 'ID de agendamento inválido.' }
+  }
+
+  try {
+    const supabase = await createServerSupabaseClient()
+
+    // Update appointment status to cancelled
+    const { error: apptError } = await supabase
+      .from('appointments')
+      .update({ status: 'cancelled' })
+      .eq('id', appointmentId)
+
+    if (apptError) {
+      console.error('Error cancelling package session appointment:', apptError)
+      return { success: false, message: 'Erro ao desmarcar a sessão.' }
+    }
+
+    // Update associated payment record
+    await supabase
+      .from('payments')
+      .update({ status: 'refunded', notes: 'Sessão do pacote desmarcada pelo administrador.' })
+      .eq('appointment_id', appointmentId)
+
+    return { success: true, message: 'Sessão desmarcada com sucesso. O horário está livre para outros clientes.' }
+  } catch (err) {
+    console.error('Error in cancelPackageSessionAction:', err)
+    return { success: false, message: 'Erro interno no servidor.' }
+  }
+}
+
+/**
+ * Reschedule a single session (appointment) of an existing package to a new date and time slot.
+ * Keeps the appointment linked to the package_subscription_id and blocks the new slot.
+ */
+export async function reschedulePackageSessionAction(
+  appointmentId: string,
+  newDate: string, // YYYY-MM-DD
+  newTimeSlot: string // HH:mm
+): Promise<PackageActionResponse> {
+  const admin = await verifyAdminSession()
+  if (!admin) {
+    return { success: false, message: 'Apenas administradores podem reagendar sessões de pacotes.' }
+  }
+
+  if (!appointmentId || !newDate || !newTimeSlot) {
+    return { success: false, message: 'Todos os campos para remarcação são obrigatórios.' }
+  }
+
+  try {
+    const supabase = await createServerSupabaseClient()
+
+    // 1. Fetch appointment details
+    const { data: appt } = await supabase
+      .from('appointments')
+      .select('id, barber_id, service_id, package_subscription_id')
+      .eq('id', appointmentId)
+      .single()
+
+    if (!appt) {
+      return { success: false, message: 'Agendamento não encontrado.' }
+    }
+
+    // 2. Fetch service duration
+    let serviceDuration = 60
+    const { data: barberService } = await supabase
+      .from('barber_services')
+      .select('duration')
+      .eq('barber_id', appt.barber_id)
+      .eq('service_id', appt.service_id)
+      .single()
+
+    if (barberService) {
+      serviceDuration = Number(barberService.duration)
+    } else {
+      const { data: baseService } = await supabase
+        .from('services')
+        .select('duration')
+        .eq('id', appt.service_id)
+        .single()
+      if (baseService) {
+        serviceDuration = Number(baseService.duration)
+      }
+    }
+
+    // 3. Verify slot availability on newDate for barber
+    const availableSlots = await getAvailableSlots(appt.barber_id, newDate, serviceDuration)
+    if (!availableSlots.includes(newTimeSlot)) {
+      return { success: false, message: `Horário ${newTimeSlot} em ${newDate} está indisponível na agenda.` }
+    }
+
+    // 4. Compute new start_time and end_time
+    const startTimeStr = `${newDate}T${newTimeSlot}:00-03:00`
+    const startDateObj = new Date(startTimeStr)
+    const endDateObj = addMinutes(startDateObj, serviceDuration)
+
+    // 5. Update appointment with new timing and status = 'confirmed'
+    const { error: updateError } = await supabase
+      .from('appointments')
+      .update({
+        start_time: startDateObj.toISOString(),
+        end_time: endDateObj.toISOString(),
+        status: 'confirmed'
+      })
+      .eq('id', appointmentId)
+
+    if (updateError) {
+      console.error('Error updating rescheduled appointment:', updateError)
+      return { success: false, message: 'Erro ao salvar novo horário no banco de dados.' }
+    }
+
+    // 6. Update payment record status
+    await supabase
+      .from('payments')
+      .update({ status: 'confirmed_manually', notes: 'Sessão do pacote reagendada' })
+      .eq('appointment_id', appointmentId)
+
+    return {
+      success: true,
+      message: `Sessão reagendada com sucesso para ${newDate} às ${newTimeSlot}!`
+    }
+  } catch (err) {
+    console.error('Error in reschedulePackageSessionAction:', err)
+    return { success: false, message: 'Erro interno no servidor ao reagendar sessão.' }
+  }
+}
+
+/**
  * Validate availability for all session dates without creating anything.
  * Used for live preview in the form.
  */
