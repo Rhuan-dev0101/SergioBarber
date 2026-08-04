@@ -59,6 +59,10 @@ export default function PainelPacotes() {
   const [packagePrice, setPackagePrice] = useState('')
   const [durationMonths, setDurationMonths] = useState<1 | 4 | 6>(1)
 
+  // Barber-specific package services
+  const [barberServices, setBarberServices] = useState<any[]>([])
+  const [loadingBarberServices, setLoadingBarberServices] = useState(false)
+
   // Slots
   const [availableSlots, setAvailableSlots] = useState<string[]>([])
   const [loadingSlots, setLoadingSlots] = useState(false)
@@ -247,12 +251,76 @@ export default function PainelPacotes() {
     loadSlots()
   }, [barberId, serviceId, startDate, services])
 
-  // ──── Auto-fill package price (FLAT rate: R$150/month) ────
+  // ──── Load package services specific to selected barber ────
+  useEffect(() => {
+    if (!barberId) {
+      setBarberServices([])
+      setServiceId('')
+      return
+    }
+
+    async function loadBarberPackageServices() {
+      setLoadingBarberServices(true)
+      try {
+        const { data: dbBS } = await supabase
+          .from('barber_services')
+          .select('price, duration, is_active, service_id, services(id, name, price, duration)')
+          .eq('barber_id', barberId)
+          .eq('is_active', true)
+
+        let pkgSvcs: any[] = []
+
+        if (dbBS && dbBS.length > 0) {
+          pkgSvcs = dbBS
+            .filter((bs: any) => bs.services && bs.services.name.toLowerCase().includes('pacote'))
+            .map((bs: any) => ({
+              id: bs.service_id,
+              name: bs.services.name,
+              price: Number(bs.price || bs.services.price),
+              duration: Number(bs.duration || bs.services.duration)
+            }))
+        }
+
+        if (pkgSvcs.length === 0) {
+          const { data: baseServices } = await supabase
+            .from('services')
+            .select('id, name, price, duration')
+            .eq('is_active', true)
+            .ilike('name', '%pacote%')
+            .order('name')
+
+          pkgSvcs = (baseServices || []).map(s => ({
+            id: s.id,
+            name: s.name,
+            price: Number(s.price),
+            duration: Number(s.duration)
+          }))
+        }
+
+        setBarberServices(pkgSvcs)
+
+        if (serviceId && !pkgSvcs.some(s => s.id === serviceId)) {
+          setServiceId('')
+        }
+      } catch (err) {
+        console.error('Error fetching barber package services:', err)
+        setBarberServices([])
+      } finally {
+        setLoadingBarberServices(false)
+      }
+    }
+
+    loadBarberPackageServices()
+  }, [barberId])
+
+  // ──── Auto-fill package price (FLAT rate: monthly rate x durationMonths) ────
   useEffect(() => {
     if (durationMonths) {
-      setPackagePrice((durationMonths * 150).toFixed(2))
+      const selSvc = barberServices.find(s => s.id === serviceId)
+      const monthlyRate = selSvc?.price || 150
+      setPackagePrice((durationMonths * monthlyRate).toFixed(2))
     }
-  }, [durationMonths])
+  }, [durationMonths, serviceId, barberServices])
 
   // Compute expanded candidate dates & selected dates
   const { baseDates, candidateDates, selectedDates, targetSessions } = getExpandedSessionDates(
@@ -1071,17 +1139,33 @@ export default function PainelPacotes() {
                   {/* Service Selector */}
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-foreground">Serviço do Pacote</label>
-                    <select
-                      value={serviceId}
-                      onChange={(e) => setServiceId(e.target.value)}
-                      className="w-full px-3.5 py-2.5 bg-background border border-border focus:border-primary rounded-lg text-base text-foreground outline-none cursor-pointer font-medium"
-                      required
-                    >
-                      <option value="">Selecione o serviço</option>
-                      {services.map(s => (
-                        <option key={s.id} value={s.id}>{s.name} — R$ {Number(s.price).toFixed(2)} ({s.duration} min)</option>
-                      ))}
-                    </select>
+                    {!barberId ? (
+                      <p className="text-[10px] text-amber-400 italic bg-amber-500/10 p-2.5 rounded-lg border border-amber-500/20">
+                        Selecione primeiro o barbeiro para carregar os pacotes disponíveis.
+                      </p>
+                    ) : loadingBarberServices ? (
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground py-2">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" /> Carregando pacotes do profissional...
+                      </div>
+                    ) : barberServices.length > 0 ? (
+                      <select
+                        value={serviceId}
+                        onChange={(e) => setServiceId(e.target.value)}
+                        className="w-full px-3.5 py-2.5 bg-background border border-border focus:border-primary rounded-lg text-base text-foreground outline-none cursor-pointer font-medium"
+                        required
+                      >
+                        <option value="">Selecione o pacote ({barberServices.length} disponível{barberServices.length !== 1 ? 'is' : ''})</option>
+                        {barberServices.map(s => (
+                          <option key={s.id} value={s.id}>
+                            {s.name} — R$ {Number(s.price).toFixed(2)}/mês ({s.duration} min)
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <p className="text-[10px] text-muted-foreground italic bg-background p-2.5 rounded-lg border border-border">
+                        Nenhum pacote mensal encontrado para este profissional.
+                      </p>
+                    )}
                   </div>
 
                   {/* Day of Week + Duration Months */}
