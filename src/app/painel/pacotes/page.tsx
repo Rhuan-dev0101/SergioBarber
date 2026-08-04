@@ -9,7 +9,7 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
-import { getSessionDatesForDuration } from '@/lib/package-utils'
+import { getSessionDatesForDuration, getExpandedSessionDates } from '@/lib/package-utils'
 import {
   createPackageAction,
   cancelPackageAction,
@@ -53,7 +53,8 @@ export default function PainelPacotes() {
   const [availableSlots, setAvailableSlots] = useState<string[]>([])
   const [loadingSlots, setLoadingSlots] = useState(false)
 
-  // Validation preview
+  // Validation & exclusion preview
+  const [excludedDates, setExcludedDates] = useState<string[]>([])
   const [validationResult, setValidationResult] = useState<Array<{ date: string; available: boolean }>>([])
   const [loadingValidation, setLoadingValidation] = useState(false)
 
@@ -265,20 +266,43 @@ export default function PainelPacotes() {
     fetchBarberPrice()
   }, [barberId, serviceId, startDate, durationMonths, services])
 
-  // ──── Validate all slots when time + durationMonths change ────
+  // Compute expanded candidate dates & selected dates
+  const { baseDates, candidateDates, selectedDates, targetSessions } = getExpandedSessionDates(
+    startDate,
+    durationMonths,
+    excludedDates
+  )
+
+  // ──── Reset excluded dates when primary parameters change ────
   useEffect(() => {
-    if (!barberId || !serviceId || !timeSlot || !startDate || !durationMonths) {
+    setExcludedDates([])
+  }, [startDate, durationMonths, barberId, serviceId, dayOfWeek])
+
+  // ──── Validate all candidate slots when time + candidateDates change ────
+  useEffect(() => {
+    if (!barberId || !serviceId || !timeSlot || !startDate || !durationMonths || candidateDates.length === 0) {
       setValidationResult([])
       return
     }
 
     setLoadingValidation(true)
     startTransition(async () => {
-      const result = await validatePackageSlotsAction(barberId, serviceId, timeSlot, startDate, durationMonths)
+      const result = await validatePackageSlotsAction(barberId, serviceId, timeSlot, startDate, durationMonths, candidateDates)
       setValidationResult(result.dates)
       setLoadingValidation(false)
     })
-  }, [barberId, serviceId, timeSlot, startDate, durationMonths])
+  }, [barberId, serviceId, timeSlot, startDate, durationMonths, candidateDates.join(',')])
+
+  const selectedConflicts = validationResult.filter(r => !excludedDates.includes(r.date) && !r.available)
+  const hasConflict = selectedConflicts.length > 0
+
+  const toggleDateSelection = (dateStr: string) => {
+    setExcludedDates(prev =>
+      prev.includes(dateStr)
+        ? prev.filter(d => d !== dateStr)
+        : [...prev, dateStr]
+    )
+  }
 
   // ──── Filtered customers for searchable dropdown ────
   const filteredCustomers = customers.filter(c => {
@@ -298,16 +322,15 @@ export default function PainelPacotes() {
       return
     }
 
-    const hasConflict = validationResult.some(r => !r.available)
     if (hasConflict) {
-      setErrorMsg('Existem conflitos de horário. Resolva antes de criar o pacote.')
+      setErrorMsg('Existem conflitos em datas selecionadas. Resolva ou desmarque antes de criar o pacote.')
       return
     }
 
     startTransition(async () => {
       const res = await createPackageAction(
         customerId, barberId, serviceId, dayOfWeek, timeSlot,
-        startDate, parseFloat(packagePrice), durationMonths
+        startDate, parseFloat(packagePrice), durationMonths, selectedDates
       )
 
       if (!res.success) {
@@ -380,6 +403,7 @@ export default function PainelPacotes() {
     setStartDate('')
     setPackagePrice('')
     setDurationMonths(1)
+    setExcludedDates([])
     setValidationResult([])
   }
 
@@ -919,66 +943,101 @@ export default function PainelPacotes() {
                   </p>
                 </div>
 
-                {/* ── Live Availability Preview Box ────────────────────────── */}
+                {/* ── Live Availability & Date Selection Box ────────────────────────── */}
                 {validationResult.length > 0 && (
-                  <div className="space-y-3 p-4 bg-secondary/40 border border-primary/30 rounded-xl shadow-inner">
-                    <div className="flex items-center justify-between">
-                      <p className="text-[10px] uppercase font-bold text-primary tracking-wider flex items-center gap-1.5">
-                        <Sparkles className="w-3.5 h-3.5" /> Verificação Automática de Agenda ({validationResult.length} sessões em {durationMonths} {durationMonths === 1 ? 'mês' : 'meses'})
-                      </p>
-                      <div className="flex gap-1.5 text-[10px] font-bold">
-                        <span className="text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                          {validationResult.filter(r => r.available).length} livres
+                  <div className="space-y-3 p-4 bg-secondary/40 border border-primary/30 rounded-xl shadow-inner text-left">
+                    <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-1.5 border-b border-border/40 pb-2.5">
+                      <div>
+                        <p className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                          <Sparkles className="w-4 h-4 text-primary" />
+                          Seleção de Datas & Verificação de Agenda
+                        </p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                          Desmarque datas em que o cliente não puder vir — uma data de compensação será adicionada ao final.
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                          {selectedDates.length}/{targetSessions} sessões confirmadas
                         </span>
-                        {validationResult.some(r => !r.available) && (
-                          <span className="text-destructive bg-destructive/10 px-2 py-0.5 rounded border border-destructive/20 font-bold">
-                            {validationResult.filter(r => !r.available).length} conflitos
-                          </span>
-                        )}
                       </div>
                     </div>
 
-                    {/* Scrollable list of date validation status (conflicts first) */}
-                    <div className="space-y-1.5 max-h-52 overflow-y-auto pr-1">
-                      {[...validationResult]
-                        .sort((a, b) => (a.available === b.available ? 0 : a.available ? 1 : -1))
-                        .map((r) => (
-                          <div key={r.date} className={`flex items-center justify-between p-2 rounded-lg border text-xs ${
-                            r.available 
-                              ? 'bg-background/80 border-border/40' 
-                              : 'bg-destructive/10 border-destructive/30'
-                          }`}>
-                            <div className="flex items-center gap-2">
-                              {r.available ? (
-                                <Check className="w-4 h-4 text-emerald-500 font-bold shrink-0" />
-                              ) : (
-                                <X className="w-4 h-4 text-destructive font-bold shrink-0" />
-                              )}
-                              <span className={r.available ? 'text-foreground font-semibold' : 'text-destructive font-bold'}>
-                                {formatDatePt(r.date)} ({WEEKDAY_SHORT[dayOfWeek]}) às {timeSlot}
-                              </span>
+                    {/* Scrollable list of date checkboxes & validation status */}
+                    <div className="space-y-1.5 max-h-60 overflow-y-auto pr-1">
+                      {candidateDates.map((dateStr) => {
+                        const isExcluded = excludedDates.includes(dateStr)
+                        const isSelected = !isExcluded
+                        const valItem = validationResult.find(r => r.date === dateStr)
+                        const isAvailable = valItem ? valItem.available : true
+                        const isCompensation = !baseDates.includes(dateStr)
+
+                        return (
+                          <div
+                            key={dateStr}
+                            onClick={() => toggleDateSelection(dateStr)}
+                            className={`flex items-center justify-between p-2.5 rounded-lg border text-xs cursor-pointer transition-all ${
+                              isExcluded
+                                ? 'bg-secondary/30 border-border/30 opacity-60'
+                                : !isAvailable
+                                ? 'bg-destructive/10 border-destructive/40 shadow-sm'
+                                : 'bg-background border-border/60 hover:border-primary/40'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => {}}
+                                className="w-4 h-4 accent-primary rounded cursor-pointer shrink-0"
+                              />
+                              <div className="flex flex-col">
+                                <span className={`font-semibold flex items-center gap-1.5 ${
+                                  isExcluded
+                                    ? 'text-muted-foreground line-through'
+                                    : !isAvailable
+                                    ? 'text-destructive font-bold'
+                                    : 'text-foreground'
+                                }`}>
+                                  {formatDatePt(dateStr)} ({WEEKDAY_SHORT[dayOfWeek]}) às {timeSlot}
+                                  {isCompensation && (
+                                    <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-400 border border-amber-500/25">
+                                      Compensação +1
+                                    </span>
+                                  )}
+                                </span>
+                              </div>
                             </div>
 
-                            <span className={`text-[9px] uppercase font-bold px-2 py-0.5 rounded-full ${
-                              r.available 
-                                ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/25' 
-                                : 'bg-destructive/15 text-destructive border border-destructive/25'
-                            }`}>
-                              {r.available ? 'Livre ✓' : 'Conflito ✕'}
-                            </span>
+                            <div className="flex items-center gap-2 shrink-0">
+                              {isExcluded ? (
+                                <span className="text-[9px] uppercase font-bold px-2 py-0.5 rounded-full bg-secondary text-muted-foreground border border-border/50">
+                                  Desmarcado (sem agendamento)
+                                </span>
+                              ) : isAvailable ? (
+                                <span className="text-[9px] uppercase font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-500 border border-emerald-500/25 flex items-center gap-1">
+                                  <Check className="w-3 h-3 text-emerald-500" /> Livre ✓
+                                </span>
+                              ) : (
+                                <span className="text-[9px] uppercase font-bold px-2 py-0.5 rounded-full bg-destructive/15 text-destructive border border-destructive/25 flex items-center gap-1">
+                                  <X className="w-3 h-3 text-destructive" /> Conflito ✕
+                                </span>
+                              )}
+                            </div>
                           </div>
-                        ))}
+                        )
+                      })}
                     </div>
 
-                    {validationResult.some(r => !r.available) && (
-                      <p className="text-[11px] text-destructive font-bold mt-1 bg-destructive/10 p-2.5 rounded-lg border border-destructive/20 text-center">
-                        ⚠ {validationResult.filter(r => !r.available).length} de {validationResult.length} datas apresentam conflito de horário. Escolha outro horário ou dia da semana.
+                    {hasConflict && (
+                      <p className="text-[11px] text-destructive font-bold bg-destructive/10 p-2.5 rounded-lg border border-destructive/20 text-center">
+                        ⚠ Existem conflitos em {selectedConflicts.length} data(s) agendada(s). Desmarque as datas conflitantes ou escolha outro horário/dia.
                       </p>
                     )}
 
-                    {validationResult.every(r => r.available) && (
-                      <p className="text-[11px] text-emerald-500 font-bold mt-1 bg-emerald-500/10 p-2.5 rounded-lg border border-emerald-500/20 text-center">
-                        ✓ Perfeito! Todas as {validationResult.length} datas do pacote de {durationMonths} {durationMonths === 1 ? 'mês' : 'meses'} estão livres na agenda!
+                    {!hasConflict && selectedDates.length === targetSessions && (
+                      <p className="text-[11px] text-emerald-500 font-bold bg-emerald-500/10 p-2.5 rounded-lg border border-emerald-500/20 text-center">
+                        ✓ Todas as {selectedDates.length} datas selecionadas estão livres na agenda!
                       </p>
                     )}
                   </div>
@@ -986,20 +1045,20 @@ export default function PainelPacotes() {
 
                 {loadingValidation && (
                   <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground py-2">
-                    <Loader2 className="w-4 h-4 animate-spin text-primary" /> Validando todas as datas na agenda...
+                    <Loader2 className="w-4 h-4 animate-spin text-primary" /> Validando datas na agenda...
                   </div>
                 )}
 
                 {/* Submit */}
                 <button
                   type="submit"
-                  disabled={isPending || !customerId || validationResult.some(r => !r.available)}
+                  disabled={isPending || !customerId || selectedDates.length !== targetSessions || hasConflict}
                   className="w-full py-3.5 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl text-xs flex items-center justify-center gap-2 transition-all duration-200 cursor-pointer shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isPending ? (
                     <><Loader2 className="w-4 h-4 animate-spin text-primary-foreground" /> Criando Pacote Mensal...</>
                   ) : (
-                    <><Crown className="w-4 h-4 text-primary-foreground" /> Confirmar e Gerar Pacote ({getSessionDatesForDuration(startDate, durationMonths).length} sessões)</>
+                    <><Crown className="w-4 h-4 text-primary-foreground" /> Confirmar e Gerar Pacote ({selectedDates.length} sessões)</>
                   )}
                 </button>
               </form>

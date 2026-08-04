@@ -43,7 +43,8 @@ export async function createPackageAction(
   timeSlot: string,
   startDate: string, // YYYY-MM-DD
   packagePrice: number,
-  durationMonths: number // 1, 4, or 6
+  durationMonths: number, // 1, 4, or 6
+  selectedDates?: string[]
 ): Promise<PackageActionResponse> {
   const admin = await verifyAdminSession()
   if (!admin) {
@@ -90,15 +91,17 @@ export async function createPackageAction(
       serviceName = baseService.name
     }
 
-    // 2. Compute exact session dates based on duration in months
-    const sessionDates = getSessionDatesForDuration(startDate, durationMonths)
+    // 2. Compute or use passed selected session dates
+    const sessionDates = (selectedDates && selectedDates.length > 0)
+      ? selectedDates
+      : getSessionDatesForDuration(startDate, durationMonths)
     const totalSessions = sessionDates.length
 
     if (totalSessions === 0) {
       return { success: false, message: 'Impossível calcular datas do pacote para a duração selecionada.' }
     }
 
-    // 3. ALL-OR-NOTHING availability check for every session date using parallel execution
+    // 3. ALL-OR-NOTHING availability check for every selected session date using parallel execution
     const slotChecks = await Promise.all(
       sessionDates.map(async (dateStr) => {
         const availableSlots = await getAvailableSlots(barberId, dateStr, serviceDuration)
@@ -275,7 +278,8 @@ export async function validatePackageSlotsAction(
   serviceId: string,
   timeSlot: string,
   startDate: string,
-  durationMonths: number
+  durationMonths: number,
+  candidateDates?: string[]
 ): Promise<{ success: boolean; dates: Array<{ date: string; available: boolean }>; totalSessions: number }> {
   const admin = await verifyAdminSession()
   if (!admin) {
@@ -308,8 +312,10 @@ export async function validatePackageSlotsAction(
       }
     }
 
-    // Compute session dates
-    const sessionDates = getSessionDatesForDuration(startDate, durationMonths)
+    // Compute or use candidate session dates
+    const sessionDates = (candidateDates && candidateDates.length > 0)
+      ? candidateDates
+      : getSessionDatesForDuration(startDate, durationMonths)
 
     const results = await Promise.all(
       sessionDates.map(async (dateStr) => {
