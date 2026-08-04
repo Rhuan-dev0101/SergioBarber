@@ -287,8 +287,7 @@ export async function deleteDayOffAction(
  */
 export async function createBarberAction(
   fullName: string,
-  email: string,
-  password: string
+  email: string
 ): Promise<StaffActionResponse> {
   const admin = await verifyAdminSession()
   if (!admin) {
@@ -308,10 +307,9 @@ export async function createBarberAction(
       }
     )
 
-    // a. Create user in Supabase Auth via admin API
+    // a. Create user in Supabase Auth via admin API without password (social login linking)
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password,
+      email: email.trim().toLowerCase(),
       email_confirm: true,
       user_metadata: { full_name: fullName }
     })
@@ -373,7 +371,10 @@ export async function createBarberAction(
       console.error('Error inserting default working hours:', hoursError)
     }
 
-    return { success: true, message: 'Funcionário cadastrado com sucesso!' }
+    return { 
+      success: true, 
+      message: `Conta criada! Peça para ${fullName} entrar usando 'Continuar com Google' ou 'Continuar com Facebook' com o e-mail: ${email.trim().toLowerCase()}.` 
+    }
   } catch (err) {
     console.error('Error inside createBarberAction:', err)
     return { success: false, message: 'Erro interno no servidor.' }
@@ -418,5 +419,69 @@ export async function deleteBarberAction(barberId: string): Promise<StaffActionR
   } catch (err) {
     console.error('Error inside deleteBarberAction:', err)
     return { success: false, message: 'Erro interno no servidor.' }
+  }
+}
+
+/**
+ * Server Action to update a user's email address (Admin only)
+ * Updates both auth.users via Supabase Admin API and public.profiles email field.
+ */
+export async function updateUserEmailAction(
+  userId: string,
+  newEmail: string
+): Promise<StaffActionResponse> {
+  if (!userId || !newEmail || !newEmail.trim()) {
+    return { success: false, message: 'ID do usuário e novo e-mail são obrigatórios.' }
+  }
+
+  const emailTrimmed = newEmail.trim().toLowerCase()
+  if (!/\S+@\S+\.\S+/.test(emailTrimmed)) {
+    return { success: false, message: 'Formato de e-mail inválido.' }
+  }
+
+  const isAdmin = await verifyAdminSession()
+  if (!isAdmin) {
+    return { success: false, message: 'Acesso restrito a administradores.' }
+  }
+
+  try {
+    const { createClient: createBaseClient } = await import('@supabase/supabase-js')
+    const supabaseAdmin = createBaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    )
+
+    // 1. Update email in auth.users via Supabase Admin API
+    const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(
+      userId,
+      { email: emailTrimmed, email_confirm: true }
+    )
+
+    if (authError) {
+      console.error('Error updating user email in Auth:', authError)
+      return { success: false, message: `Erro ao atualizar e-mail na autenticação: ${authError.message}` }
+    }
+
+    // 2. Update email in public.profiles table
+    const { error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .update({ email: emailTrimmed })
+      .eq('id', userId)
+
+    if (profileError) {
+      console.error('Error updating user email in profiles table:', profileError)
+      return { success: false, message: `E-mail alterado na autenticação, mas ocorreu um erro no perfil: ${profileError.message}` }
+    }
+
+    return { success: true, message: 'E-mail atualizado com sucesso!' }
+  } catch (err: any) {
+    console.error('Error inside updateUserEmailAction:', err)
+    return { success: false, message: 'Erro interno no servidor: ' + (err?.message || '') }
   }
 }

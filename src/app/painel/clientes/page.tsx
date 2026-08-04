@@ -40,13 +40,10 @@ export default function PainelClientes() {
   const [regFullName, setRegFullName] = useState('')
   const [regEmail, setRegEmail] = useState('')
   const [regPhone, setRegPhone] = useState('')
-  const [regPassword, setRegPassword] = useState('')
-  const [regConfirmPassword, setRegConfirmPassword] = useState('')
   const [regAcceptTerms, setRegAcceptTerms] = useState(false)
   const [regErrorMsg, setRegErrorMsg] = useState('')
   const [regSuccessData, setRegSuccessData] = useState<any>(null)
   const [regPending, setRegPending] = useState(false)
-  const [copied, setCopied] = useState(false)
 
   const supabase = createClient()
 
@@ -55,30 +52,17 @@ export default function PainelClientes() {
     setRegFullName('')
     setRegEmail('')
     setRegPhone('')
-    setRegPassword('')
-    setRegConfirmPassword('')
     setRegAcceptTerms(false)
     setRegErrorMsg('')
     setRegSuccessData(null)
-    setCopied(false)
   }
 
   const handleManualRegister = async (e: React.FormEvent) => {
     e.preventDefault()
     setRegErrorMsg('')
 
-    if (!regFullName || !regEmail || !regPhone || !regPassword || !regConfirmPassword) {
+    if (!regFullName || !regEmail || !regPhone) {
       setRegErrorMsg('Por favor, preencha todos os campos obrigatórios.')
-      return
-    }
-
-    if (regPassword !== regConfirmPassword) {
-      setRegErrorMsg('As senhas não coincidem.')
-      return
-    }
-
-    if (regPassword.length < 6) {
-      setRegErrorMsg('A senha deve conter no mínimo 6 caracteres.')
       return
     }
 
@@ -92,8 +76,7 @@ export default function PainelClientes() {
       const res = await registerCustomerManuallyAction({
         fullName: regFullName,
         email: regEmail,
-        phone: regPhone,
-        password: regPassword
+        phone: regPhone
       })
 
       if (!res.success) {
@@ -101,7 +84,7 @@ export default function PainelClientes() {
       } else {
         setRegSuccessData({
           email: regEmail,
-          password: regPassword
+          fullName: regFullName
         })
         await loadCustomers()
       }
@@ -111,14 +94,6 @@ export default function PainelClientes() {
     } finally {
       setRegPending(false)
     }
-  }
-
-  const handleCopyCredentials = () => {
-    if (!regSuccessData) return
-    const text = `E-mail: ${regSuccessData.email}\nSenha: ${regSuccessData.password}`
-    navigator.clipboard.writeText(text)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
   }
 
   const loadCustomers = async () => {
@@ -686,6 +661,9 @@ export default function PainelClientes() {
                       disabled={regPending}
                       className="w-full p-2.5 bg-secondary border border-border focus:border-primary rounded text-xs outline-none text-foreground"
                     />
+                    <p className="text-[10px] text-muted-foreground leading-normal mt-1">
+                      Use o mesmo e-mail que a pessoa utiliza no Google ou Facebook, para que ela consiga entrar automaticamente depois usando login social.
+                    </p>
                   </div>
 
                   {/* Telefone */}
@@ -703,40 +681,6 @@ export default function PainelClientes() {
                       disabled={regPending}
                       className="w-full p-2.5 bg-secondary border border-border focus:border-primary rounded text-xs outline-none text-foreground"
                     />
-                  </div>
-
-                  {/* Senha */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-xs font-semibold text-muted-foreground uppercase" htmlFor="regPassword">
-                        Senha *
-                      </label>
-                      <input
-                        type="password"
-                        id="regPassword"
-                        value={regPassword}
-                        onChange={(e) => setRegPassword(e.target.value)}
-                        required
-                        placeholder="Mínimo 6 caracteres"
-                        disabled={regPending}
-                        className="w-full p-2.5 bg-secondary border border-border focus:border-primary rounded text-xs outline-none text-foreground"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-semibold text-muted-foreground uppercase" htmlFor="regConfirmPassword">
-                        Confirmar Senha *
-                      </label>
-                      <input
-                        type="password"
-                        id="regConfirmPassword"
-                        value={regConfirmPassword}
-                        onChange={(e) => setRegConfirmPassword(e.target.value)}
-                        required
-                        placeholder="Mínimo 6 caracteres"
-                        disabled={regPending}
-                        className="w-full p-2.5 bg-secondary border border-border focus:border-primary rounded text-xs outline-none text-foreground"
-                      />
-                    </div>
                   </div>
 
                   {/* Legal acceptances area */}
@@ -789,7 +733,7 @@ export default function PainelClientes() {
                   </div>
                 </form>
               ) : (
-                // State 2: Credentials Display screen
+                // State 2: Confirmation screen
                 <div className="text-left space-y-5 py-2">
                   <div className="text-center space-y-1.5">
                     <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto text-emerald-500">
@@ -798,44 +742,22 @@ export default function PainelClientes() {
                     <h3 className="text-lg font-serif font-bold text-foreground">
                       Cliente Cadastrado!
                     </h3>
-                    <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                      O cadastro foi realizado com sucesso. Passe os dados de login abaixo para o cliente.
-                    </p>
                   </div>
 
-                  <div className="p-4 bg-secondary/80 border border-border rounded-lg space-y-3.5 relative overflow-hidden">
-                    <div className="space-y-1">
-                      <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">E-mail de Acesso</span>
-                      <div className="text-sm font-semibold text-foreground select-all break-all">{regSuccessData.email}</div>
+                  <div className="p-4 bg-secondary/80 border border-border rounded-lg space-y-2.5 leading-relaxed">
+                    <p className="text-xs sm:text-sm text-foreground">
+                      Conta criada! Peça para <strong>{regSuccessData.fullName || regFullName}</strong> entrar usando <strong>'Continuar com Google'</strong> ou <strong>'Continuar com Facebook'</strong> com o e-mail:
+                    </p>
+                    <div className="p-2.5 bg-background border border-border rounded text-xs font-mono font-bold text-primary select-all break-all">
+                      {regSuccessData.email}
                     </div>
-                    <div className="space-y-1">
-                      <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Senha Provisória</span>
-                      <div className="text-sm font-mono font-bold text-primary select-all tracking-wider">{regSuccessData.password}</div>
-                    </div>
-
-                    <button
-                      onClick={handleCopyCredentials}
-                      className="w-full py-2.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 font-bold rounded text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer mt-2"
-                    >
-                      {copied ? (
-                        <>
-                          <CheckCircle2 className="w-3.5 h-3.5 text-primary animate-pulse" />
-                          Copiado!
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-3.5 h-3.5 text-primary" />
-                          Copiar Credenciais
-                        </>
-                      )}
-                    </button>
                   </div>
 
                   <div className="flex justify-end pt-2">
                     <button
                       type="button"
                       onClick={closeRegisterModal}
-                      className="px-5 py-2.5 bg-primary hover:bg-primary-hover text-primary-foreground font-bold rounded text-xs transition-all cursor-pointer shadow-md"
+                      className="w-full py-2.5 bg-primary hover:bg-primary-hover text-primary-foreground font-bold rounded text-xs transition-all cursor-pointer shadow-md"
                     >
                       Concluído
                     </button>

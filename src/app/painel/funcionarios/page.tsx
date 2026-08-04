@@ -15,7 +15,8 @@ import {
   addBlockedTimeAction, 
   addDayOffAction,
   createBarberAction,
-  deleteBarberAction
+  deleteBarberAction,
+  updateUserEmailAction
 } from './actions'
 import { updateBarberProfileAction } from '../perfil-barbeiro/actions'
 import { GradientButton } from '@/components/ui/gradient-button'
@@ -24,18 +25,19 @@ export default function PainelFuncionarios() {
   const router = useRouter()
   const [barbers, setBarbers] = useState<any[]>([])
   const [selectedBarber, setSelectedBarber] = useState<any>(null)
-  const [activeTab, setActiveTab] = useState<'hours' | 'blocks' | 'days_off' | 'profile'>('hours')
+  const [activeTab, setActiveTab] = useState<'hours' | 'blocks' | 'days_off' | 'profile' | 'email'>('hours')
   const [loading, setLoading] = useState(true)
   const [userRole, setUserRole] = useState<string | null>(null)
   const [showConfirmDelete, setShowConfirmDelete] = useState(false)
   const [actionLoading, setActionLoading] = useState(false)
 
-  // Form inputs: Profile Data
+  // Form inputs: Profile Data & Email
   const [editBio, setEditBio] = useState('')
   const [editAboutQuote, setEditAboutQuote] = useState('')
   const [editExperienceYears, setEditExperienceYears] = useState(0)
   const [editSpecialtiesText, setEditSpecialtiesText] = useState('')
   const [editPhotoUrl, setEditPhotoUrl] = useState<string | null>(null)
+  const [editEmail, setEditEmail] = useState('')
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
 
   // Sub-data states for selected barber
@@ -68,8 +70,6 @@ export default function PainelFuncionarios() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [addName, setAddName] = useState('')
   const [addEmail, setAddEmail] = useState('')
-  const [addPassword, setAddPassword] = useState('')
-  const [addConfirmPassword, setAddConfirmPassword] = useState('')
 
   const supabase = createClient()
 
@@ -144,6 +144,7 @@ export default function PainelFuncionarios() {
     setEditExperienceYears(selectedBarber.experience_years || 0)
     setEditSpecialtiesText(selectedBarber.specialties ? selectedBarber.specialties.join(', ') : '')
     setEditPhotoUrl(selectedBarber.photo_url || null)
+    setEditEmail(selectedBarber.email || '')
 
     try {
       // 1. Load working hours
@@ -218,23 +219,13 @@ export default function PainelFuncionarios() {
     setErrorMsg('')
     setSuccessMsg('')
 
-    if (!addName || !addEmail || !addPassword || !addConfirmPassword) {
+    if (!addName || !addEmail) {
       setErrorMsg('Todos os campos do formulário são obrigatórios.')
       return
     }
 
-    if (addPassword !== addConfirmPassword) {
-      setErrorMsg('As senhas digitadas não coincidem.')
-      return
-    }
-
-    if (addPassword.length < 6) {
-      setErrorMsg('A senha deve conter pelo menos 6 caracteres.')
-      return
-    }
-
     startTransition(async () => {
-      const res = await createBarberAction(addName, addEmail, addPassword)
+      const res = await createBarberAction(addName, addEmail)
       if (!res.success) {
         setErrorMsg(res.message)
       } else {
@@ -244,8 +235,6 @@ export default function PainelFuncionarios() {
         // Reset states
         setAddName('')
         setAddEmail('')
-        setAddPassword('')
-        setAddConfirmPassword('')
 
         // Refresh list
         loadData()
@@ -627,6 +616,19 @@ export default function PainelFuncionarios() {
                     >
                       Dados do Perfil
                     </button>
+                    {userRole === 'admin' && (
+                      <button
+                        onClick={() => {
+                          setEditEmail(selectedBarber.email || '')
+                          setActiveTab('email')
+                        }}
+                        className={`px-3 py-1.5 font-bold rounded-md transition-all shrink-0 cursor-pointer ${
+                          activeTab === 'email' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        Editar E-mail
+                      </button>
+                    )}
                   </div>
                   {userRole === 'admin' && (
                     <button
@@ -1070,6 +1072,70 @@ export default function PainelFuncionarios() {
                   </form>
                 )}
 
+                {/* TAB 5: EDIT EMAIL FORM (ADMIN ONLY) */}
+                {activeTab === 'email' && userRole === 'admin' && (
+                  <form onSubmit={async (e) => {
+                    e.preventDefault()
+                    if (!selectedBarber?.id) return
+                    setErrorMsg('')
+                    setSuccessMsg('')
+
+                    if (!editEmail || !editEmail.trim()) {
+                      setErrorMsg('Por favor, informe o novo e-mail.')
+                      return
+                    }
+
+                    startTransition(async () => {
+                      const res = await updateUserEmailAction(selectedBarber.id, editEmail.trim())
+                      if (!res.success) {
+                        setErrorMsg(res.message)
+                      } else {
+                        setSuccessMsg('E-mail do usuário atualizado com sucesso na Autenticação e no Perfil!')
+                        const updatedEmail = editEmail.trim().toLowerCase()
+                        setSelectedBarber((prev: any) => prev ? { ...prev, email: updatedEmail } : null)
+                        setBarbers((prev: any[]) => prev.map(b => b.id === selectedBarber.id ? { ...b, email: updatedEmail } : b))
+                      }
+                    })
+                  }} className="space-y-4">
+                    <div className="space-y-1">
+                      <h4 className="text-xs uppercase font-bold text-foreground">Alterar E-mail de Acesso</h4>
+                      <p className="text-[10px] text-muted-foreground">
+                        Atualiza o e-mail de login do usuário no Supabase Auth e no perfil da barbearia sem deletar a conta ou o histórico do barbeiro.
+                      </p>
+                    </div>
+
+                    <div className="p-4 bg-secondary/20 border border-border/80 rounded-md space-y-4">
+                      <div className="space-y-1">
+                        <label htmlFor="editUserEmail" className="block text-[10px] font-bold text-foreground uppercase tracking-wider">
+                          Novo E-mail de Acesso
+                        </label>
+                        <input
+                          type="email"
+                          id="editUserEmail"
+                          value={editEmail}
+                          onChange={(e) => setEditEmail(e.target.value)}
+                          disabled={isPending}
+                          className="w-full p-2.5 bg-secondary/30 border border-border/80 focus:border-primary rounded text-xs text-foreground focus:outline-none focus:ring-0"
+                          placeholder="exemplo@barbearia.com"
+                          required
+                        />
+                      </div>
+
+                      <div className="text-[11px] text-amber-500/90 bg-amber-500/10 border border-amber-500/20 p-3 rounded space-y-1">
+                        <p className="font-semibold">⚠️ Atenção:</p>
+                        <p>Esta alteração atualizará a credencial de login deste usuário imediatamente. Certifique-se de informar o novo e-mail ao profissional.</p>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 flex justify-end">
+                      <GradientButton type="submit" disabled={isPending} className="h-9 text-xs px-4 gap-1.5">
+                        {isPending ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+                        Salvar Novo E-mail
+                      </GradientButton>
+                    </div>
+                  </form>
+                )}
+
               </div>
             ) : (
               <div className="glass p-12 rounded-lg border border-border text-center text-muted-foreground italic flex flex-col items-center justify-center space-y-3 min-h-[300px]">
@@ -1127,37 +1193,9 @@ export default function PainelFuncionarios() {
                       required
                     />
                   </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Senha</label>
-                    <div className="relative flex items-center">
-                      <Lock className="w-3.5 h-3.5 text-muted-foreground absolute left-3" />
-                      <input
-                        type="password"
-                        value={addPassword}
-                        onChange={(e) => setAddPassword(e.target.value)}
-                        placeholder="Mínimo 6 caracteres"
-                        className="w-full bg-secondary border border-border text-foreground pl-8 pr-3 py-2 rounded text-xs focus:ring-1 focus:ring-primary focus:outline-none font-mono"
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Confirmar Senha</label>
-                    <div className="relative flex items-center">
-                      <Lock className="w-3.5 h-3.5 text-muted-foreground absolute left-3" />
-                      <input
-                        type="password"
-                        value={addConfirmPassword}
-                        onChange={(e) => setAddConfirmPassword(e.target.value)}
-                        placeholder="Repita a senha"
-                        className="w-full bg-secondary border border-border text-foreground pl-8 pr-3 py-2 rounded text-xs focus:ring-1 focus:ring-primary focus:outline-none font-mono"
-                        required
-                      />
-                    </div>
-                  </div>
+                  <p className="text-[10px] text-muted-foreground leading-normal mt-1">
+                    Use o mesmo e-mail que a pessoa utiliza no Google ou Facebook, para que ela consiga entrar automaticamente depois usando login social.
+                  </p>
                 </div>
 
                 <div className="flex gap-3 justify-end pt-4 border-t border-border/40">

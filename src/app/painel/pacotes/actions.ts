@@ -30,7 +30,30 @@ async function verifyAdminSession() {
 }
 
 /**
- * Create a monthly package: validates ALL session slots, then atomically creates
+ * Calculate precise weekly session dates for a given start date and duration in months (1, 4, or 6).
+ */
+export function getSessionDatesForDuration(startDateStr: string, durationMonths: number): string[] {
+  if (!startDateStr || !durationMonths) return []
+  const [y, m, d] = startDateStr.split('-').map(Number)
+  const baseDate = new Date(y, m - 1, d)
+  const endDate = new Date(y, (m - 1) + durationMonths, d)
+
+  const sessionDates: string[] = []
+  let current = new Date(baseDate)
+
+  while (current <= endDate) {
+    const curY = current.getFullYear()
+    const curM = String(current.getMonth() + 1).padStart(2, '0')
+    const curD = String(current.getDate()).padStart(2, '0')
+    sessionDates.push(`${curY}-${curM}-${curD}`)
+    current = addWeeks(current, 1)
+  }
+
+  return sessionDates
+}
+
+/**
+ * Create a package by duration (1, 4, or 6 months): validates ALL session slots, then atomically creates
  * 1 package_subscriptions row + N appointment rows.
  * ALL-OR-NOTHING: if any slot is unavailable, nothing is created.
  */
@@ -42,19 +65,19 @@ export async function createPackageAction(
   timeSlot: string,
   startDate: string, // YYYY-MM-DD
   packagePrice: number,
-  totalSessions: number
+  durationMonths: number // 1, 4, or 6
 ): Promise<PackageActionResponse> {
   const admin = await verifyAdminSession()
   if (!admin) {
     return { success: false, message: 'Apenas administradores podem criar pacotes.' }
   }
 
-  if (!customerId || !barberId || !serviceId || !timeSlot || !startDate || !packagePrice || !totalSessions) {
+  if (!customerId || !barberId || !serviceId || !timeSlot || !startDate || !packagePrice || !durationMonths) {
     return { success: false, message: 'Todos os campos são obrigatórios.' }
   }
 
-  if (totalSessions < 2 || totalSessions > 8) {
-    return { success: false, message: 'Número de sessões deve ser entre 2 e 8.' }
+  if (![1, 4, 6].includes(durationMonths)) {
+    return { success: false, message: 'A duração do pacote deve ser 1, 4 ou 6 meses.' }
   }
 
   try {
@@ -89,28 +112,26 @@ export async function createPackageAction(
       serviceName = baseService.name
     }
 
-    // 2. Compute all N session dates (start_date + N-1 subsequent weeks)
-    const [startY, startM, startD] = startDate.split('-').map(Number)
-    const baseDate = new Date(startY, startM - 1, startD)
-    
-    const sessionDates: string[] = []
-    for (let i = 0; i < totalSessions; i++) {
-      const sessionDate = addWeeks(baseDate, i)
-      const y = sessionDate.getFullYear()
-      const m = String(sessionDate.getMonth() + 1).padStart(2, '0')
-      const d = String(sessionDate.getDate()).padStart(2, '0')
-      sessionDates.push(`${y}-${m}-${d}`)
+    // 2. Compute exact session dates based on duration in months
+    const sessionDates = getSessionDatesForDuration(startDate, durationMonths)
+    const totalSessions = sessionDates.length
+
+    if (totalSessions === 0) {
+      return { success: false, message: 'Impossível calcular datas do pacote para a duração selecionada.' }
     }
 
-    // 3. ALL-OR-NOTHING availability check for every session date
-    const conflicts: string[] = []
+    // 3. ALL-OR-NOTHING availability check for every session date using parallel execution
+    const slotChecks = await Promise.all(
+      sessionDates.map(async (dateStr) => {
+        const availableSlots = await getAvailableSlots(barberId, dateStr, serviceDuration)
+        return {
+          date: dateStr,
+          available: availableSlots.includes(timeSlot)
+        }
+      })
+    )
 
-    for (const dateStr of sessionDates) {
-      const availableSlots = await getAvailableSlots(barberId, dateStr, serviceDuration)
-      if (!availableSlots.includes(timeSlot)) {
-        conflicts.push(dateStr)
-      }
-    }
+    const conflicts = slotChecks.filter(s => !s.available).map(s => s.date)
 
     if (conflicts.length > 0) {
       const conflictList = conflicts.map(d => {
@@ -119,7 +140,7 @@ export async function createPackageAction(
       }).join(', ')
       return {
         success: false,
-        message: `Conflito de horário nas seguintes datas: ${conflictList}. O pacote NÃO foi criado. Resolva os conflitos e tente novamente.`,
+        message: `Conflito de horário em ${conflicts.length} data(s): ${conflictList}. O pacote NÃO foi criado. Resolva os conflitos e tente novamente.`,
         conflicts
       }
     }
@@ -166,7 +187,7 @@ export async function createPackageAction(
           start_time: startDateObj.toISOString(),
           end_time: endDateObj.toISOString(),
           status: 'confirmed',
-          notes: `[Pacote Mensal] Sessão ${i + 1}/${totalSessions} — ${serviceName}`,
+          notes: `[Pacote ${durationMonths} Mês/Meses] Sessão ${i + 1}/${totalSessions} — ${serviceName}`,
           package_subscription_id: pkg.id
         })
         .select('id')
@@ -174,7 +195,6 @@ export async function createPackageAction(
 
       if (apptError || !appt) {
         console.error(`Error creating appointment for session ${i + 1}:`, apptError)
-        // Continue creating remaining appointments even if one fails
         continue
       }
 
@@ -187,14 +207,14 @@ export async function createPackageAction(
           deposit_amount: 0,
           status: 'confirmed_manually',
           method: 'package',
-          notes: `Pacote Mensal — Sessão ${i + 1}/${totalSessions}`
+          notes: `Pacote (${durationMonths}m) — Sessão ${i + 1}/${totalSessions}`
         })
     }
 
     const weekdayName = WEEKDAY_NAMES_PT[dayOfWeek]
     return {
       success: true,
-      message: `Pacote criado com sucesso! ${totalSessions} sessões toda ${weekdayName} às ${timeSlot}.`
+      message: `Pacote de ${durationMonths} ${durationMonths === 1 ? 'mês' : 'meses'} (${totalSessions} sessões) criado com sucesso! Toda ${weekdayName} às ${timeSlot}.`
     }
   } catch (err) {
     console.error('Error in createPackageAction:', err)
@@ -277,11 +297,11 @@ export async function validatePackageSlotsAction(
   serviceId: string,
   timeSlot: string,
   startDate: string,
-  totalSessions: number
-): Promise<{ success: boolean; dates: Array<{ date: string; available: boolean }> }> {
+  durationMonths: number
+): Promise<{ success: boolean; dates: Array<{ date: string; available: boolean }>; totalSessions: number }> {
   const admin = await verifyAdminSession()
   if (!admin) {
-    return { success: false, dates: [] }
+    return { success: false, dates: [], totalSessions: 0 }
   }
 
   try {
@@ -311,29 +331,22 @@ export async function validatePackageSlotsAction(
     }
 
     // Compute session dates
-    const [startY, startM, startD] = startDate.split('-').map(Number)
-    const baseDate = new Date(startY, startM - 1, startD)
+    const sessionDates = getSessionDatesForDuration(startDate, durationMonths)
 
-    const results: Array<{ date: string; available: boolean }> = []
-
-    for (let i = 0; i < totalSessions; i++) {
-      const sessionDate = addWeeks(baseDate, i)
-      const y = sessionDate.getFullYear()
-      const m = String(sessionDate.getMonth() + 1).padStart(2, '0')
-      const d = String(sessionDate.getDate()).padStart(2, '0')
-      const dateStr = `${y}-${m}-${d}`
-
-      const availableSlots = await getAvailableSlots(barberId, dateStr, serviceDuration)
-      results.push({
-        date: dateStr,
-        available: availableSlots.includes(timeSlot)
+    const results = await Promise.all(
+      sessionDates.map(async (dateStr) => {
+        const availableSlots = await getAvailableSlots(barberId, dateStr, serviceDuration)
+        return {
+          date: dateStr,
+          available: availableSlots.includes(timeSlot)
+        }
       })
-    }
+    )
 
-    return { success: true, dates: results }
+    return { success: true, dates: results, totalSessions: sessionDates.length }
   } catch (err) {
     console.error('Error in validatePackageSlotsAction:', err)
-    return { success: false, dates: [] }
+    return { success: false, dates: [], totalSessions: 0 }
   }
 }
 

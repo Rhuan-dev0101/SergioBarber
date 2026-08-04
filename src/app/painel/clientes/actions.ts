@@ -122,7 +122,6 @@ export type RegisterManuallyInput = {
   fullName: string
   email: string
   phone: string
-  password: string
 }
 
 export type RegisterManuallyResponse = {
@@ -140,14 +139,10 @@ export type RegisterManuallyResponse = {
 export async function registerCustomerManuallyAction(
   input: RegisterManuallyInput
 ): Promise<RegisterManuallyResponse> {
-  const { fullName, email, phone, password } = input
+  const { fullName, email, phone } = input
 
-  if (!fullName || !email || !phone || !password) {
+  if (!fullName || !email || !phone) {
     return { success: false, message: 'Preencha todos os campos obrigatórios.' }
-  }
-
-  if (password.length < 6) {
-    return { success: false, message: 'A senha deve conter no mínimo 6 caracteres.' }
   }
 
   try {
@@ -194,10 +189,9 @@ export async function registerCustomerManuallyAction(
       return { success: false, message: 'Este e-mail já está cadastrado.' }
     }
 
-    // 5. Create auth user with auto-confirm
+    // 5. Create auth user with auto-confirm (without password, for social login linking)
     const { data: authData, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email: email.trim().toLowerCase(),
-      password,
       email_confirm: true,
       user_metadata: {
         full_name: fullName.trim()

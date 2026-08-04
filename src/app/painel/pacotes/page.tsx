@@ -14,7 +14,8 @@ import {
   cancelPackageAction,
   validatePackageSlotsAction,
   markPackageAsPaidAction,
-  deletePackageAction
+  deletePackageAction,
+  getSessionDatesForDuration
 } from './actions'
 
 const WEEKDAY_NAMES = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado']
@@ -46,7 +47,7 @@ export default function PainelPacotes() {
   const [timeSlot, setTimeSlot] = useState('')
   const [startDate, setStartDate] = useState('')
   const [packagePrice, setPackagePrice] = useState('')
-  const [totalSessions, setTotalSessions] = useState(4)
+  const [durationMonths, setDurationMonths] = useState<1 | 4 | 6>(1)
 
   // Slots
   const [availableSlots, setAvailableSlots] = useState<string[]>([])
@@ -228,9 +229,13 @@ export default function PainelPacotes() {
     loadSlots()
   }, [barberId, serviceId, startDate, services])
 
-  // ──── Auto-fill package price when barber + service + sessions change ────
+  // ──── Auto-fill package price when barber + service + durationMonths + startDate change ────
   useEffect(() => {
-    if (!barberId || !serviceId) return
+    if (!barberId || !serviceId || !startDate) return
+
+    const sessionDates = getSessionDatesForDuration(startDate, durationMonths)
+    const numSessions = sessionDates.length
+    if (numSessions === 0) return
 
     async function fetchBarberPrice() {
       const { data: bs } = await supabase
@@ -240,38 +245,38 @@ export default function PainelPacotes() {
         .eq('service_id', serviceId)
         .single()
 
+      let unitPrice = 0
       if (bs) {
-        const regularTotal = Number(bs.price) * totalSessions
-        const discount = 20
-        const suggestedPrice = Math.max(regularTotal - discount, 0)
-        setPackagePrice(suggestedPrice.toFixed(2))
+        unitPrice = Number(bs.price)
       } else {
-        // Fallback to base service price
         const service = services.find(s => s.id === serviceId)
-        if (service) {
-          const regularTotal = Number(service.price) * totalSessions
-          const discount = 20
-          setPackagePrice(Math.max(regularTotal - discount, 0).toFixed(2))
-        }
+        if (service) unitPrice = Number(service.price)
+      }
+
+      if (unitPrice > 0) {
+        const regularTotal = unitPrice * numSessions
+        const discountFactor = durationMonths === 1 ? 0.90 : durationMonths === 4 ? 0.85 : 0.80
+        const suggestedPrice = Math.round(regularTotal * discountFactor)
+        setPackagePrice(suggestedPrice.toFixed(2))
       }
     }
     fetchBarberPrice()
-  }, [barberId, serviceId, totalSessions, services])
+  }, [barberId, serviceId, startDate, durationMonths, services])
 
-  // ──── Validate all slots when time + sessions change ────
+  // ──── Validate all slots when time + durationMonths change ────
   useEffect(() => {
-    if (!barberId || !serviceId || !timeSlot || !startDate || !totalSessions) {
+    if (!barberId || !serviceId || !timeSlot || !startDate || !durationMonths) {
       setValidationResult([])
       return
     }
 
     setLoadingValidation(true)
     startTransition(async () => {
-      const result = await validatePackageSlotsAction(barberId, serviceId, timeSlot, startDate, totalSessions)
+      const result = await validatePackageSlotsAction(barberId, serviceId, timeSlot, startDate, durationMonths)
       setValidationResult(result.dates)
       setLoadingValidation(false)
     })
-  }, [barberId, serviceId, timeSlot, startDate, totalSessions])
+  }, [barberId, serviceId, timeSlot, startDate, durationMonths])
 
   // ──── Filtered customers for searchable dropdown ────
   const filteredCustomers = customers.filter(c => {
@@ -300,7 +305,7 @@ export default function PainelPacotes() {
     startTransition(async () => {
       const res = await createPackageAction(
         customerId, barberId, serviceId, dayOfWeek, timeSlot,
-        startDate, parseFloat(packagePrice), totalSessions
+        startDate, parseFloat(packagePrice), durationMonths
       )
 
       if (!res.success) {
@@ -372,7 +377,7 @@ export default function PainelPacotes() {
     setTimeSlot('')
     setStartDate('')
     setPackagePrice('')
-    setTotalSessions(4)
+    setDurationMonths(1)
     setValidationResult([])
   }
 
@@ -805,8 +810,8 @@ export default function PainelPacotes() {
                     </select>
                   </div>
 
-                  {/* Day of Week + Total Sessions */}
-                  <div className="grid grid-cols-2 gap-3">
+                  {/* Day of Week + Duration Months */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold text-foreground">Dia Fixo da Semana</label>
                       <select
@@ -821,16 +826,34 @@ export default function PainelPacotes() {
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-foreground">Nº de Atendimentos</label>
-                      <select
-                        value={totalSessions}
-                        onChange={(e) => setTotalSessions(parseInt(e.target.value))}
-                        className="w-full px-3.5 py-2.5 bg-background border border-border focus:border-primary rounded-lg text-xs text-foreground outline-none cursor-pointer font-bold text-primary"
-                      >
-                        {[2, 3, 4, 5, 6, 7, 8].map(n => (
-                          <option key={n} value={n}>{n} sessões (mensal)</option>
+                      <div className="flex justify-between items-center">
+                        <label className="text-xs font-bold text-foreground">Duração do Pacote</label>
+                        {startDate && (
+                          <span className="text-[10px] text-primary font-bold">
+                            {getSessionDatesForDuration(startDate, durationMonths).length} sessões
+                          </span>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-3 gap-1 p-1 bg-background border border-border rounded-lg">
+                        {[
+                          { months: 1, label: '1 mês' },
+                          { months: 4, label: '4 meses' },
+                          { months: 6, label: '6 meses' }
+                        ].map((opt) => (
+                          <button
+                            key={opt.months}
+                            type="button"
+                            onClick={() => setDurationMonths(opt.months as 1 | 4 | 6)}
+                            className={`py-2 text-xs font-bold rounded transition-all cursor-pointer text-center ${
+                              durationMonths === opt.months
+                                ? 'bg-primary text-primary-foreground shadow'
+                                : 'text-muted-foreground hover:text-foreground hover:bg-secondary/40'
+                            }`}
+                          >
+                            {opt.label}
+                          </button>
                         ))}
-                      </select>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -908,44 +931,64 @@ export default function PainelPacotes() {
 
                 {/* ── Live Availability Preview Box ────────────────────────── */}
                 {validationResult.length > 0 && (
-                  <div className="space-y-2.5 p-4 bg-secondary/40 border border-primary/30 rounded-xl shadow-inner">
-                    <p className="text-[10px] uppercase font-bold text-primary tracking-wider flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5" /> Verificação Automática de Agenda ({totalSessions} sessões)
-                    </p>
-                    <div className="space-y-1.5">
-                      {validationResult.map((r, i) => (
-                        <div key={r.date} className="flex items-center justify-between p-2 rounded-lg bg-background/80 border border-border/40 text-xs">
-                          <div className="flex items-center gap-2">
-                            {r.available ? (
-                              <Check className="w-4 h-4 text-emerald-500 font-bold shrink-0" />
-                            ) : (
-                              <X className="w-4 h-4 text-destructive font-bold shrink-0" />
-                            )}
-                            <span className={r.available ? 'text-foreground font-semibold' : 'text-destructive font-bold'}>
-                              Sessão {i + 1}: {formatDatePt(r.date)} ({WEEKDAY_SHORT[dayOfWeek]}) às {timeSlot}
+                  <div className="space-y-3 p-4 bg-secondary/40 border border-primary/30 rounded-xl shadow-inner">
+                    <div className="flex items-center justify-between">
+                      <p className="text-[10px] uppercase font-bold text-primary tracking-wider flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5" /> Verificação Automática de Agenda ({validationResult.length} sessões em {durationMonths} {durationMonths === 1 ? 'mês' : 'meses'})
+                      </p>
+                      <div className="flex gap-1.5 text-[10px] font-bold">
+                        <span className="text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                          {validationResult.filter(r => r.available).length} livres
+                        </span>
+                        {validationResult.some(r => !r.available) && (
+                          <span className="text-destructive bg-destructive/10 px-2 py-0.5 rounded border border-destructive/20 font-bold">
+                            {validationResult.filter(r => !r.available).length} conflitos
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Scrollable list of date validation status (conflicts first) */}
+                    <div className="space-y-1.5 max-h-52 overflow-y-auto pr-1">
+                      {[...validationResult]
+                        .sort((a, b) => (a.available === b.available ? 0 : a.available ? 1 : -1))
+                        .map((r) => (
+                          <div key={r.date} className={`flex items-center justify-between p-2 rounded-lg border text-xs ${
+                            r.available 
+                              ? 'bg-background/80 border-border/40' 
+                              : 'bg-destructive/10 border-destructive/30'
+                          }`}>
+                            <div className="flex items-center gap-2">
+                              {r.available ? (
+                                <Check className="w-4 h-4 text-emerald-500 font-bold shrink-0" />
+                              ) : (
+                                <X className="w-4 h-4 text-destructive font-bold shrink-0" />
+                              )}
+                              <span className={r.available ? 'text-foreground font-semibold' : 'text-destructive font-bold'}>
+                                {formatDatePt(r.date)} ({WEEKDAY_SHORT[dayOfWeek]}) às {timeSlot}
+                              </span>
+                            </div>
+
+                            <span className={`text-[9px] uppercase font-bold px-2 py-0.5 rounded-full ${
+                              r.available 
+                                ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/25' 
+                                : 'bg-destructive/15 text-destructive border border-destructive/25'
+                            }`}>
+                              {r.available ? 'Livre ✓' : 'Conflito ✕'}
                             </span>
                           </div>
-
-                          <span className={`text-[9px] uppercase font-bold px-2 py-0.5 rounded-full ${
-                            r.available 
-                              ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/25' 
-                              : 'bg-destructive/15 text-destructive border border-destructive/25'
-                          }`}>
-                            {r.available ? 'Livre ✓' : 'Conflito ✕'}
-                          </span>
-                        </div>
-                      ))}
+                        ))}
                     </div>
 
                     {validationResult.some(r => !r.available) && (
-                      <p className="text-[11px] text-destructive font-bold mt-1 bg-destructive/10 p-2 rounded-lg border border-destructive/20 text-center">
-                        ⚠ Existem conflitos de horário. Escolha outro horário ou dia da semana.
+                      <p className="text-[11px] text-destructive font-bold mt-1 bg-destructive/10 p-2.5 rounded-lg border border-destructive/20 text-center">
+                        ⚠ {validationResult.filter(r => !r.available).length} de {validationResult.length} datas apresentam conflito de horário. Escolha outro horário ou dia da semana.
                       </p>
                     )}
 
                     {validationResult.every(r => r.available) && (
-                      <p className="text-[11px] text-emerald-500 font-bold mt-1 bg-emerald-500/10 p-2 rounded-lg border border-emerald-500/20 text-center">
-                        ✓ Perfeito! Todas as {totalSessions} datas estão livres na agenda!
+                      <p className="text-[11px] text-emerald-500 font-bold mt-1 bg-emerald-500/10 p-2.5 rounded-lg border border-emerald-500/20 text-center">
+                        ✓ Perfeito! Todas as {validationResult.length} datas do pacote de {durationMonths} {durationMonths === 1 ? 'mês' : 'meses'} estão livres na agenda!
                       </p>
                     )}
                   </div>
@@ -966,7 +1009,7 @@ export default function PainelPacotes() {
                   {isPending ? (
                     <><Loader2 className="w-4 h-4 animate-spin text-primary-foreground" /> Criando Pacote Mensal...</>
                   ) : (
-                    <><Crown className="w-4 h-4 text-primary-foreground" /> Confirmar e Gerar Pacote ({totalSessions} sessões)</>
+                    <><Crown className="w-4 h-4 text-primary-foreground" /> Confirmar e Gerar Pacote ({getSessionDatesForDuration(startDate, durationMonths).length} sessões)</>
                   )}
                 </button>
               </form>
