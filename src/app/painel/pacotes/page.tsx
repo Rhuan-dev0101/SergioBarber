@@ -272,7 +272,11 @@ export default function PainelPacotes() {
 
         if (dbBS && dbBS.length > 0) {
           pkgSvcs = dbBS
-            .filter((bs: any) => bs.services && bs.services.name.toLowerCase().includes('pacote'))
+            .filter((bs: any) => {
+              if (!bs.services) return false
+              const n = bs.services.name.toLowerCase()
+              return n.includes('pacote') && !n.includes('progressiva')
+            })
             .map((bs: any) => ({
               id: bs.service_id,
               name: bs.services.name,
@@ -287,6 +291,7 @@ export default function PainelPacotes() {
             .select('id, name, price, duration')
             .eq('is_active', true)
             .ilike('name', '%pacote%')
+            .not('name', 'ilike', '%progressiva%')
             .order('name')
 
           pkgSvcs = (baseServices || []).map(s => ({
