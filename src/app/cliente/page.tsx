@@ -106,7 +106,7 @@ export default function ClientePanel() {
       // Fetch customer's existing reviews to check which appointments have been reviewed
       const { data: customerReviews } = await supabase
         .from('reviews')
-        .select('id, appointment_id, rating, status, comment, photo_url')
+        .select('id, appointment_id, rating, status, comment')
         .eq('customer_id', session.user.id)
 
       const reviewMap = (customerReviews || []).reduce((acc: any, r: any) => {

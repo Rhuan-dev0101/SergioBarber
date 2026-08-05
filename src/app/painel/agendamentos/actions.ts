@@ -313,3 +313,151 @@ export async function deleteAppointmentAction(apptId: string): Promise<ActionRes
     return { success: false, message: 'Erro interno no servidor.' }
   }
 }
+
+/**
+ * Bulk Checkout do Dia — settle multiple unpaid appointments at once.
+ *
+ * SAFETY:
+ * - Processes each appointment INDEPENDENTLY (no bulk SQL).
+ * - Only touches `appointments.status` and `payments.{status, method}`.
+ * - Returns per-row success/failure so the UI can report individually.
+ * - Never modifies customers, package_subscriptions, other days, etc.
+ */
+export type BulkCheckoutItem = {
+  appointmentId: string
+  paymentMethod: string // 'cash' | 'card' | 'pix' | 'other'
+}
+
+export type BulkCheckoutResult = {
+  appointmentId: string
+  success: boolean
+  message: string
+}
+
+export async function bulkCheckoutAction(
+  items: BulkCheckoutItem[]
+): Promise<{ success: boolean; message: string; results: BulkCheckoutResult[] }> {
+  const staff = await verifyStaffSession()
+  if (!staff) {
+    return { success: false, message: 'Não autorizado.', results: [] }
+  }
+
+  if (!items || items.length === 0) {
+    return { success: false, message: 'Nenhum agendamento selecionado para checkout.', results: [] }
+  }
+
+  const supabase = await createServerSupabaseClient()
+  const results: BulkCheckoutResult[] = []
+
+  for (const item of items) {
+    try {
+      // 1. Fetch appointment to validate it exists and belongs to the barber
+      const { data: appt, error: fetchErr } = await supabase
+        .from('appointments')
+        .select('id, barber_id, customer_id, status')
+        .eq('id', item.appointmentId)
+        .single()
+
+      if (fetchErr || !appt) {
+        results.push({
+          appointmentId: item.appointmentId,
+          success: false,
+          message: 'Agendamento não encontrado.'
+        })
+        continue
+      }
+
+      // Barber role can only checkout their own appointments
+      if (staff.role === 'barber' && appt.barber_id !== staff.user.id) {
+        results.push({
+          appointmentId: item.appointmentId,
+          success: false,
+          message: 'Você só pode gerenciar seus próprios agendamentos.'
+        })
+        continue
+      }
+
+      // Skip already completed/cancelled/no_show
+      if (appt.status === 'completed' || appt.status === 'cancelled' || appt.status === 'no_show') {
+        results.push({
+          appointmentId: item.appointmentId,
+          success: false,
+          message: `Agendamento já finalizado (${appt.status}).`
+        })
+        continue
+      }
+
+      // 2. Update appointment status to completed
+      const { error: apptUpdateErr } = await supabase
+        .from('appointments')
+        .update({ status: 'completed' })
+        .eq('id', item.appointmentId)
+
+      if (apptUpdateErr) {
+        console.error('Checkout appt update error:', apptUpdateErr)
+        results.push({
+          appointmentId: item.appointmentId,
+          success: false,
+          message: 'Erro ao atualizar status do agendamento.'
+        })
+        continue
+      }
+
+      // 3. Update payment: status → confirmed_manually, method → selected
+      const { error: payUpdateErr } = await supabase
+        .from('payments')
+        .update({
+          status: 'confirmed_manually',
+          method: item.paymentMethod
+        })
+        .eq('appointment_id', item.appointmentId)
+
+      if (payUpdateErr) {
+        console.error('Checkout payment update error:', payUpdateErr)
+        results.push({
+          appointmentId: item.appointmentId,
+          success: false,
+          message: 'Agendamento concluído, mas erro ao atualizar pagamento.'
+        })
+        continue
+      }
+
+      // 4. Resolve outstanding no-show fee if customer has one
+      if (appt.customer_id) {
+        try {
+          await resolveNoShowFeeForCustomer(appt.customer_id)
+        } catch (nsFeeErr) {
+          // Non-fatal: log but don't fail the checkout for this item
+          console.error('No-show fee resolution error (non-fatal):', nsFeeErr)
+        }
+      }
+
+      results.push({
+        appointmentId: item.appointmentId,
+        success: true,
+        message: 'Pagamento confirmado com sucesso.'
+      })
+    } catch (err) {
+      console.error(`Checkout error for ${item.appointmentId}:`, err)
+      results.push({
+        appointmentId: item.appointmentId,
+        success: false,
+        message: 'Erro interno ao processar este agendamento.'
+      })
+    }
+  }
+
+  const successCount = results.filter(r => r.success).length
+  const failCount = results.filter(r => !r.success).length
+
+  let summaryMsg = `${successCount} de ${results.length} agendamento(s) processado(s) com sucesso.`
+  if (failCount > 0) {
+    summaryMsg += ` ${failCount} falha(s) — verifique os detalhes.`
+  }
+
+  return {
+    success: failCount === 0,
+    message: summaryMsg,
+    results
+  }
+}
