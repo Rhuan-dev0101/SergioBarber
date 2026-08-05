@@ -604,3 +604,75 @@ export async function deletePackageAction(packageId: string): Promise<PackageAct
     return { success: false, message: 'Erro interno no servidor ao excluir pacote.' }
   }
 }
+
+/**
+ * Update the price of an existing package subscription and update associated session payments.
+ */
+export async function updatePackagePriceAction(
+  packageId: string,
+  newPrice: number
+): Promise<PackageActionResponse> {
+  const admin = await verifyAdminSession()
+  if (!admin) {
+    return { success: false, message: 'Apenas administradores podem alterar o valor de pacotes.' }
+  }
+
+  if (!packageId || isNaN(newPrice) || newPrice <= 0) {
+    return { success: false, message: 'Informe um valor válido para o pacote.' }
+  }
+
+  try {
+    const supabase = await createServerSupabaseClient()
+
+    // 1. Fetch package to get total_sessions
+    const { data: pkg, error: fetchErr } = await supabase
+      .from('package_subscriptions')
+      .select('id, total_sessions')
+      .eq('id', packageId)
+      .single()
+
+    if (fetchErr || !pkg) {
+      return { success: false, message: 'Pacote não encontrado.' }
+    }
+
+    // 2. Update subscription package_price
+    const { error: updateErr } = await supabase
+      .from('package_subscriptions')
+      .update({
+        package_price: newPrice,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', packageId)
+
+    if (updateErr) {
+      console.error('Error updating package price:', updateErr)
+      return { success: false, message: 'Erro ao atualizar valor do pacote.' }
+    }
+
+    // 3. Update linked payments total_amount per session
+    const totalSessions = pkg.total_sessions || 1
+    const pricePerSession = Math.round((newPrice / totalSessions) * 100) / 100
+
+    const { data: appts } = await supabase
+      .from('appointments')
+      .select('id')
+      .eq('package_subscription_id', packageId)
+
+    if (appts && appts.length > 0) {
+      const apptIds = appts.map(a => a.id)
+      await supabase
+        .from('payments')
+        .update({ total_amount: pricePerSession })
+        .in('appointment_id', apptIds)
+    }
+
+    return {
+      success: true,
+      message: `Valor do pacote atualizado para R$ ${newPrice.toFixed(2)} com sucesso!`
+    }
+  } catch (err) {
+    console.error('Error in updatePackagePriceAction:', err)
+    return { success: false, message: 'Erro interno no servidor ao atualizar preço do pacote.' }
+  }
+}
+

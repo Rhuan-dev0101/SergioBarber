@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import {
   Package, Plus, Loader2, Search, X, Check, AlertCircle,
   CheckCircle2, Calendar, Clock, User, Scissors, Trash2,
-  AlertTriangle, ChevronDown, Crown, Sparkles, Edit
+  AlertTriangle, ChevronDown, Crown, Sparkles, Edit, DollarSign, Save
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
@@ -17,7 +17,8 @@ import {
   markPackageAsPaidAction,
   deletePackageAction,
   cancelPackageSessionAction,
-  reschedulePackageSessionAction
+  reschedulePackageSessionAction,
+  updatePackagePriceAction
 } from './actions'
 
 const WEEKDAY_NAMES = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado']
@@ -39,6 +40,13 @@ export default function PainelPacotes() {
   const [cancelTarget, setCancelTarget] = useState<any>(null)
   const [deleteTarget, setDeleteTarget] = useState<any>(null)
   const [editPackageTarget, setEditPackageTarget] = useState<any>(null)
+  const [editPackagePrice, setEditPackagePrice] = useState('')
+
+  useEffect(() => {
+    if (editPackageTarget) {
+      setEditPackagePrice(String(editPackageTarget.package_price || ''))
+    }
+  }, [editPackageTarget])
 
   // Session Reschedule State
   const [rescheduleAppt, setRescheduleAppt] = useState<any>(null)
@@ -453,6 +461,31 @@ export default function PainelPacotes() {
     })
   }
 
+  const handleUpdatePrice = () => {
+    if (!editPackageTarget || !editPackagePrice) return
+    const numPrice = parseFloat(editPackagePrice)
+    if (isNaN(numPrice) || numPrice <= 0) {
+      setErrorMsg('Informe um valor numérico válido para o pacote.')
+      return
+    }
+    setErrorMsg('')
+    setSuccessMsg('')
+
+    startTransition(async () => {
+      const res = await updatePackagePriceAction(editPackageTarget.id, numPrice)
+      if (!res.success) {
+        setErrorMsg(res.message)
+      } else {
+        setSuccessMsg(res.message)
+        const updatedPackages = await loadData()
+        if (editPackageTarget && updatedPackages) {
+          const freshPkg = updatedPackages.find((p: any) => p.id === editPackageTarget.id)
+          if (freshPkg) setEditPackageTarget(freshPkg)
+        }
+      }
+    })
+  }
+
   // ──── Filtered customers for searchable dropdown ────
   const filteredCustomers = customers.filter(c => {
     if (!customerSearch) return true
@@ -741,7 +774,7 @@ export default function PainelPacotes() {
                         className="flex-1 sm:flex-initial px-3.5 py-2.5 bg-primary/10 hover:bg-primary/20 border border-primary/30 text-primary rounded-xl text-xs font-bold cursor-pointer transition-all flex items-center justify-center gap-1.5 active:scale-95"
                       >
                         <Edit className="w-3.5 h-3.5" />
-                        <span>Editar Sessões</span>
+                        <span>Editar Pacote</span>
                       </button>
                       
                       {pkg.status === 'active' && (
@@ -893,7 +926,7 @@ export default function PainelPacotes() {
           </div>
         )}
 
-        {/* ── Edit Package Sessions Modal ──────────────────────── */}
+        {/* ── Edit Package Modal ──────────────────────── */}
         {editPackageTarget && (
           <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-50 flex items-center justify-center p-4">
             <div className="glass p-6 sm:p-8 rounded-2xl border border-primary/40 max-w-2xl w-full shadow-2xl space-y-6 relative max-h-[90vh] overflow-y-auto">
@@ -901,7 +934,7 @@ export default function PainelPacotes() {
               <div className="flex justify-between items-center pb-4 border-b border-border/40">
                 <div className="space-y-0.5 text-left">
                   <h3 className="font-serif font-bold text-xl text-foreground flex items-center gap-2">
-                    <Edit className="w-5 h-5 text-primary" /> Editar Sessões do Pacote
+                    <Edit className="w-5 h-5 text-primary" /> Editar Pacote VIP
                   </h3>
                   <p className="text-xs text-muted-foreground">
                     Cliente: <strong className="text-foreground">{editPackageTarget.customerName}</strong> • Barbeiro: <strong className="text-foreground">{editPackageTarget.barberName}</strong> • {editPackageTarget.serviceName}
@@ -913,6 +946,48 @@ export default function PainelPacotes() {
                 >
                   <X className="w-5 h-5" />
                 </button>
+              </div>
+
+              {/* Price Edit Section */}
+              <div className="p-4 bg-secondary/30 border border-border/60 rounded-xl space-y-3 text-left">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="space-y-0.5">
+                    <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                      <DollarSign className="w-4 h-4 text-primary" /> Alterar Valor Total do Pacote
+                    </label>
+                    <p className="text-[11px] text-muted-foreground">
+                      Atualize o preço total do pacote contratado pelo cliente.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="relative w-36">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-primary">R$</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={editPackagePrice}
+                        onChange={(e) => setEditPackagePrice(e.target.value)}
+                        className="w-full pl-8 pr-3 py-2 bg-background border border-border focus:border-primary rounded-lg text-sm font-bold text-foreground outline-none"
+                        placeholder="0.00"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleUpdatePrice}
+                      disabled={isPending || !editPackagePrice || parseFloat(editPackagePrice) === Number(editPackageTarget.package_price)}
+                      className="px-3.5 py-2 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-lg text-xs flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 shrink-0"
+                    >
+                      {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                      <span>Salvar Valor</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Section Header for Sessions */}
+              <div className="text-left pt-2 border-t border-border/30">
+                <h4 className="text-xs font-bold uppercase text-muted-foreground tracking-wider mb-3">Sessões & Agendamentos</h4>
               </div>
 
               {/* Sessions List */}
