@@ -86,39 +86,42 @@ export default async function Galeria() {
             </p>
           </div>
 
-          {/* Grid Layout */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Grid Layout — Matching Homepage Square Overlay Aspect Ratio */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
             {images.map((item, index) => (
               <div 
                 key={index}
-                className="overflow-hidden h-80 relative flex flex-col justify-between glass rounded-xl border border-border/80 hover:border-primary/50 transition-all duration-300 hover:shadow-lg bg-card/60 relative group"
+                className="relative aspect-square rounded-2xl border border-border/80 overflow-hidden group hover:border-primary/60 transition-all duration-500 shadow-xl flex flex-col justify-end p-4 sm:p-5 bg-card/60"
               >
-                {/* Visual Area */}
-                <div className="flex-grow bg-secondary/30 relative overflow-hidden">
+                {/* Background Image & Dark Gradient Overlay */}
+                <div className="absolute inset-0 z-0 bg-secondary/30">
                   {item.url ? (
                     <img 
                       src={item.url} 
                       alt={item.title} 
-                      className="w-full h-full object-cover group-hover:scale-105 duration-500 transition-transform filter grayscale group-hover:grayscale-0" 
+                      className="w-full h-full object-cover group-hover:scale-110 duration-700 ease-out filter grayscale group-hover:grayscale-0" 
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-primary/10">
                       <Scissors className="w-16 h-16 rotate-45 group-hover:scale-110 transition-transform duration-300" />
                     </div>
                   )}
-                  <span className="absolute top-4 left-4 text-[9px] uppercase font-bold bg-primary text-primary-foreground px-2.5 py-1 rounded z-10 shadow-md">
-                    {item.category}
-                  </span>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent" />
                 </div>
 
-                {/* Details Footer */}
-                <div className="p-5 space-y-2 bg-secondary/20 border-t border-border/40 z-10 relative">
-                  <h3 className="font-serif font-bold text-base text-foreground group-hover:text-primary transition-colors">
+                {/* Content Overlay inside Image */}
+                <div className="relative z-10 space-y-1.5 transform translate-y-1 group-hover:translate-y-0 transition-transform duration-300">
+                  <span className="text-[9px] uppercase font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded w-max block tracking-wider shadow-sm">
+                    {item.category}
+                  </span>
+                  <h3 className="font-serif font-bold text-sm sm:text-base text-white leading-tight drop-shadow-sm group-hover:text-primary transition-colors">
                     {item.title}
                   </h3>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    {item.description}
-                  </p>
+                  {item.description && (
+                    <p className="text-[11px] text-zinc-300/90 leading-snug line-clamp-2 opacity-90 group-hover:opacity-100 transition-opacity">
+                      {item.description}
+                    </p>
+                  )}
                 </div>
               </div>
             ))}
