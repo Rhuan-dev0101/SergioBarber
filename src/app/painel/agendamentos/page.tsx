@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation'
 import { 
   Scissors, Calendar, Clock, Search, Edit2, Trash2, CheckCircle2, 
   AlertCircle, Plus, Loader2, Save, X, User, Sparkles, Check, AlertTriangle, UserX,
-  Filter, RotateCcw, CheckCircle, ChevronRight, Wallet, DollarSign, RefreshCw, FileText
+  Filter, RotateCcw, CheckCircle, ChevronRight, Wallet, DollarSign, RefreshCw, FileText,
+  Repeat
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
@@ -18,10 +19,12 @@ import {
   markNoShowAction
 } from './actions'
 import { apptShortCode } from '@/lib/utils'
+import { isRecurringReservationActiveOnDate } from '@/lib/booking'
 
 export default function PainelAgendamentos() {
   const router = useRouter()
   const [appointments, setAppointments] = useState<any[]>([])
+  const [recurringReservations, setRecurringReservations] = useState<any[]>([])
   const [filteredAppointments, setFilteredAppointments] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [currentUser, setCurrentUser] = useState<any>(null)
@@ -113,6 +116,41 @@ export default function PainelAgendamentos() {
         .eq('is_active', true)
       setServices(dbServices || [])
 
+      // Fetch recurring reservations
+      let recQuery = supabase
+        .from('recurring_reservations')
+        .select('*')
+        .eq('status', 'active')
+
+      if (profile.role === 'barber') {
+        recQuery = recQuery.eq('barber_id', session.user.id)
+      }
+      const { data: dbRec } = await recQuery
+
+      if (dbRec && dbRec.length > 0) {
+        const recCustIds = Array.from(new Set(dbRec.map(r => r.customer_id).filter(Boolean)))
+        const recBarbIds = Array.from(new Set(dbRec.map(r => r.barber_id)))
+
+        const { data: recProfiles } = await supabase
+          .from('profiles')
+          .select('id, full_name')
+          .in('id', [...recCustIds, ...recBarbIds])
+
+        const recNameMap = (recProfiles || []).reduce((acc: any, p: any) => {
+          acc[p.id] = p.full_name
+          return acc
+        }, {})
+
+        const enrichedRec = dbRec.map(r => ({
+          ...r,
+          customer_display_name: r.customer_name || (r.customer_id ? recNameMap[r.customer_id] : 'Cliente'),
+          barber_name: recNameMap[r.barber_id] || 'Barbeiro'
+        }))
+        setRecurringReservations(enrichedRec)
+      } else {
+        setRecurringReservations([])
+      }
+
       // Fetch appointments
       let query = supabase
         .from('appointments')
@@ -193,13 +231,14 @@ export default function PainelAgendamentos() {
     }
 
     // Status tab filter
+    const todayStr = new Date().toLocaleDateString('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).split('/').reverse().join('-')
+
     if (statusFilter === 'today') {
-      const todayStr = new Date().toLocaleDateString('pt-BR', {
-        timeZone: 'America/Sao_Paulo',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-      }).split('/').reverse().join('-')
       result = result.filter(a => a.start_time.split('T')[0] === todayStr && a.status !== 'cancelled')
     } else if (statusFilter === 'confirmed') {
       result = result.filter(a => a.status === 'confirmed' || a.status === 'pending')
@@ -207,6 +246,35 @@ export default function PainelAgendamentos() {
       result = result.filter(a => a.status === 'completed')
     } else if (statusFilter === 'cancelled') {
       result = result.filter(a => a.status === 'cancelled' || a.status === 'no_show')
+    }
+
+    // Determine target date for projecting active recurring reservations
+    const targetDateStr = filterDate || (statusFilter === 'today' ? todayStr : null)
+
+    if (targetDateStr && recurringReservations.length > 0) {
+      const [y, m, d] = targetDateStr.split('-').map(Number)
+      const targetDayOfWeek = new Date(y, m - 1, d).getDay()
+
+      const activeOnDate = recurringReservations.filter(r =>
+        r.day_of_week === targetDayOfWeek &&
+        isRecurringReservationActiveOnDate(r.start_date, r.interval_weeks, targetDateStr)
+      )
+
+      const recAppointments = activeOnDate.map(r => ({
+        id: `rec-${r.id}-${targetDateStr}`,
+        start_time: `${targetDateStr}T${r.time_slot}:00-03:00`,
+        end_time: `${targetDateStr}T${r.time_slot}:00-03:00`,
+        status: 'recurring_reservation',
+        isRecurringReservation: true,
+        intervalWeeks: r.interval_weeks,
+        customerName: r.customer_display_name,
+        barberName: r.barber_name,
+        services: { name: `Reserva Fixa (${r.interval_weeks === 1 ? 'Semanal' : 'Quinzenal'})` },
+        payments: [],
+        notes: `Horário fixo reservado permanentemente (${r.interval_weeks === 1 ? 'Semanal' : 'Quinzenal'})`
+      }))
+
+      result = [...result, ...recAppointments]
     }
 
     // Search Query
@@ -221,7 +289,7 @@ export default function PainelAgendamentos() {
     }
 
     setFilteredAppointments(result)
-  }, [appointments, filterDate, statusFilter, searchQuery])
+  }, [appointments, recurringReservations, filterDate, statusFilter, searchQuery])
 
   // Load slots for walk-in form
   useEffect(() => {
@@ -632,7 +700,9 @@ export default function PainelAgendamentos() {
                   >
                     {/* Status accent bar on left */}
                     <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${
-                      appt.status === 'completed'
+                      appt.isRecurringReservation
+                        ? 'bg-cyan-500'
+                        : appt.status === 'completed'
                         ? 'bg-emerald-500'
                         : appt.status === 'cancelled'
                         ? 'bg-destructive'
@@ -665,7 +735,9 @@ export default function PainelAgendamentos() {
                         {/* Status Badge */}
                         <div className="flex flex-col items-end gap-1">
                           <span className={`text-[10px] uppercase font-extrabold px-2.5 py-1 rounded-full border flex items-center gap-1 shrink-0 ${
-                            appt.status === 'completed' 
+                            appt.isRecurringReservation
+                              ? 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30'
+                              : appt.status === 'completed' 
                               ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' 
                               : appt.status === 'cancelled'
                               ? 'bg-destructive/10 text-destructive border-destructive/30'
@@ -675,10 +747,11 @@ export default function PainelAgendamentos() {
                               ? 'bg-primary/10 text-primary border-primary/30'
                               : 'bg-amber-400/10 text-amber-400 border-amber-400/30 animate-pulse'
                           }`}>
+                            {appt.isRecurringReservation && <Repeat className="w-3 h-3 text-cyan-400" />}
                             {appt.status === 'completed' && <CheckCircle2 className="w-3 h-3" />}
                             {appt.status === 'confirmed' && <CheckCircle className="w-3 h-3" />}
                             {appt.status === 'pending' && <Clock className="w-3 h-3" />}
-                            {appt.status === 'completed' ? 'Concluído' : appt.status === 'cancelled' ? 'Cancelado' : appt.status === 'no_show' ? 'Não Compareceu' : appt.status === 'confirmed' ? 'Confirmado' : 'Pendente'}
+                            {appt.isRecurringReservation ? 'Reserva Fixa' : appt.status === 'completed' ? 'Concluído' : appt.status === 'cancelled' ? 'Cancelado' : appt.status === 'no_show' ? 'Não Compareceu' : appt.status === 'confirmed' ? 'Confirmado' : 'Pendente'}
                           </span>
 
                           {appt.no_show_fee_charged && (

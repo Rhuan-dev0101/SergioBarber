@@ -5,6 +5,28 @@ function timeToMinutes(timeStr: string): number {
   return h * 60 + m
 }
 
+/**
+ * Check if a recurring reservation is active on a specific date.
+ * A reservation with interval_weeks=1 fires every week; interval_weeks=2 fires every other week.
+ * Returns true if daysDiff >= 0 AND daysDiff is evenly divisible by (interval_weeks * 7).
+ */
+function isRecurringReservationActiveOnDate(
+  startDateStr: string,
+  intervalWeeks: number,
+  targetDateStr: string
+): boolean {
+  const [sy, sm, sd] = startDateStr.split('-').map(Number)
+  const [ty, tm, td] = targetDateStr.split('-').map(Number)
+  const startDate = new Date(sy, sm - 1, sd)
+  const targetDate = new Date(ty, tm - 1, td)
+  const daysDiff = Math.round((targetDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
+  if (daysDiff < 0) return false
+  const intervalDays = intervalWeeks * 7
+  return daysDiff % intervalDays === 0
+}
+
+export { isRecurringReservationActiveOnDate }
+
 export async function getAvailableSlots(barberId: string, dateStr: string, serviceDuration: number) {
   const supabase = await createServerSupabaseClient()
   
@@ -60,6 +82,14 @@ export async function getAvailableSlots(barberId: string, dateStr: string, servi
     .gte('start_time', startOfDay)
     .lte('end_time', endOfDay)
 
+  // 5. Fetch active recurring reservations for this barber + day of week
+  const { data: recurringReservations } = await supabase
+    .from('recurring_reservations')
+    .select('time_slot, interval_weeks, start_date')
+    .eq('barber_id', barberId)
+    .eq('day_of_week', dayOfWeek)
+    .eq('status', 'active')
+
   // Map busy intervals by converting to Sao Paulo local minutes from midnight
   const parseToLocalMinutes = (isoString: string): number => {
     const localTime = new Date(isoString).toLocaleTimeString('pt-BR', {
@@ -81,6 +111,19 @@ export async function getAvailableSlots(barberId: string, dateStr: string, servi
       end: parseToLocalMinutes(b.end_time)
     }))
   ]
+
+  // Add recurring reservation blocking intervals
+  if (recurringReservations && recurringReservations.length > 0) {
+    for (const res of recurringReservations) {
+      if (isRecurringReservationActiveOnDate(res.start_date, res.interval_weeks, dateStr)) {
+        const slotMinutes = timeToMinutes(res.time_slot)
+        busyIntervals.push({
+          start: slotMinutes,
+          end: slotMinutes + 60 // Block a 60-minute window
+        })
+      }
+    }
+  }
 
   if (workingHours.lunch_break_start && typeof workingHours.lunch_break_start === 'string') {
     const lunchStartMin = timeToMinutes(workingHours.lunch_break_start)
@@ -143,3 +186,4 @@ export async function getAvailableSlots(barberId: string, dateStr: string, servi
 
   return availableSlots
 }
+

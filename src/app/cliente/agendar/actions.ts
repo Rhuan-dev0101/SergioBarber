@@ -1,7 +1,7 @@
 'use server'
 
 import { createServerSupabaseClient } from '@/lib/supabase'
-import { getAvailableSlots } from '@/lib/booking'
+import { getAvailableSlots, isRecurringReservationActiveOnDate } from '@/lib/booking'
 import { addMinutes, format } from 'date-fns'
 import { getOutstandingNoShowFee, type NoShowFeeInfo } from '@/lib/no-show'
 
@@ -243,6 +243,13 @@ export async function getBarberMonthAvailabilityAction(
       .gte('start_time', startOfMonthStr)
       .lte('end_time', endOfMonthStr)
 
+    // 5. Fetch active recurring reservations for this barber
+    const { data: recurringReservations } = await supabase
+      .from('recurring_reservations')
+      .select('day_of_week, time_slot, interval_weeks, start_date')
+      .eq('barber_id', barberId)
+      .eq('status', 'active')
+
     // Group busy local minutes by date (YYYY-MM-DD)
     const parseToLocalMinutes = (isoString: string): number => {
       const localTime = new Date(isoString).toLocaleTimeString('pt-BR', {
@@ -343,6 +350,20 @@ export async function getBarberMonthAvailabilityAction(
 
       // 4. Calculate slots
       const busyIntervals = [...(busyIntervalsByDate.get(dateStr) || [])]
+
+      // Add recurring reservation blocking intervals for this day
+      if (recurringReservations && recurringReservations.length > 0) {
+        for (const res of recurringReservations) {
+          if (res.day_of_week === dayOfWeek && isRecurringReservationActiveOnDate(res.start_date, res.interval_weeks, dateStr)) {
+            const slotMinutes = timeToMinutesLocal(res.time_slot)
+            busyIntervals.push({
+              start: slotMinutes,
+              end: slotMinutes + 60
+            })
+          }
+        }
+      }
+
       if (workingHours.lunch_break_start && typeof workingHours.lunch_break_start === 'string') {
         const lunchStartMin = timeToMinutesLocal(workingHours.lunch_break_start)
         busyIntervals.push({
