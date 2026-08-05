@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState, useTransition } from 'react'
+import React, { useEffect, useState, useTransition, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Package, Plus, Loader2, Search, X, Check, AlertCircle,
@@ -338,21 +338,44 @@ export default function PainelPacotes() {
     loadBarberPackageServices()
   }, [barberId])
 
-  // ──── Auto-fill package price (FLAT rate: monthly rate x durationMonths) ────
+  const selectedService = barberServices.find(s => s.id === serviceId)
+  const isNoDiscountPackage = Boolean(selectedService?.name?.toLowerCase().includes('sem desconto'))
+
+  // ──── Auto-fill package price (FLAT rate: monthly rate x durationMonths, minus R$ 50 per excluded date for no-discount packages) ────
   useEffect(() => {
     if (durationMonths) {
       const selSvc = barberServices.find(s => s.id === serviceId)
       const monthlyRate = selSvc?.price || 150
-      setPackagePrice((durationMonths * monthlyRate).toFixed(2))
+      const basePrice = durationMonths * monthlyRate
+
+      const isNoDiscount = Boolean(selSvc?.name?.toLowerCase().includes('sem desconto'))
+      if (isNoDiscount) {
+        // For PACOTE SEM DESCONTO HORÁRIO FIXO:
+        // Base rate is R$ 200/month (4 sessions x R$ 50).
+        // Each excluded (unchecked) date subtracts R$ 50.00 from total package price.
+        const deduction = excludedDates.length * 50
+        const finalPrice = Math.max(0, basePrice - deduction)
+        setPackagePrice(finalPrice.toFixed(2))
+      } else {
+        setPackagePrice(basePrice.toFixed(2))
+      }
     }
-  }, [durationMonths, serviceId, barberServices])
+  }, [durationMonths, serviceId, barberServices, excludedDates])
 
   // Compute expanded candidate dates & selected dates
-  const { baseDates, candidateDates, selectedDates, targetSessions } = getExpandedSessionDates(
-    startDate,
-    durationMonths,
-    excludedDates
-  )
+  const { baseDates, candidateDates, selectedDates, targetSessions } = useMemo(() => {
+    if (isNoDiscountPackage) {
+      const bDates = getSessionDatesForDuration(startDate, durationMonths)
+      const sDates = bDates.filter(d => !excludedDates.includes(d))
+      return {
+        baseDates: bDates,
+        candidateDates: bDates,
+        selectedDates: sDates,
+        targetSessions: bDates.length
+      }
+    }
+    return getExpandedSessionDates(startDate, durationMonths, excludedDates)
+  }, [startDate, durationMonths, excludedDates, isNoDiscountPackage])
 
   // ──── Reset excluded dates when primary parameters change ────
   useEffect(() => {
@@ -1451,7 +1474,9 @@ export default function PainelPacotes() {
                     />
                   </div>
                   <p className="text-[11px] text-muted-foreground">
-                    Preço sugerido calculado automaticamente (R$&nbsp;150 por mês). Você pode alterar manualmente se desejar.
+                    {isNoDiscountPackage
+                      ? `Preço calculado automaticamente: ${selectedDates.length} corte(s) x R$ 50,00 = R$ ${packagePrice} (cada corte desmarcado abates R$ 50,00).`
+                      : `Preço sugerido calculado automaticamente (R$ ${selectedService?.price || 150} por mês). Você pode alterar manualmente se desejar.`}
                   </p>
                 </div>
 
@@ -1465,12 +1490,14 @@ export default function PainelPacotes() {
                           Seleção de Datas & Verificação de Agenda
                         </p>
                         <p className="text-[10px] text-muted-foreground mt-0.5">
-                          Desmarque datas em que o cliente não puder vir — uma data de compensação será adicionada ao final.
+                          {isNoDiscountPackage
+                            ? 'Desmarque datas em que o cliente não puder vir — R$ 50,00 serão abatidos automaticamente por corte desmarcado.'
+                            : 'Desmarque datas em que o cliente não puder vir — uma data de compensação será adicionada ao final.'}
                         </p>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
-                          {selectedDates.length}/{targetSessions} sessões confirmadas
+                          {selectedDates.length}/{isNoDiscountPackage ? baseDates.length : targetSessions} sessões confirmadas
                         </span>
                       </div>
                     </div>
@@ -1524,7 +1551,7 @@ export default function PainelPacotes() {
                             <div className="flex items-center gap-2 shrink-0">
                               {isExcluded ? (
                                 <span className="text-[9px] uppercase font-bold px-2 py-0.5 rounded-full bg-secondary text-muted-foreground border border-border/50">
-                                  Desmarcado (sem agendamento)
+                                  {isNoDiscountPackage ? 'Desmarcado (-R$ 50,00)' : 'Desmarcado (sem agendamento)'}
                                 </span>
                               ) : isAvailable ? (
                                 <span className="text-[9px] uppercase font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-500 border border-emerald-500/25 flex items-center gap-1">
