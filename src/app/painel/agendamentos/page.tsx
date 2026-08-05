@@ -625,66 +625,28 @@ export default function PainelAgendamentos() {
             </button>
           </div>
         )}
-                {/* ══════════════════ AGENDA TIMELINE VIEW (DEFAULT) ══════════════════ */}
+
+        {/* AGENDA TIMELINE VIEW (DEFAULT) */}
         {viewMode === 'agenda' ? (
           <div className="space-y-6">
-            {/* Agenda Control Toolbar */}
-            <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 bg-card/90 border border-border/80 p-4 rounded-2xl shadow-md">
+            {/* OSanchez Luxury Top Branding & Control Bar */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-[#121212] border border-white/10 p-4 rounded-2xl shadow-xl">
               
-              {/* Date Navigation */}
-              <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-                <button
-                  type="button"
-                  onClick={handlePrevDay}
-                  className="p-2.5 bg-secondary hover:bg-muted border border-border/60 text-foreground rounded-xl transition-all cursor-pointer"
-                  title="Dia Anterior"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-secondary/40 border border-border/60 rounded-xl">
-                  <input
-                    type="date"
-                    value={selectedAgendaDate}
-                    onChange={(e) => setSelectedAgendaDate(e.target.value)}
-                    className="bg-transparent text-sm font-bold text-foreground outline-none cursor-pointer"
-                  />
+              {/* Brand Title + Barber Selector */}
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex items-center gap-2 pr-3 border-r border-white/10">
+                  <Scissors className="w-5 h-5 text-amber-400 rotate-45" />
+                  <span className="font-serif font-bold text-sm tracking-widest text-white uppercase">
+                    OSanchez Painel
+                  </span>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={handleNextDay}
-                  className="p-2.5 bg-secondary hover:bg-muted border border-border/60 text-foreground rounded-xl transition-all cursor-pointer"
-                  title="Próximo Dia"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleToday}
-                  className="px-3.5 py-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 rounded-xl text-xs font-bold transition-all cursor-pointer"
-                >
-                  Hoje
-                </button>
-              </div>
-
-              {/* Day Header Title */}
-              <div className="text-center lg:text-left">
-                <h3 className="text-base sm:text-lg font-serif font-bold text-foreground capitalize">
-                  {formatAgendaHeaderDate(selectedAgendaDate)}
-                </h3>
-              </div>
-
-              {/* Barber Selector (Admin Mode) */}
-              <div className="flex items-center gap-3">
                 {userRole === 'admin' ? (
-                  <div className="flex items-center gap-2">
-                    <User className="w-4 h-4 text-primary shrink-0" />
+                  <div className="relative">
                     <select
                       value={selectedBarberFilter}
                       onChange={(e) => setSelectedBarberFilter(e.target.value)}
-                      className="px-3 py-2 bg-secondary border border-border text-xs font-bold text-foreground rounded-xl outline-none cursor-pointer"
+                      className="px-3.5 py-2 bg-[#1c1c1e] border border-white/10 hover:border-amber-500/40 text-xs font-bold text-white rounded-xl outline-none cursor-pointer pr-8"
                     >
                       <option value="all">Todos os Barbeiros ({barbers.length})</option>
                       {barbers.map((b) => (
@@ -693,11 +655,52 @@ export default function PainelAgendamentos() {
                     </select>
                   </div>
                 ) : (
-                  <span className="text-xs font-bold text-primary bg-primary/10 px-3 py-1.5 rounded-xl border border-primary/20 flex items-center gap-1.5">
+                  <span className="text-xs font-bold text-amber-400 bg-amber-500/10 px-3 py-1.5 rounded-xl border border-amber-500/20 flex items-center gap-1.5">
                     <User className="w-3.5 h-3.5" />
                     {barbers.find(b => b.id === currentUser?.id)?.full_name || 'Meu Dia'}
                   </span>
                 )}
+
+                <button
+                  type="button"
+                  onClick={handleToday}
+                  className="px-4 py-1.5 bg-[#0a3825] hover:bg-[#0e4b32] text-[#34d399] border border-[#10b981]/40 rounded-full text-xs font-extrabold uppercase tracking-wider transition-all cursor-pointer shadow-sm active:scale-95"
+                >
+                  HOJE
+                </button>
+              </div>
+
+              {/* Date Controls & Date Picker */}
+              <div className="flex items-center gap-2 justify-between sm:justify-end">
+                <button
+                  type="button"
+                  onClick={handlePrevDay}
+                  className="p-2 bg-[#1c1c1e] hover:bg-[#252528] border border-white/10 text-white rounded-xl transition-all cursor-pointer"
+                  title="Dia Anterior"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-[#1c1c1e] border border-white/10 rounded-xl">
+                  <input
+                    type="date"
+                    value={selectedAgendaDate}
+                    onChange={(e) => setSelectedAgendaDate(e.target.value)}
+                    className="bg-transparent text-xs font-bold text-white outline-none cursor-pointer"
+                  />
+                  <span className="text-xs font-bold text-zinc-400 border-l border-white/10 pl-2 capitalize hidden md:inline">
+                    {formatAgendaHeaderDate(selectedAgendaDate)}
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleNextDay}
+                  className="p-2 bg-[#1c1c1e] hover:bg-[#252528] border border-white/10 text-white rounded-xl transition-all cursor-pointer"
+                  title="Próximo Dia"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
               </div>
             </div>
 
@@ -711,9 +714,9 @@ export default function PainelAgendamentos() {
 
               if (agendaBarbers.length === 0) {
                 return (
-                  <div className="p-12 text-center text-muted-foreground bg-card/40 border border-border rounded-2xl">
+                  <div className="p-12 text-center text-muted-foreground bg-[#121212] border border-white/10 rounded-2xl">
                     <User className="w-12 h-12 mx-auto mb-2 opacity-40" />
-                    <p className="text-sm font-semibold">Nenhum barbeiro ativo encontrado.</p>
+                    <p className="text-sm font-semibold text-white">Nenhum barbeiro ativo encontrado.</p>
                   </div>
                 )
               }
@@ -751,23 +754,23 @@ export default function PainelAgendamentos() {
                     return (
                       <div
                         key={barber.id}
-                        className="bg-card/90 border border-border/80 rounded-2xl p-5 shadow-lg space-y-4"
+                        className="bg-[#0e0e10] border border-white/10 rounded-3xl p-5 shadow-2xl space-y-4"
                       >
                         {/* Barber Header */}
-                        <div className="flex items-center justify-between border-b border-border/60 pb-3">
+                        <div className="flex items-center justify-between border-b border-white/10 pb-3">
                           <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center text-primary font-bold text-sm">
+                            <div className="w-10 h-10 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 font-bold text-base shadow-inner">
                               {barber.full_name.charAt(0).toUpperCase()}
                             </div>
                             <div>
-                              <h4 className="font-bold text-sm text-foreground">{barber.full_name}</h4>
-                              <p className="text-[11px] text-muted-foreground">
+                              <h4 className="font-extrabold text-sm text-white">{barber.full_name}</h4>
+                              <p className="text-[11px] text-zinc-400">
                                 {isClosed ? '🚪 Fechado neste dia' : `Horário: ${String(startHour).padStart(2, '0')}:00 às ${String(endHour).padStart(2, '0')}:00`}
                               </p>
                             </div>
                           </div>
                           {isClosed && (
-                            <span className="text-[10px] uppercase font-extrabold px-2.5 py-1 rounded-full bg-destructive/15 text-destructive border border-destructive/30">
+                            <span className="text-[10px] uppercase font-black px-3 py-1 rounded-full bg-destructive/15 text-destructive border border-destructive/30">
                               Fechado / Folga
                             </span>
                           )}
@@ -775,13 +778,13 @@ export default function PainelAgendamentos() {
 
                         {/* Slots list */}
                         {isClosed ? (
-                          <div className="p-8 text-center bg-secondary/20 rounded-xl border border-border/40 text-muted-foreground">
-                            <Coffee className="w-8 h-8 mx-auto mb-2 opacity-40 text-primary" />
-                            <p className="text-xs font-semibold text-foreground">Dia Sem Atendimento</p>
-                            <p className="text-[11px] text-muted-foreground mt-1">Este profissional não trabalha neste dia da semana.</p>
+                          <div className="p-8 text-center bg-[#141416] rounded-2xl border border-white/5 text-zinc-400">
+                            <Coffee className="w-8 h-8 mx-auto mb-2 opacity-40 text-amber-400" />
+                            <p className="text-xs font-bold text-white">Dia Sem Atendimento</p>
+                            <p className="text-[11px] text-zinc-400 mt-1">Este profissional não trabalha neste dia da semana.</p>
                           </div>
                         ) : (
-                          <div className="space-y-2">
+                          <div className="space-y-3">
                             {timeSlots.map((slotStr) => {
                               const isLunch = lunchStartSlot === slotStr
 
@@ -789,17 +792,16 @@ export default function PainelAgendamentos() {
                                 return (
                                   <div
                                     key={slotStr}
-                                    className="flex items-center justify-between p-3 bg-secondary/40 border border-border/40 rounded-xl text-xs text-muted-foreground italic"
+                                    className="bg-[#18181b] border border-white/5 rounded-2xl p-4 flex items-center justify-between opacity-85 transition-all"
                                   >
-                                    <div className="flex items-center gap-2">
-                                      <Clock className="w-3.5 h-3.5 text-primary shrink-0" />
-                                      <span className="font-bold font-mono text-foreground">{slotStr}</span>
-                                      <span>—</span>
-                                      <span className="flex items-center gap-1">
-                                        <Coffee className="w-3.5 h-3.5 text-amber-400" /> Intervalo de Almoço
-                                      </span>
+                                    <div className="flex items-center gap-4">
+                                      <span className="text-2xl font-bold font-mono text-zinc-400 tracking-tight w-16">{slotStr}</span>
+                                      <div className="flex items-center gap-2 text-amber-400 font-bold text-sm tracking-wide uppercase">
+                                        <Coffee className="w-4 h-4 text-amber-400" />
+                                        <span>INTERVALO DE ALMOÇO</span>
+                                      </div>
                                     </div>
-                                    <span className="text-[10px] font-semibold text-muted-foreground">Indisponível</span>
+                                    <span className="text-xs font-semibold text-zinc-500 uppercase tracking-widest">Indisponível</span>
                                   </div>
                                 )
                               }
@@ -824,46 +826,69 @@ export default function PainelAgendamentos() {
                               })
 
                               if (appt) {
-                                const isCompleted = appt.status === 'completed'
+                                const isPackage = appt.package_subscription_id || appt.services?.name?.toLowerCase().includes('pacote')
+
+                                if (isPackage) {
+                                  return (
+                                    <div
+                                      key={slotStr}
+                                      onClick={() => setSelectedAgendaAppt(appt)}
+                                      className="bg-gradient-to-r from-[#947629] via-[#b39034] to-[#c7a33b] border border-amber-300/60 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xl shadow-amber-500/10 hover:brightness-105 transition-all cursor-pointer text-zinc-950 group"
+                                    >
+                                      <div className="flex items-center gap-4 min-w-0">
+                                        <span className="text-2xl font-black font-mono text-zinc-950 tracking-tight w-16 shrink-0">{slotStr}</span>
+                                        <div className="min-w-0 space-y-0.5">
+                                          <div className="flex items-center gap-2 flex-wrap">
+                                            <h5 className="font-black text-base text-zinc-950 uppercase tracking-wide truncate">{appt.customerName}</h5>
+                                            <span className="font-mono text-xs text-zinc-900 bg-zinc-950/20 px-2 py-0.5 rounded border border-zinc-950/30 font-bold">
+                                              {apptShortCode(appt.id)}
+                                            </span>
+                                          </div>
+                                          <p className="text-xs font-extrabold text-zinc-900/90 truncate">
+                                            • {appt.services?.name || 'Pacote Mensal'}
+                                          </p>
+                                        </div>
+                                      </div>
+
+                                      <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                                        <span className="px-3.5 py-1.5 rounded-xl bg-zinc-950/30 text-zinc-950 border border-zinc-950/40 text-xs font-black uppercase flex items-center gap-1.5 shadow-sm">
+                                          <CheckCircle2 className="w-4 h-4 text-zinc-950" />
+                                          {appt.status === 'completed' ? 'CONCLUÍDO' : 'CONFIRMADO'}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  )
+                                }
+
                                 return (
                                   <div
                                     key={slotStr}
                                     onClick={() => setSelectedAgendaAppt(appt)}
-                                    className={`p-3.5 rounded-xl border transition-all cursor-pointer flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 shadow-sm group ${
-                                      isCompleted
-                                        ? 'bg-emerald-500/10 border-emerald-500/30 hover:border-emerald-500/60'
+                                    className={`bg-gradient-to-r from-[#06261a] to-[#0a3825] border border-[#10b981]/40 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg hover:border-[#10b981]/70 transition-all cursor-pointer group ${
+                                      appt.status === 'completed'
+                                        ? 'brightness-110'
                                         : appt.status === 'no_show'
-                                        ? 'bg-amber-500/10 border-amber-500/30 hover:border-amber-500/60'
-                                        : 'bg-primary/10 border-primary/30 hover:border-primary/60'
+                                        ? 'from-[#332208] to-[#472f0b] border-amber-500/40'
+                                        : ''
                                     }`}
                                   >
-                                    <div className="flex items-center gap-3 min-w-0">
-                                      <div className="px-2.5 py-1 bg-background rounded-lg border border-border/60 text-xs font-mono font-bold text-foreground shrink-0">
-                                        {formatTime(appt.start_time) || slotStr}
-                                      </div>
-                                      <div className="min-w-0">
-                                        <div className="flex items-center gap-2">
-                                          <h5 className="font-bold text-xs text-foreground truncate">{appt.customerName}</h5>
-                                          <span className="font-mono text-[9px] text-muted-foreground bg-secondary px-1.5 py-0.2 rounded border border-border/50">
-                                            {apptShortCode(appt.id)}
-                                          </span>
-                                        </div>
-                                        <p className="text-[11px] text-muted-foreground truncate">
-                                          {appt.services?.name} • R$ {Number(appt.services?.price || 0).toFixed(2)}
+                                    <div className="flex items-center gap-4 min-w-0">
+                                      <span className="text-2xl font-bold font-mono text-[#34d399] tracking-tight w-16 shrink-0">{slotStr}</span>
+                                      <div className="min-w-0 space-y-0.5">
+                                        <p className="text-xs text-[#a7f3d0]/80 font-medium">
+                                          {formatTime(appt.start_time) || slotStr} - {appt.end_time ? formatTime(appt.end_time) : slotStr}
                                         </p>
+                                        <h5 className="font-bold text-base text-white uppercase flex items-center gap-2 truncate">
+                                          <User className="w-4 h-4 text-[#34d399] shrink-0" />
+                                          {appt.customerName} <span className="text-zinc-400 font-normal">• {appt.services?.name}</span>
+                                        </h5>
                                       </div>
                                     </div>
 
                                     <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
-                                      <span className={`text-[10px] uppercase font-extrabold px-2.5 py-0.5 rounded-full border flex items-center gap-1 ${
-                                        isCompleted
-                                          ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
-                                          : appt.status === 'no_show'
-                                          ? 'bg-amber-500/20 text-amber-400 border-amber-500/40'
-                                          : 'bg-primary/20 text-primary border-primary/40'
-                                      }`}>
-                                        {isCompleted ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
-                                        {isCompleted ? 'Concluído' : appt.status === 'no_show' ? 'Não Compareceu' : 'Confirmado'}
+                                      <span className="px-3.5 py-1.5 rounded-xl bg-[#262010] text-[#e5c158] border border-[#a3832c]/50 text-xs font-extrabold flex items-center gap-1.5 shadow-sm">
+                                        <CheckCircle2 className="w-4 h-4 text-[#e5c158]" />
+                                        {appt.status === 'completed' ? 'Concluído' : appt.status === 'no_show' ? 'Não Compareceu' : 'Confirmado'}
                                       </span>
                                     </div>
                                   </div>
@@ -874,21 +899,19 @@ export default function PainelAgendamentos() {
                                 return (
                                   <div
                                     key={slotStr}
-                                    className="p-3.5 bg-cyan-500/10 border border-cyan-500/30 rounded-xl flex items-center justify-between gap-3 text-xs"
+                                    className="bg-gradient-to-r from-cyan-950/90 to-slate-900 border border-cyan-500/50 rounded-2xl p-4 flex items-center justify-between gap-3 text-cyan-200 shadow-md"
                                   >
-                                    <div className="flex items-center gap-3">
-                                      <div className="px-2.5 py-1 bg-background rounded-lg border border-cyan-500/30 text-xs font-mono font-bold text-cyan-400">
-                                        {slotStr}
-                                      </div>
+                                    <div className="flex items-center gap-4">
+                                      <span className="text-2xl font-bold font-mono text-cyan-400 tracking-tight w-16">{slotStr}</span>
                                       <div>
-                                        <span className="font-bold text-foreground block">{rec.customer_display_name}</span>
-                                        <span className="text-[11px] text-cyan-400 flex items-center gap-1">
-                                          <Repeat className="w-3 h-3" /> Reserva Fixa ({rec.interval_weeks === 1 ? 'Semanal' : 'Quinzenal'})
+                                        <span className="font-bold text-white text-base block">{rec.customer_display_name}</span>
+                                        <span className="text-xs text-cyan-300 font-semibold flex items-center gap-1.5">
+                                          <Repeat className="w-3.5 h-3.5" /> Reserva Fixa ({rec.interval_weeks === 1 ? 'Semanal' : 'Quinzenal'})
                                         </span>
                                       </div>
                                     </div>
-                                    <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
-                                      Reservado
+                                    <span className="px-3 py-1 rounded-xl bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 text-xs font-bold uppercase">
+                                      ✔ Reservado
                                     </span>
                                   </div>
                                 )
@@ -904,17 +927,23 @@ export default function PainelAgendamentos() {
                                     setSelectedBarberId(barber.id)
                                     setShowWalkInModal(true)
                                   }}
-                                  className="flex items-center justify-between p-2.5 bg-card/40 hover:bg-primary/10 border border-dashed border-border/60 hover:border-primary/40 rounded-xl text-xs text-muted-foreground hover:text-foreground transition-all cursor-pointer group"
+                                  className="bg-[#121212] hover:bg-[#161616] border border-white/10 hover:border-amber-500/40 rounded-2xl p-4 transition-all duration-200 flex items-center justify-between shadow-md cursor-pointer group"
                                 >
-                                  <div className="flex items-center gap-2">
-                                    <Clock className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
-                                    <span className="font-mono font-semibold">{slotStr}</span>
-                                    <span className="text-[11px] text-muted-foreground/60">—</span>
-                                    <span className="text-muted-foreground group-hover:text-primary transition-colors">Livre</span>
+                                  <div className="flex items-center gap-4">
+                                    <span className="text-2xl font-bold font-mono text-white tracking-tight w-16">{slotStr}</span>
+                                    <div className="flex items-center gap-2 text-zinc-400 text-sm font-medium group-hover:text-zinc-200 transition-colors">
+                                      <Calendar className="w-4 h-4 text-zinc-500 group-hover:text-amber-400 transition-colors" />
+                                      <span>Horário Disponível</span>
+                                    </div>
                                   </div>
-                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-secondary group-hover:bg-primary group-hover:text-primary-foreground transition-all flex items-center gap-1">
-                                    <Plus className="w-3 h-3" /> Encaixe
-                                  </span>
+
+                                  <button
+                                    type="button"
+                                    className="px-4 py-2 bg-[#262010] group-hover:bg-[#382f18] text-[#e5c158] border border-[#a3832c]/50 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1 active:scale-95"
+                                  >
+                                    <Plus className="w-3.5 h-3.5" />
+                                    <span>Agendar</span>
+                                  </button>
                                 </div>
                               )
                             })}
@@ -928,8 +957,8 @@ export default function PainelAgendamentos() {
             })()}
           </div>
         ) : (
-          /* ══════════════════ FALLBACK LIST VIEW ══════════════════ */
           <div className="space-y-6">
+            {/* ==================== FALLBACK LIST VIEW ==================== */}
             {/* Interactive Metric Cards */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <button
