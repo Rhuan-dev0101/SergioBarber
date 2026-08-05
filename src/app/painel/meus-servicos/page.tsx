@@ -74,20 +74,18 @@ export default function MeusServicos() {
       setCurrentUser(profile)
       setSelectedBarberId(profile.id)
 
-      // 2. If admin, fetch all active barbers for select dropdown
-      if (profile.role === 'admin') {
-        const { data: dbBarbers } = await supabase
-          .from('barbers')
-          .select('id, profiles(full_name)')
-          .eq('is_active', true)
-        
-        if (dbBarbers) {
-          const formattedBarbers = dbBarbers.map((b: any) => ({
-            id: b.id,
-            name: b.profiles?.full_name || 'Profissional'
-          }))
-          setBarbers(formattedBarbers)
-        }
+      // 2. Fetch all active barbers for select dropdown
+      const { data: dbBarbers } = await supabase
+        .from('barbers')
+        .select('id, profiles(full_name)')
+        .eq('is_active', true)
+      
+      if (dbBarbers) {
+        const formattedBarbers = dbBarbers.map((b: any) => ({
+          id: b.id,
+          name: b.profiles?.full_name || 'Profissional'
+        }))
+        setBarbers(formattedBarbers)
       }
     } catch (error) {
       console.error('Initialization error:', error)
@@ -295,8 +293,8 @@ export default function MeusServicos() {
           </button>
         </div>
 
-        {/* Admin Barber Selector */}
-        {currentUser?.role === 'admin' && barbers.length > 0 && (
+        {/* Barber Selector */}
+        {barbers.length > 0 && (
           <div className="glass p-4 rounded-xl border border-border/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
             <span className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-primary" /> Gerenciar catálogo de atendimento de:

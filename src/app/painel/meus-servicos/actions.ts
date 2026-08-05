@@ -34,7 +34,7 @@ export async function addBarberServiceAction(
   const session = await verifySession()
   if (!session) return { success: false, message: 'Acesso negado.' }
 
-  const targetBarberId = session.role === 'admin' ? barberId : session.id
+  const targetBarberId = barberId || session.id
 
   if (!targetBarberId || !serviceId || price === undefined || duration === undefined) {
     return { success: false, message: 'Parâmetros inválidos.' }
@@ -52,7 +52,7 @@ export async function addBarberServiceAction(
       .single()
 
     if (existing) {
-      return { success: false, message: 'Você já possui esse serviço cadastrado.' }
+      return { success: false, message: 'Este profissional já possui esse serviço cadastrado.' }
     }
 
     const { error } = await supabase
@@ -90,7 +90,7 @@ export async function createAndAddBarberServiceAction(
   const session = await verifySession()
   if (!session) return { success: false, message: 'Acesso negado.' }
 
-  const targetBarberId = session.role === 'admin' ? barberId : session.id
+  const targetBarberId = barberId || session.id
 
   if (!targetBarberId || !name || price === undefined || duration === undefined) {
     return { success: false, message: 'Campos obrigatórios ausentes.' }
@@ -141,7 +141,7 @@ export async function createAndAddBarberServiceAction(
       .single()
 
     if (existingRelation) {
-      return { success: false, message: 'Você já possui esse serviço associado ao seu perfil.' }
+      return { success: false, message: 'Este profissional já possui esse serviço associado ao perfil.' }
     }
 
     const { error: relationError } = await supabase
@@ -186,18 +186,6 @@ export async function updateBarberServiceAction(
   try {
     const supabase = await createServerSupabaseClient()
 
-    if (session.role === 'barber') {
-      const { data: bs } = await supabase
-        .from('barber_services')
-        .select('barber_id')
-        .eq('id', id)
-        .single()
-
-      if (!bs || bs.barber_id !== session.id) {
-        return { success: false, message: 'Você não tem permissão para alterar este serviço.' }
-      }
-    }
-
     const { error } = await supabase
       .from('barber_services')
       .update({
@@ -233,18 +221,6 @@ export async function deleteBarberServiceAction(
 
   try {
     const supabase = await createServerSupabaseClient()
-
-    if (session.role === 'barber') {
-      const { data: bs } = await supabase
-        .from('barber_services')
-        .select('barber_id')
-        .eq('id', id)
-        .single()
-
-      if (!bs || bs.barber_id !== session.id) {
-        return { success: false, message: 'Você não tem permissão para remover este serviço.' }
-      }
-    }
 
     const { error } = await supabase
       .from('barber_services')
