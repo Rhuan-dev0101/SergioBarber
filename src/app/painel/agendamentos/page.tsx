@@ -6,7 +6,7 @@ import {
   Scissors, Calendar, Clock, Search, Edit2, Trash2, CheckCircle2, 
   AlertCircle, Plus, Loader2, Save, X, User, Sparkles, Check, AlertTriangle, UserX,
   Filter, RotateCcw, CheckCircle, ChevronRight, Wallet, DollarSign, RefreshCw, FileText,
-  Repeat
+  Repeat, ChevronLeft, CalendarDays, LayoutList, Coffee
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
@@ -29,6 +29,21 @@ export default function PainelAgendamentos() {
   const [loading, setLoading] = useState(true)
   const [currentUser, setCurrentUser] = useState<any>(null)
   const [userRole, setUserRole] = useState<string | null>(null)
+
+  // Agenda Timeline vs List Mode State
+  const todayLocalStr = new Date().toLocaleDateString('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).split('/').reverse().join('-')
+
+  const [viewMode, setViewMode] = useState<'agenda' | 'list'>('agenda')
+  const [selectedAgendaDate, setSelectedAgendaDate] = useState<string>(todayLocalStr)
+  const [selectedBarberFilter, setSelectedBarberFilter] = useState<string>('all')
+  const [workingHours, setWorkingHours] = useState<any[]>([])
+  const [daysOff, setDaysOff] = useState<any[]>([])
+  const [selectedAgendaAppt, setSelectedAgendaAppt] = useState<any | null>(null)
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('')
@@ -115,6 +130,13 @@ export default function PainelAgendamentos() {
         .select('id, name, price, duration')
         .eq('is_active', true)
       setServices(dbServices || [])
+
+      // Fetch working hours & days off for agenda timeline
+      const { data: dbWH } = await supabase.from('barber_working_hours').select('*')
+      setWorkingHours(dbWH || [])
+
+      const { data: dbDO } = await supabase.from('days_off').select('*')
+      setDaysOff(dbDO || [])
 
       // Fetch recurring reservations
       let recQuery = supabase
@@ -438,6 +460,43 @@ export default function PainelAgendamentos() {
     })
   }
 
+  const handlePrevDay = () => {
+    const [y, m, d] = selectedAgendaDate.split('-').map(Number)
+    const dt = new Date(y, m - 1, d)
+    dt.setDate(dt.getDate() - 1)
+    const py = dt.getFullYear()
+    const pm = String(dt.getMonth() + 1).padStart(2, '0')
+    const pd = String(dt.getDate()).padStart(2, '0')
+    setSelectedAgendaDate(`${py}-${pm}-${pd}`)
+  }
+
+  const handleNextDay = () => {
+    const [y, m, d] = selectedAgendaDate.split('-').map(Number)
+    const dt = new Date(y, m - 1, d)
+    dt.setDate(dt.getDate() + 1)
+    const ny = dt.getFullYear()
+    const nm = String(dt.getMonth() + 1).padStart(2, '0')
+    const nd = String(dt.getDate()).padStart(2, '0')
+    setSelectedAgendaDate(`${ny}-${nm}-${nd}`)
+  }
+
+  const handleToday = () => {
+    setSelectedAgendaDate(todayLocalStr)
+  }
+
+  const formatAgendaHeaderDate = (dateStr: string) => {
+    if (!dateStr) return ''
+    const [y, m, d] = dateStr.split('-').map(Number)
+    const dateObj = new Date(y, m - 1, d)
+    const formatted = dateObj.toLocaleDateString('pt-BR', {
+      weekday: 'long',
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric'
+    })
+    return formatted.charAt(0).toUpperCase() + formatted.slice(1)
+  }
+
   const counts = {
     all: appointments.length,
     today: appointments.filter(a => {
@@ -495,7 +554,35 @@ export default function PainelAgendamentos() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2.5 w-full sm:w-auto">
+          <div className="flex items-center gap-2.5 w-full sm:w-auto flex-wrap sm:flex-nowrap">
+            {/* View Mode Toggle */}
+            <div className="flex items-center gap-1 bg-secondary/80 p-1 rounded-xl border border-border/60">
+              <button
+                type="button"
+                onClick={() => setViewMode('agenda')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  viewMode === 'agenda'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <CalendarDays className="w-3.5 h-3.5" />
+                <span>Agenda</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('list')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  viewMode === 'list'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <LayoutList className="w-3.5 h-3.5" />
+                <span>Lista</span>
+              </button>
+            </div>
+
             <button
               onClick={handleManualRefresh}
               disabled={isPending || isRefreshing}
@@ -538,426 +625,842 @@ export default function PainelAgendamentos() {
             </button>
           </div>
         )}
-
-        {/* Interactive Metric Cards (Touch-friendly filters) */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <button
-            onClick={() => { setStatusFilter('today'); setFilterDate(''); }}
-            className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
-              statusFilter === 'today'
-                ? 'bg-primary/15 border-primary shadow-md'
-                : 'bg-card/70 border-border/70 hover:border-primary/40'
-            }`}
-          >
-            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block">Hoje</span>
-            <span className="text-2xl font-serif font-bold text-foreground mt-0.5 block">{counts.today}</span>
-          </button>
-
-          <button
-            onClick={() => { setStatusFilter('confirmed'); setFilterDate(''); }}
-            className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
-              statusFilter === 'confirmed'
-                ? 'bg-amber-500/15 border-amber-500 shadow-md'
-                : 'bg-card/70 border-border/70 hover:border-amber-500/40'
-            }`}
-          >
-            <span className="text-[11px] font-semibold text-amber-400 uppercase tracking-wider block">Ativos / Pendentes</span>
-            <span className="text-2xl font-serif font-bold text-amber-400 mt-0.5 block">{counts.confirmed}</span>
-          </button>
-
-          <button
-            onClick={() => { setStatusFilter('completed'); setFilterDate(''); }}
-            className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
-              statusFilter === 'completed'
-                ? 'bg-emerald-500/15 border-emerald-500 shadow-md'
-                : 'bg-card/70 border-border/70 hover:border-emerald-500/40'
-            }`}
-          >
-            <span className="text-[11px] font-semibold text-emerald-400 uppercase tracking-wider block">Concluídos</span>
-            <span className="text-2xl font-serif font-bold text-emerald-400 mt-0.5 block">{counts.completed}</span>
-          </button>
-
-          <button
-            onClick={() => { setStatusFilter('cancelled'); setFilterDate(''); }}
-            className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
-              statusFilter === 'cancelled'
-                ? 'bg-destructive/15 border-destructive shadow-md'
-                : 'bg-card/70 border-border/70 hover:border-destructive/40'
-            }`}
-          >
-            <span className="text-[11px] font-semibold text-destructive uppercase tracking-wider block">Cancelados / Faltas</span>
-            <span className="text-2xl font-serif font-bold text-destructive mt-0.5 block">{counts.cancelled}</span>
-          </button>
-        </div>
-
-        {/* Toolbar: Search, Date Filter & Clear */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-secondary/30 p-3.5 rounded-2xl border border-border/60">
-          
-          {/* Status Tabs */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            <button
-              onClick={() => setStatusFilter('all')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-                statusFilter === 'all' && !filterDate
-                  ? 'bg-primary text-primary-foreground font-bold shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
-              }`}
-            >
-              Todos ({counts.all})
-            </button>
-            <button
-              onClick={() => setStatusFilter('today')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-                statusFilter === 'today'
-                  ? 'bg-primary text-primary-foreground font-bold shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
-              }`}
-            >
-              Hoje ({counts.today})
-            </button>
-            <button
-              onClick={() => setStatusFilter('confirmed')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-                statusFilter === 'confirmed'
-                  ? 'bg-amber-500 text-black font-bold shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
-              }`}
-            >
-              Ativos ({counts.confirmed})
-            </button>
-            <button
-              onClick={() => setStatusFilter('completed')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-                statusFilter === 'completed'
-                  ? 'bg-emerald-600 text-white font-bold shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
-              }`}
-            >
-              Concluídos ({counts.completed})
-            </button>
-          </div>
-
-          {/* Search & Date Filter */}
-          <div className="flex flex-col sm:flex-row items-center gap-2.5">
-            <div className="relative w-full sm:w-56">
-              <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="Buscar cliente, serviço..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-8 pr-3 py-2 bg-background border border-border text-base text-foreground placeholder:text-muted-foreground/60 rounded-xl focus:outline-none focus:ring-1 focus:ring-primary"
-              />
-              {searchQuery && (
+                {/* ══════════════════ AGENDA TIMELINE VIEW (DEFAULT) ══════════════════ */}
+        {viewMode === 'agenda' ? (
+          <div className="space-y-6">
+            {/* Agenda Control Toolbar */}
+            <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 bg-card/90 border border-border/80 p-4 rounded-2xl shadow-md">
+              
+              {/* Date Navigation */}
+              <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
                 <button
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  type="button"
+                  onClick={handlePrevDay}
+                  className="p-2.5 bg-secondary hover:bg-muted border border-border/60 text-foreground rounded-xl transition-all cursor-pointer"
+                  title="Dia Anterior"
                 >
-                  <X className="w-3.5 h-3.5" />
+                  <ChevronLeft className="w-4 h-4" />
                 </button>
-              )}
+
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-secondary/40 border border-border/60 rounded-xl">
+                  <input
+                    type="date"
+                    value={selectedAgendaDate}
+                    onChange={(e) => setSelectedAgendaDate(e.target.value)}
+                    className="bg-transparent text-sm font-bold text-foreground outline-none cursor-pointer"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleNextDay}
+                  className="p-2.5 bg-secondary hover:bg-muted border border-border/60 text-foreground rounded-xl transition-all cursor-pointer"
+                  title="Próximo Dia"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleToday}
+                  className="px-3.5 py-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                >
+                  Hoje
+                </button>
+              </div>
+
+              {/* Day Header Title */}
+              <div className="text-center lg:text-left">
+                <h3 className="text-base sm:text-lg font-serif font-bold text-foreground capitalize">
+                  {formatAgendaHeaderDate(selectedAgendaDate)}
+                </h3>
+              </div>
+
+              {/* Barber Selector (Admin Mode) */}
+              <div className="flex items-center gap-3">
+                {userRole === 'admin' ? (
+                  <div className="flex items-center gap-2">
+                    <User className="w-4 h-4 text-primary shrink-0" />
+                    <select
+                      value={selectedBarberFilter}
+                      onChange={(e) => setSelectedBarberFilter(e.target.value)}
+                      className="px-3 py-2 bg-secondary border border-border text-xs font-bold text-foreground rounded-xl outline-none cursor-pointer"
+                    >
+                      <option value="all">Todos os Barbeiros ({barbers.length})</option>
+                      {barbers.map((b) => (
+                        <option key={b.id} value={b.id}>{b.full_name}</option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <span className="text-xs font-bold text-primary bg-primary/10 px-3 py-1.5 rounded-xl border border-primary/20 flex items-center gap-1.5">
+                    <User className="w-3.5 h-3.5" />
+                    {barbers.find(b => b.id === currentUser?.id)?.full_name || 'Meu Dia'}
+                  </span>
+                )}
+              </div>
             </div>
 
-            <div className="relative w-full sm:w-auto">
-              <input
-                type="date"
-                value={filterDate}
-                onChange={(e) => setFilterDate(e.target.value)}
-                className="w-full sm:w-auto px-3 py-2 bg-background border border-border text-base text-foreground rounded-xl focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer font-medium"
-              />
-            </div>
+            {/* Agenda Timeline Grid */}
+            {(() => {
+              const agendaBarbers = barbers.filter(b => {
+                if (userRole === 'barber') return b.id === currentUser?.id
+                if (selectedBarberFilter === 'all') return true
+                return b.id === selectedBarberFilter
+              })
 
-            {(filterDate || searchQuery || statusFilter !== 'all') && (
-              <button
-                type="button"
-                onClick={() => {
-                  setFilterDate('')
-                  setSearchQuery('')
-                  setStatusFilter('all')
-                }}
-                className="px-3 py-2 bg-secondary hover:bg-muted border border-border text-foreground text-xs font-semibold rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
-              >
-                <RotateCcw className="w-3.5 h-3.5 text-muted-foreground" />
-                <span>Limpar</span>
-              </button>
-            )}
-          </div>
-
-        </div>
-
-        {/* ── MOBILE-FIRST RESPONSIVE CARDS LIST (ZERO HORIZONTAL SCROLL) ────────── */}
-        {filteredAppointments.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredAppointments
-              .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
-              .map((appt) => {
-                const payMethod = Array.isArray(appt.payments) ? appt.payments[0]?.method : appt.payments?.method
-
+              if (agendaBarbers.length === 0) {
                 return (
-                  <div
-                    key={appt.id}
-                    className="bg-card/90 border border-border/80 rounded-2xl p-5 hover:border-primary/40 transition-all duration-200 flex flex-col justify-between space-y-4 shadow-md group relative overflow-hidden"
-                  >
-                    {/* Status accent bar on left */}
-                    <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${
-                      appt.isRecurringReservation
-                        ? 'bg-cyan-500'
-                        : appt.status === 'completed'
-                        ? 'bg-emerald-500'
-                        : appt.status === 'cancelled'
-                        ? 'bg-destructive'
-                        : appt.status === 'no_show'
-                        ? 'bg-amber-500'
-                        : appt.status === 'confirmed'
-                        ? 'bg-primary'
-                        : 'bg-amber-400'
-                    }`} />
+                  <div className="p-12 text-center text-muted-foreground bg-card/40 border border-border rounded-2xl">
+                    <User className="w-12 h-12 mx-auto mb-2 opacity-40" />
+                    <p className="text-sm font-semibold">Nenhum barbeiro ativo encontrado.</p>
+                  </div>
+                )
+              }
 
-                    <div className="pl-1.5 space-y-3.5">
-                      
-                      {/* Top Bar: Time Badge, Short Code & Status Badge */}
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="space-y-0.5">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xl font-serif font-bold text-foreground flex items-center gap-1.5">
-                              <Clock className="w-4 h-4 text-primary shrink-0" />
-                              {formatTime(appt.start_time)}
-                            </span>
-                            <span className="font-mono text-[10px] text-muted-foreground bg-secondary px-2 py-0.5 rounded-lg border border-border/60 tracking-widest font-semibold">
-                              {apptShortCode(appt.id)}
-                            </span>
+              const [y, m, d] = selectedAgendaDate.split('-').map(Number)
+              const dayOfWeek = new Date(y, m - 1, d).getDay()
+
+              return (
+                <div className={`grid gap-6 ${
+                  agendaBarbers.length > 1 ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'
+                }`}>
+                  {agendaBarbers.map((barber) => {
+                    const isDayOff = daysOff.some(doItem => doItem.barber_id === barber.id && doItem.date === selectedAgendaDate)
+                    const wh = workingHours.find(w => w.barber_id === barber.id && w.day_of_week === dayOfWeek)
+                    const isClosed = !wh || wh.is_closed || isDayOff
+
+                    // Generate hourly slots
+                    let startHour = 8
+                    let endHour = 19
+
+                    if (wh?.slots && Array.isArray(wh.slots) && wh.slots.length > 0) {
+                      const firstSlot = wh.slots[0]?.start
+                      const lastSlot = wh.slots[wh.slots.length - 1]?.end
+                      if (firstSlot) startHour = parseInt(firstSlot.split(':')[0], 10)
+                      if (lastSlot) endHour = parseInt(lastSlot.split(':')[0], 10)
+                    }
+
+                    const timeSlots: string[] = []
+                    for (let h = startHour; h <= endHour; h++) {
+                      timeSlots.push(`${String(h).padStart(2, '0')}:00`)
+                    }
+
+                    const lunchStartSlot = wh?.lunch_break_start ? String(wh.lunch_break_start).substring(0, 5) : null
+
+                    return (
+                      <div
+                        key={barber.id}
+                        className="bg-card/90 border border-border/80 rounded-2xl p-5 shadow-lg space-y-4"
+                      >
+                        {/* Barber Header */}
+                        <div className="flex items-center justify-between border-b border-border/60 pb-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center text-primary font-bold text-sm">
+                              {barber.full_name.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <h4 className="font-bold text-sm text-foreground">{barber.full_name}</h4>
+                              <p className="text-[11px] text-muted-foreground">
+                                {isClosed ? '🚪 Fechado neste dia' : `Horário: ${String(startHour).padStart(2, '0')}:00 às ${String(endHour).padStart(2, '0')}:00`}
+                              </p>
+                            </div>
                           </div>
-                          <p className="text-[11px] text-muted-foreground font-medium">
-                            {formatDate(appt.start_time)}
-                          </p>
-                        </div>
-
-                        {/* Status Badge */}
-                        <div className="flex flex-col items-end gap-1">
-                          <span className={`text-[10px] uppercase font-extrabold px-2.5 py-1 rounded-full border flex items-center gap-1 shrink-0 ${
-                            appt.isRecurringReservation
-                              ? 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30'
-                              : appt.status === 'completed' 
-                              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' 
-                              : appt.status === 'cancelled'
-                              ? 'bg-destructive/10 text-destructive border-destructive/30'
-                              : appt.status === 'no_show'
-                              ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-                              : appt.status === 'confirmed'
-                              ? 'bg-primary/10 text-primary border-primary/30'
-                              : 'bg-amber-400/10 text-amber-400 border-amber-400/30 animate-pulse'
-                          }`}>
-                            {appt.isRecurringReservation && <Repeat className="w-3 h-3 text-cyan-400" />}
-                            {appt.status === 'completed' && <CheckCircle2 className="w-3 h-3" />}
-                            {appt.status === 'confirmed' && <CheckCircle className="w-3 h-3" />}
-                            {appt.status === 'pending' && <Clock className="w-3 h-3" />}
-                            {appt.isRecurringReservation ? 'Reserva Fixa' : appt.status === 'completed' ? 'Concluído' : appt.status === 'cancelled' ? 'Cancelado' : appt.status === 'no_show' ? 'Não Compareceu' : appt.status === 'confirmed' ? 'Confirmado' : 'Pendente'}
-                          </span>
-
-                          {appt.no_show_fee_charged && (
-                            <span className="text-[9px] uppercase font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                              Taxa Cobrada ✓
+                          {isClosed && (
+                            <span className="text-[10px] uppercase font-extrabold px-2.5 py-1 rounded-full bg-destructive/15 text-destructive border border-destructive/30">
+                              Fechado / Folga
                             </span>
                           )}
                         </div>
-                      </div>
 
-                      {/* Customer Name & Info */}
-                      <div className="flex items-center gap-3 bg-secondary/30 p-3 rounded-xl border border-border/40">
-                        <div className="w-10 h-10 rounded-full bg-secondary border border-primary/30 flex items-center justify-center text-primary font-serif font-bold text-base shrink-0 shadow-inner">
-                          {appt.customerName ? appt.customerName.charAt(0).toUpperCase() : 'C'}
-                        </div>
-                        <div className="space-y-0.5 min-w-0 flex-1">
-                          <h4 className="font-bold text-sm text-foreground truncate">
-                            {appt.customerName}
-                          </h4>
-                          {userRole === 'admin' && (
-                            <p className="text-[11px] text-muted-foreground flex items-center gap-1 truncate">
-                              <User className="w-3 h-3 text-primary" />
-                              Profissional: <strong className="text-foreground font-medium">{appt.barberName}</strong>
-                            </p>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Service & Price Row */}
-                      <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                        <div className="space-y-0.5">
-                          <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider block">Serviço</span>
-                          <span className="font-semibold text-foreground flex items-center gap-1.5">
-                            {appt.services?.name}
-                            {appt.package_subscription_id && (
-                              <span className="text-[9px] uppercase font-extrabold px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-400 border border-amber-500/30">
-                                Pacote
-                              </span>
-                            )}
-                          </span>
-                        </div>
-
-                        <div className="text-right space-y-0.5">
-                          <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider block">Valor</span>
-                          <span className="font-serif font-bold text-amber-400 text-sm">
-                            R$ {Number(appt.services?.price || 0).toFixed(2)}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Payment Method Badge */}
-                      <div className="flex items-center justify-between pt-1 border-t border-border/30 text-xs">
-                        <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-                          <Wallet className="w-3.5 h-3.5 text-primary" /> Formato Pagto:
-                        </span>
-                        <span className={`text-[10px] uppercase font-bold px-2.5 py-0.5 rounded-lg border ${
-                          payMethod === 'cash'
-                            ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
-                            : payMethod === 'card'
-                            ? 'bg-sky-500/15 text-sky-400 border-sky-500/30'
-                            : payMethod === 'pix'
-                            ? 'bg-purple-500/15 text-purple-400 border-purple-500/30'
-                            : 'bg-muted text-muted-foreground border-border'
-                        }`}>
-                          {payMethod === 'cash' ? 'Dinheiro' : payMethod === 'card' ? 'Cartão' : payMethod === 'pix' ? 'Pix' : '—'}
-                        </span>
-                      </div>
-
-                      {/* Internal Notes area */}
-                      <div className="space-y-1">
-                        <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider block">Anotações Internas</span>
-                        {editingNotesId === appt.id ? (
-                          <div className="flex items-center gap-1.5">
-                            <input
-                              type="text"
-                              value={notesContent}
-                              onChange={(e) => setNotesContent(e.target.value)}
-                              placeholder="Escreva anotações..."
-                              className="p-2 text-xs bg-background border border-primary outline-none rounded-xl flex-grow text-foreground"
-                            />
-                            <button
-                              onClick={() => handleSaveNotes(appt.id)}
-                              disabled={isPending}
-                              className="p-2 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90"
-                            >
-                              <Save className="w-4 h-4 text-primary-foreground" />
-                            </button>
-                            <button
-                              onClick={() => setEditingNotesId(null)}
-                              className="p-2 bg-secondary border border-border text-foreground rounded-xl"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
+                        {/* Slots list */}
+                        {isClosed ? (
+                          <div className="p-8 text-center bg-secondary/20 rounded-xl border border-border/40 text-muted-foreground">
+                            <Coffee className="w-8 h-8 mx-auto mb-2 opacity-40 text-primary" />
+                            <p className="text-xs font-semibold text-foreground">Dia Sem Atendimento</p>
+                            <p className="text-[11px] text-muted-foreground mt-1">Este profissional não trabalha neste dia da semana.</p>
                           </div>
                         ) : (
-                          <div className="flex items-center justify-between p-2.5 bg-secondary/20 rounded-xl border border-border/40 text-xs">
-                            <span className="text-muted-foreground italic truncate max-w-[220px]">
-                              {appt.notes || 'Sem anotações'}
-                            </span>
-                            <button
-                              onClick={() => {
-                                setEditingNotesId(appt.id)
-                                setNotesContent(appt.notes || '')
-                              }}
-                              className="text-primary hover:text-primary/80 p-1 font-semibold text-[11px] flex items-center gap-1 cursor-pointer"
-                            >
-                              <Edit2 className="w-3.5 h-3.5" />
-                              <span>Editar</span>
-                            </button>
+                          <div className="space-y-2">
+                            {timeSlots.map((slotStr) => {
+                              const isLunch = lunchStartSlot === slotStr
+
+                              if (isLunch) {
+                                return (
+                                  <div
+                                    key={slotStr}
+                                    className="flex items-center justify-between p-3 bg-secondary/40 border border-border/40 rounded-xl text-xs text-muted-foreground italic"
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <Clock className="w-3.5 h-3.5 text-primary shrink-0" />
+                                      <span className="font-bold font-mono text-foreground">{slotStr}</span>
+                                      <span>—</span>
+                                      <span className="flex items-center gap-1">
+                                        <Coffee className="w-3.5 h-3.5 text-amber-400" /> Intervalo de Almoço
+                                      </span>
+                                    </div>
+                                    <span className="text-[10px] font-semibold text-muted-foreground">Indisponível</span>
+                                  </div>
+                                )
+                              }
+
+                              // Find appointment for this slot
+                              const slotHour = slotStr.substring(0, 2)
+                              const appt = appointments.find(a => {
+                                if (a.barber_id !== barber.id) return false
+                                if (a.start_time.split('T')[0] !== selectedAgendaDate) return false
+                                if (a.status === 'cancelled') return false
+                                const aHour = formatTime(a.start_time).substring(0, 2)
+                                return aHour === slotHour
+                              })
+
+                              // Find recurring reservation for this slot
+                              const rec = recurringReservations.find(r => {
+                                if (r.barber_id !== barber.id) return false
+                                if (r.day_of_week !== dayOfWeek) return false
+                                const rHour = r.time_slot.substring(0, 2)
+                                if (rHour !== slotHour) return false
+                                return isRecurringReservationActiveOnDate(r.start_date, r.interval_weeks, selectedAgendaDate)
+                              })
+
+                              if (appt) {
+                                const isCompleted = appt.status === 'completed'
+                                return (
+                                  <div
+                                    key={slotStr}
+                                    onClick={() => setSelectedAgendaAppt(appt)}
+                                    className={`p-3.5 rounded-xl border transition-all cursor-pointer flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 shadow-sm group ${
+                                      isCompleted
+                                        ? 'bg-emerald-500/10 border-emerald-500/30 hover:border-emerald-500/60'
+                                        : appt.status === 'no_show'
+                                        ? 'bg-amber-500/10 border-amber-500/30 hover:border-amber-500/60'
+                                        : 'bg-primary/10 border-primary/30 hover:border-primary/60'
+                                    }`}
+                                  >
+                                    <div className="flex items-center gap-3 min-w-0">
+                                      <div className="px-2.5 py-1 bg-background rounded-lg border border-border/60 text-xs font-mono font-bold text-foreground shrink-0">
+                                        {formatTime(appt.start_time) || slotStr}
+                                      </div>
+                                      <div className="min-w-0">
+                                        <div className="flex items-center gap-2">
+                                          <h5 className="font-bold text-xs text-foreground truncate">{appt.customerName}</h5>
+                                          <span className="font-mono text-[9px] text-muted-foreground bg-secondary px-1.5 py-0.2 rounded border border-border/50">
+                                            {apptShortCode(appt.id)}
+                                          </span>
+                                        </div>
+                                        <p className="text-[11px] text-muted-foreground truncate">
+                                          {appt.services?.name} • R$ {Number(appt.services?.price || 0).toFixed(2)}
+                                        </p>
+                                      </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                                      <span className={`text-[10px] uppercase font-extrabold px-2.5 py-0.5 rounded-full border flex items-center gap-1 ${
+                                        isCompleted
+                                          ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
+                                          : appt.status === 'no_show'
+                                          ? 'bg-amber-500/20 text-amber-400 border-amber-500/40'
+                                          : 'bg-primary/20 text-primary border-primary/40'
+                                      }`}>
+                                        {isCompleted ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
+                                        {isCompleted ? 'Concluído' : appt.status === 'no_show' ? 'Não Compareceu' : 'Confirmado'}
+                                      </span>
+                                    </div>
+                                  </div>
+                                )
+                              }
+
+                              if (rec) {
+                                return (
+                                  <div
+                                    key={slotStr}
+                                    className="p-3.5 bg-cyan-500/10 border border-cyan-500/30 rounded-xl flex items-center justify-between gap-3 text-xs"
+                                  >
+                                    <div className="flex items-center gap-3">
+                                      <div className="px-2.5 py-1 bg-background rounded-lg border border-cyan-500/30 text-xs font-mono font-bold text-cyan-400">
+                                        {slotStr}
+                                      </div>
+                                      <div>
+                                        <span className="font-bold text-foreground block">{rec.customer_display_name}</span>
+                                        <span className="text-[11px] text-cyan-400 flex items-center gap-1">
+                                          <Repeat className="w-3 h-3" /> Reserva Fixa ({rec.interval_weeks === 1 ? 'Semanal' : 'Quinzenal'})
+                                        </span>
+                                      </div>
+                                    </div>
+                                    <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
+                                      Reservado
+                                    </span>
+                                  </div>
+                                )
+                              }
+
+                              // Free slot
+                              return (
+                                <div
+                                  key={slotStr}
+                                  onClick={() => {
+                                    setWalkInDate(selectedAgendaDate)
+                                    setWalkInTime(slotStr)
+                                    setSelectedBarberId(barber.id)
+                                    setShowWalkInModal(true)
+                                  }}
+                                  className="flex items-center justify-between p-2.5 bg-card/40 hover:bg-primary/10 border border-dashed border-border/60 hover:border-primary/40 rounded-xl text-xs text-muted-foreground hover:text-foreground transition-all cursor-pointer group"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <Clock className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
+                                    <span className="font-mono font-semibold">{slotStr}</span>
+                                    <span className="text-[11px] text-muted-foreground/60">—</span>
+                                    <span className="text-muted-foreground group-hover:text-primary transition-colors">Livre</span>
+                                  </div>
+                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-secondary group-hover:bg-primary group-hover:text-primary-foreground transition-all flex items-center gap-1">
+                                    <Plus className="w-3 h-3" /> Encaixe
+                                  </span>
+                                </div>
+                              )
+                            })}
                           </div>
                         )}
                       </div>
-
-                    </div>
-
-                    {/* ── TOUCH-FRIENDLY ACTION BUTTONS BAR (MOBILE FIRST) ────────── */}
-                    <div className="pt-3 border-t border-border/40 flex flex-wrap items-center gap-2">
-                      
-                      {/* Confirmar button (For pending status) */}
-                      {appt.status === 'pending' && (
-                        <button
-                          onClick={() => handleStatusUpdate(appt.id, 'confirmed')}
-                          disabled={isPending}
-                          className="flex-1 min-h-[44px] py-2.5 px-3 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold rounded-xl shadow-md flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95 disabled:opacity-50"
-                        >
-                          <CheckCircle className="w-4 h-4 text-primary-foreground" />
-                          <span>Confirmar</span>
-                        </button>
-                      )}
-
-                      {/* Concluir button (For active bookings) */}
-                      {appt.status !== 'completed' && appt.status !== 'cancelled' && appt.status !== 'no_show' && (
-                        <button
-                          onClick={() => handleStatusUpdate(appt.id, 'completed')}
-                          disabled={isPending}
-                          className="flex-1 min-h-[44px] py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95 disabled:opacity-50"
-                        >
-                          <CheckCircle2 className="w-4 h-4" />
-                          <span>Concluir Corte</span>
-                        </button>
-                      )}
-
-                      {/* Cancelar button */}
-                      {appt.status !== 'completed' && appt.status !== 'cancelled' && appt.status !== 'no_show' && (
-                        <button
-                          onClick={() => handleStatusUpdate(appt.id, 'cancelled')}
-                          disabled={isPending}
-                          className="min-h-[44px] py-2.5 px-3 bg-destructive/10 hover:bg-destructive/20 border border-destructive/30 text-destructive text-xs font-semibold rounded-xl flex items-center justify-center gap-1 transition-all cursor-pointer active:scale-95 disabled:opacity-50"
-                        >
-                          <X className="w-4 h-4" />
-                          <span>Cancelar</span>
-                        </button>
-                      )}
-
-                      {/* Não Compareceu button (only for cash/card presencial payments) */}
-                      {appt.status !== 'completed' && appt.status !== 'cancelled' && appt.status !== 'no_show' && (payMethod === 'cash' || payMethod === 'card') && (
-                        <button
-                          onClick={() => setNoShowTarget(appt)}
-                          disabled={isPending}
-                          className="min-h-[44px] py-2.5 px-3 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 text-xs font-semibold rounded-xl flex items-center justify-center gap-1 transition-all cursor-pointer active:scale-95 disabled:opacity-50"
-                          title="Marcar como não compareceu"
-                        >
-                          <UserX className="w-4 h-4" />
-                          <span className="hidden sm:inline">Não Compareceu</span>
-                        </button>
-                      )}
-
-                      {/* Emitir Recibo button (For paid/completed appointments or confirmed payments) */}
-                      {(appt.status === 'completed' || (Array.isArray(appt.payments) ? appt.payments[0]?.status : appt.payments?.status) === 'confirmed_manually' || (Array.isArray(appt.payments) ? appt.payments[0]?.status : appt.payments?.status) === 'paid') && (
-                        <button
-                          onClick={() => setSelectedReceiptApptId(appt.id)}
-                          className="min-h-[44px] py-2.5 px-3 bg-primary/10 hover:bg-primary/20 border border-primary/30 text-primary font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95 shadow-sm"
-                          title="Emitir Recibo de Pagamento"
-                        >
-                          <FileText className="w-4 h-4 text-primary" />
-                          <span>Emitir Recibo</span>
-                        </button>
-                      )}
-
-                      {/* Admin Permanent Delete button */}
-                      {userRole === 'admin' && (
-                        <button
-                          onClick={() => handleDelete(appt)}
-                          disabled={isPending}
-                          className="min-h-[44px] p-2.5 bg-destructive/10 hover:bg-destructive/20 border border-destructive/25 text-destructive rounded-xl transition-all cursor-pointer flex items-center justify-center shrink-0"
-                          title="Excluir agendamento permanentemente"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
-
-                    </div>
-
-                  </div>
-                )
-              })}
+                    )
+                  })}
+                </div>
+              )
+            })()}
           </div>
         ) : (
-          <div className="p-12 text-center bg-secondary/20 border border-border/60 rounded-2xl space-y-3">
-            <Calendar className="w-12 h-12 text-muted-foreground/30 mx-auto" />
-            <h3 className="text-base font-semibold text-foreground">Nenhum agendamento encontrado</h3>
-            <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-              {searchQuery || filterDate || statusFilter !== 'all'
-                ? 'Tente alterar os filtros ou termo de busca.'
-                : 'Não há agendamentos cadastrados no momento.'}
-            </p>
+          /* ══════════════════ FALLBACK LIST VIEW ══════════════════ */
+          <div className="space-y-6">
+            {/* Interactive Metric Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <button
+                onClick={() => { setStatusFilter('today'); setFilterDate(''); }}
+                className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
+                  statusFilter === 'today'
+                    ? 'bg-primary/15 border-primary shadow-md'
+                    : 'bg-card/70 border-border/70 hover:border-primary/40'
+                }`}
+              >
+                <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block">Hoje</span>
+                <span className="text-2xl font-serif font-bold text-foreground mt-0.5 block">{counts.today}</span>
+              </button>
+
+              <button
+                onClick={() => { setStatusFilter('confirmed'); setFilterDate(''); }}
+                className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
+                  statusFilter === 'confirmed'
+                    ? 'bg-amber-500/15 border-amber-500 shadow-md'
+                    : 'bg-card/70 border-border/70 hover:border-amber-500/40'
+                }`}
+              >
+                <span className="text-[11px] font-semibold text-amber-400 uppercase tracking-wider block">Ativos / Pendentes</span>
+                <span className="text-2xl font-serif font-bold text-amber-400 mt-0.5 block">{counts.confirmed}</span>
+              </button>
+
+              <button
+                onClick={() => { setStatusFilter('completed'); setFilterDate(''); }}
+                className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
+                  statusFilter === 'completed'
+                    ? 'bg-emerald-500/15 border-emerald-500 shadow-md'
+                    : 'bg-card/70 border-border/70 hover:border-emerald-500/40'
+                }`}
+              >
+                <span className="text-[11px] font-semibold text-emerald-400 uppercase tracking-wider block">Concluídos</span>
+                <span className="text-2xl font-serif font-bold text-emerald-400 mt-0.5 block">{counts.completed}</span>
+              </button>
+
+              <button
+                onClick={() => { setStatusFilter('cancelled'); setFilterDate(''); }}
+                className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
+                  statusFilter === 'cancelled'
+                    ? 'bg-destructive/15 border-destructive shadow-md'
+                    : 'bg-card/70 border-border/70 hover:border-destructive/40'
+                }`}
+              >
+                <span className="text-[11px] font-semibold text-destructive uppercase tracking-wider block">Cancelados / Faltas</span>
+                <span className="text-2xl font-serif font-bold text-destructive mt-0.5 block">{counts.cancelled}</span>
+              </button>
+            </div>
+
+            {/* Toolbar: Search, Date Filter & Clear */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-secondary/30 p-3.5 rounded-2xl border border-border/60">
+              
+              {/* Status Tabs */}
+              <div className="flex flex-wrap items-center gap-1.5">
+                <button
+                  onClick={() => setStatusFilter('all')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                    statusFilter === 'all' && !filterDate
+                      ? 'bg-primary text-primary-foreground font-bold shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
+                  }`}
+                >
+                  Todos ({counts.all})
+                </button>
+                <button
+                  onClick={() => setStatusFilter('today')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                    statusFilter === 'today'
+                      ? 'bg-primary text-primary-foreground font-bold shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
+                  }`}
+                >
+                  Hoje ({counts.today})
+                </button>
+                <button
+                  onClick={() => setStatusFilter('confirmed')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                    statusFilter === 'confirmed'
+                      ? 'bg-amber-500 text-black font-bold shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
+                  }`}
+                >
+                  Ativos ({counts.confirmed})
+                </button>
+                <button
+                  onClick={() => setStatusFilter('completed')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                    statusFilter === 'completed'
+                      ? 'bg-emerald-600 text-white font-bold shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
+                  }`}
+                >
+                  Concluídos ({counts.completed})
+                </button>
+              </div>
+
+              {/* Search & Date Filter */}
+              <div className="flex flex-col sm:flex-row items-center gap-2.5">
+                <div className="relative w-full sm:w-56">
+                  <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="Buscar cliente, serviço..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-8 pr-3 py-2 bg-background border border-border text-base text-foreground placeholder:text-muted-foreground/60 rounded-xl focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                <div className="relative w-full sm:w-auto">
+                  <input
+                    type="date"
+                    value={filterDate}
+                    onChange={(e) => setFilterDate(e.target.value)}
+                    className="w-full sm:w-auto px-3 py-2 bg-background border border-border text-base text-foreground rounded-xl focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer font-medium"
+                  />
+                </div>
+
+                {(filterDate || searchQuery || statusFilter !== 'all') && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFilterDate('')
+                      setSearchQuery('')
+                      setStatusFilter('all')
+                    }}
+                    className="px-3 py-2 bg-secondary hover:bg-muted border border-border text-foreground text-xs font-semibold rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5 text-muted-foreground" />
+                    <span>Limpar</span>
+                  </button>
+                )}
+              </div>
+
+            </div>
+
+            {/* List Cards Grid */}
+            {filteredAppointments.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredAppointments
+                  .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
+                  .map((appt) => {
+                    const payMethod = Array.isArray(appt.payments) ? appt.payments[0]?.method : appt.payments?.method
+
+                    return (
+                      <div
+                        key={appt.id}
+                        className="bg-card/90 border border-border/80 rounded-2xl p-5 hover:border-primary/40 transition-all duration-200 flex flex-col justify-between space-y-4 shadow-md group relative overflow-hidden"
+                      >
+                        {/* Status accent bar on left */}
+                        <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${
+                          appt.isRecurringReservation
+                            ? 'bg-cyan-500'
+                            : appt.status === 'completed'
+                            ? 'bg-emerald-500'
+                            : appt.status === 'cancelled'
+                            ? 'bg-destructive'
+                            : appt.status === 'no_show'
+                            ? 'bg-amber-500'
+                            : appt.status === 'confirmed'
+                            ? 'bg-primary'
+                            : 'bg-amber-400'
+                        }`} />
+
+                        <div className="pl-1.5 space-y-3.5">
+                          {/* Top Bar: Time Badge, Short Code & Status Badge */}
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="space-y-0.5">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xl font-serif font-bold text-foreground flex items-center gap-1.5">
+                                  <Clock className="w-4 h-4 text-primary shrink-0" />
+                                  {formatTime(appt.start_time)}
+                                </span>
+                                <span className="font-mono text-[10px] text-muted-foreground bg-secondary px-2 py-0.5 rounded-lg border border-border/60 tracking-widest font-semibold">
+                                  {apptShortCode(appt.id)}
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-muted-foreground font-medium">
+                                {formatDate(appt.start_time)}
+                              </p>
+                            </div>
+
+                            <div className="flex flex-col items-end gap-1">
+                              <span className={`text-[10px] uppercase font-extrabold px-2.5 py-1 rounded-full border flex items-center gap-1 shrink-0 ${
+                                appt.isRecurringReservation
+                                  ? 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30'
+                                  : appt.status === 'completed' 
+                                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' 
+                                  : appt.status === 'cancelled'
+                                  ? 'bg-destructive/10 text-destructive border-destructive/30'
+                                  : appt.status === 'no_show'
+                                  ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                                  : appt.status === 'confirmed'
+                                  ? 'bg-primary/10 text-primary border-primary/30'
+                                  : 'bg-amber-400/10 text-amber-400 border-amber-400/30 animate-pulse'
+                              }`}>
+                                {appt.isRecurringReservation && <Repeat className="w-3 h-3 text-cyan-400" />}
+                                {appt.status === 'completed' && <CheckCircle2 className="w-3 h-3" />}
+                                {appt.status === 'confirmed' && <CheckCircle className="w-3 h-3" />}
+                                {appt.status === 'pending' && <Clock className="w-3 h-3" />}
+                                {appt.isRecurringReservation ? 'Reserva Fixa' : appt.status === 'completed' ? 'Concluído' : appt.status === 'cancelled' ? 'Cancelado' : appt.status === 'no_show' ? 'Não Compareceu' : appt.status === 'confirmed' ? 'Confirmado' : 'Pendente'}
+                              </span>
+
+                              {appt.no_show_fee_charged && (
+                                <span className="text-[9px] uppercase font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                                  Taxa Cobrada ✓
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Customer Name & Info */}
+                          <div className="flex items-center gap-3 bg-secondary/30 p-3 rounded-xl border border-border/40">
+                            <div className="w-10 h-10 rounded-full bg-secondary border border-primary/30 flex items-center justify-center text-primary font-serif font-bold text-base shrink-0 shadow-inner">
+                              {appt.customerName ? appt.customerName.charAt(0).toUpperCase() : 'C'}
+                            </div>
+                            <div className="space-y-0.5 min-w-0 flex-1">
+                              <h4 className="font-bold text-sm text-foreground truncate">
+                                {appt.customerName}
+                              </h4>
+                              {userRole === 'admin' && (
+                                <p className="text-[11px] text-muted-foreground flex items-center gap-1 truncate">
+                                  <User className="w-3 h-3 text-primary" />
+                                  Profissional: <strong className="text-foreground font-medium">{appt.barberName}</strong>
+                                </p>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Service & Price Row */}
+                          <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                            <div className="space-y-0.5">
+                              <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider block">Serviço</span>
+                              <span className="font-semibold text-foreground flex items-center gap-1.5">
+                                {appt.services?.name}
+                                {appt.package_subscription_id && (
+                                  <span className="text-[9px] uppercase font-extrabold px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                                    Pacote
+                                  </span>
+                                )}
+                              </span>
+                            </div>
+
+                            <div className="text-right space-y-0.5">
+                              <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider block">Valor</span>
+                              <span className="font-serif font-bold text-amber-400 text-sm">
+                                R$ {Number(appt.services?.price || 0).toFixed(2)}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Payment Method Badge */}
+                          <div className="flex items-center justify-between pt-1 border-t border-border/30 text-xs">
+                            <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+                              <Wallet className="w-3.5 h-3.5 text-primary" /> Formato Pagto:
+                            </span>
+                            <span className={`text-[10px] uppercase font-bold px-2.5 py-0.5 rounded-lg border ${
+                              payMethod === 'cash'
+                                ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                                : payMethod === 'card'
+                                ? 'bg-blue-500/15 text-blue-400 border-blue-500/30'
+                                : payMethod === 'pix'
+                                ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+                                : 'bg-secondary text-muted-foreground border-border/50'
+                            }`}>
+                              {payMethod === 'cash' ? 'Dinheiro' : payMethod === 'card' ? 'Cartão' : payMethod === 'pix' ? 'Pix (Sinal)' : 'Não Inf.'}
+                            </span>
+                          </div>
+
+                          {/* Notes */}
+                          {appt.notes && (
+                            <div className="text-xs bg-secondary/50 p-2.5 rounded-xl border border-border/40">
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-[10px] text-muted-foreground font-semibold uppercase">Observações</span>
+                                {editingNotesId !== appt.id && (
+                                  <button
+                                    onClick={() => {
+                                      setEditingNotesId(appt.id)
+                                      setNotesContent(appt.notes || '')
+                                    }}
+                                    className="text-[10px] text-primary hover:underline font-semibold flex items-center gap-0.5"
+                                  >
+                                    <Edit2 className="w-3 h-3" /> Editar
+                                  </button>
+                                )}
+                              </div>
+                              {editingNotesId === appt.id ? (
+                                <div className="space-y-2 mt-1">
+                                  <textarea
+                                    value={notesContent}
+                                    onChange={(e) => setNotesContent(e.target.value)}
+                                    rows={2}
+                                    className="w-full p-2 bg-background border border-primary rounded-lg text-xs text-foreground outline-none resize-none"
+                                  />
+                                  <div className="flex justify-end gap-1.5">
+                                    <button
+                                      onClick={() => setEditingNotesId(null)}
+                                      className="px-2 py-1 bg-secondary text-muted-foreground hover:text-foreground rounded text-[10px] font-semibold"
+                                    >
+                                      Cancelar
+                                    </button>
+                                    <button
+                                      onClick={() => handleSaveNotes(appt.id)}
+                                      disabled={isPending}
+                                      className="px-2.5 py-1 bg-primary text-primary-foreground rounded text-[10px] font-bold flex items-center gap-1"
+                                    >
+                                      {isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                                      Salvar
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <p className="text-foreground/90 italic text-[11px] leading-relaxed">
+                                  {appt.notes}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Action buttons footer */}
+                        <div className="pt-3 border-t border-border/60 flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                          {appt.status !== 'completed' && appt.status !== 'cancelled' && (
+                            <button
+                              onClick={() => handleStatusUpdate(appt.id, 'completed')}
+                              disabled={isPending}
+                              className="flex-1 min-h-[44px] py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm active:scale-95 disabled:opacity-50"
+                            >
+                              <CheckCircle2 className="w-4 h-4 text-white" />
+                              <span>Concluir</span>
+                            </button>
+                          )}
+
+                          {appt.status !== 'completed' && appt.status !== 'cancelled' && appt.status !== 'no_show' && (
+                            <button
+                              onClick={() => handleStatusUpdate(appt.id, 'cancelled')}
+                              disabled={isPending}
+                              className="min-h-[44px] py-2.5 px-3 bg-destructive/10 hover:bg-destructive/20 border border-destructive/30 text-destructive text-xs font-semibold rounded-xl flex items-center justify-center gap-1 transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+                            >
+                              <X className="w-4 h-4" />
+                              <span>Cancelar</span>
+                            </button>
+                          )}
+
+                          {appt.status !== 'completed' && appt.status !== 'cancelled' && appt.status !== 'no_show' && (payMethod === 'cash' || payMethod === 'card') && (
+                            <button
+                              onClick={() => setNoShowTarget(appt)}
+                              disabled={isPending}
+                              className="min-h-[44px] py-2.5 px-3 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 text-xs font-semibold rounded-xl flex items-center justify-center gap-1 transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+                              title="Marcar como não compareceu"
+                            >
+                              <UserX className="w-4 h-4" />
+                              <span className="hidden sm:inline">Não Compareceu</span>
+                            </button>
+                          )}
+
+                          {(appt.status === 'completed' || (Array.isArray(appt.payments) ? appt.payments[0]?.status : appt.payments?.status) === 'confirmed_manually' || (Array.isArray(appt.payments) ? appt.payments[0]?.status : appt.payments?.status) === 'paid') && (
+                            <button
+                              onClick={() => setSelectedReceiptApptId(appt.id)}
+                              className="min-h-[44px] py-2.5 px-3 bg-primary/10 hover:bg-primary/20 border border-primary/30 text-primary font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95 shadow-sm"
+                              title="Emitir Recibo de Pagamento"
+                            >
+                              <FileText className="w-4 h-4 text-primary" />
+                              <span>Emitir Recibo</span>
+                            </button>
+                          )}
+
+                          {userRole === 'admin' && (
+                            <button
+                              onClick={() => handleDelete(appt)}
+                              disabled={isPending}
+                              className="min-h-[44px] p-2.5 bg-destructive/10 hover:bg-destructive/20 border border-destructive/25 text-destructive rounded-xl transition-all cursor-pointer flex items-center justify-center shrink-0"
+                              title="Excluir agendamento permanentemente"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+              </div>
+            ) : (
+              <div className="p-12 text-center bg-secondary/20 border border-border/60 rounded-2xl space-y-3">
+                <Calendar className="w-12 h-12 text-muted-foreground/30 mx-auto" />
+                <h3 className="text-base font-semibold text-foreground">Nenhum agendamento encontrado</h3>
+                <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                  {searchQuery || filterDate || statusFilter !== 'all'
+                    ? 'Tente alterar os filtros ou termo de busca.'
+                    : 'Não há agendamentos cadastrados no momento.'}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Selected Agenda Appointment Action Detail Modal */}
+        {selectedAgendaAppt && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
+            <div className="bg-card border border-border/80 rounded-2xl p-6 max-w-md w-full space-y-5 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+              
+              <div className="flex justify-between items-start pb-3 border-b border-border/40">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs text-primary font-bold bg-primary/10 px-2 py-0.5 rounded border border-primary/20">
+                      {apptShortCode(selectedAgendaAppt.id)}
+                    </span>
+                    <span className={`text-[10px] uppercase font-extrabold px-2.5 py-0.5 rounded-full border ${
+                      selectedAgendaAppt.status === 'completed'
+                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                        : selectedAgendaAppt.status === 'no_show'
+                        ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                        : 'bg-primary/10 text-primary border-primary/30'
+                    }`}>
+                      {selectedAgendaAppt.status === 'completed' ? 'Concluído' : selectedAgendaAppt.status === 'no_show' ? 'Não Compareceu' : 'Confirmado'}
+                    </span>
+                  </div>
+                  <h3 className="font-serif font-bold text-lg text-foreground mt-1">
+                    {selectedAgendaAppt.customerName}
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setSelectedAgendaAppt(null)}
+                  className="text-muted-foreground hover:text-foreground p-1 rounded-lg hover:bg-secondary cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Appointment details summary */}
+              <div className="p-3.5 bg-secondary/30 border border-border/50 rounded-xl space-y-2 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground flex items-center gap-1">
+                    <Calendar className="w-3.5 h-3.5 text-primary" /> Data & Hora:
+                  </span>
+                  <span className="font-bold text-foreground">
+                    {formatDate(selectedAgendaAppt.start_time)} às {formatTime(selectedAgendaAppt.start_time)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground flex items-center gap-1">
+                    <Scissors className="w-3.5 h-3.5 text-primary" /> Serviço:
+                  </span>
+                  <span className="font-semibold text-foreground">{selectedAgendaAppt.services?.name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground flex items-center gap-1">
+                    <User className="w-3.5 h-3.5 text-primary" /> Profissional:
+                  </span>
+                  <span className="font-semibold text-foreground">{selectedAgendaAppt.barberName}</span>
+                </div>
+                <div className="flex justify-between border-t border-border/40 pt-1.5">
+                  <span className="text-muted-foreground flex items-center gap-1">
+                    <DollarSign className="w-3.5 h-3.5 text-amber-400" /> Valor Total:
+                  </span>
+                  <span className="font-bold text-amber-400">
+                    R$ {Number(selectedAgendaAppt.services?.price || 0).toFixed(2)}
+                  </span>
+                </div>
+                {selectedAgendaAppt.notes && (
+                  <div className="border-t border-border/40 pt-1.5 text-muted-foreground">
+                    <span className="font-semibold text-foreground block mb-0.5">Observações:</span>
+                    <p className="italic bg-background/50 p-2 rounded border border-border/40">{selectedAgendaAppt.notes}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Action buttons grid */}
+              <div className="space-y-2 pt-1">
+                <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block mb-2">
+                  Ações do Agendamento
+                </span>
+
+                {selectedAgendaAppt.status !== 'completed' && (
+                  <button
+                    onClick={() => {
+                      handleStatusUpdate(selectedAgendaAppt.id, 'completed')
+                      setSelectedAgendaAppt(null)
+                    }}
+                    disabled={isPending}
+                    className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm"
+                  >
+                    <CheckCircle2 className="w-4 h-4" /> Concluir Atendimento
+                  </button>
+                )}
+
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => {
+                      setSelectedReceiptApptId(selectedAgendaAppt.id)
+                      setSelectedAgendaAppt(null)
+                    }}
+                    className="py-2 px-3 bg-secondary hover:bg-muted text-foreground font-semibold rounded-xl text-xs flex items-center justify-center gap-1.5 border border-border/60 transition-all cursor-pointer"
+                  >
+                    <FileText className="w-3.5 h-3.5 text-primary" /> Recibo
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setNoShowTarget(selectedAgendaAppt)
+                      setSelectedAgendaAppt(null)
+                    }}
+                    className="py-2 px-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 font-semibold rounded-xl text-xs flex items-center justify-center gap-1.5 border border-amber-500/30 transition-all cursor-pointer"
+                  >
+                    <UserX className="w-3.5 h-3.5" /> Não Compareceu
+                  </button>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setDeleteTarget(selectedAgendaAppt)
+                    setSelectedAgendaAppt(null)
+                  }}
+                  className="w-full py-2.5 bg-destructive/10 hover:bg-destructive/20 text-destructive font-semibold rounded-xl text-xs flex items-center justify-center gap-2 border border-destructive/30 transition-all cursor-pointer mt-1"
+                >
+                  <Trash2 className="w-3.5 h-3.5" /> Cancelar / Excluir
+                </button>
+              </div>
+
+            </div>
           </div>
         )}
 
