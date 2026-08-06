@@ -545,7 +545,7 @@ export function CreatePackageForm({
               className="w-full px-3.5 py-2.5 bg-background border border-border focus:border-primary rounded-lg text-base text-foreground outline-none cursor-pointer font-medium"
               required
             >
-              <option value="">Selecione o pacote ({barberServices.length} disponível{barberServices.length !== 1 ? 'is' : ''})</option>
+              <option value="">Selecione o pacote ({barberServices.length} {barberServices.length === 1 ? 'disponível' : 'disponíveis'})</option>
               {barberServices.map(s => (
                 <option key={s.id} value={s.id}>
                   {s.name} — R$ {Number(s.price).toFixed(2)}/mês ({s.duration} min)
