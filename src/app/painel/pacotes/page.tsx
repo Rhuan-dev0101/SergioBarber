@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import {
   Package, Plus, Loader2, Search, X, Check, AlertCircle,
   CheckCircle2, Calendar, Clock, User, Scissors, Trash2,
-  AlertTriangle, ChevronDown, Crown, Sparkles, Edit, DollarSign, Save
+  AlertTriangle, ChevronDown, Crown, Sparkles, Edit, DollarSign, Save, Users
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
@@ -35,6 +35,8 @@ export default function PainelPacotes() {
   const [customers, setCustomers] = useState<any[]>([])
   const [barbers, setBarbers] = useState<any[]>([])
   const [services, setServices] = useState<any[]>([])
+  const [filterBarberId, setFilterBarberId] = useState<string>('')
+  const [adminBarberId, setAdminBarberId] = useState<string>('')
 
   // Modal
   const [showModal, setShowModal] = useState(false)
@@ -115,7 +117,7 @@ export default function PainelPacotes() {
       // Fetch active barbers
       const { data: dbBarbers } = await supabase
         .from('barbers')
-        .select('id, is_active, profiles(id, full_name)')
+        .select('id, is_active, photo_url, profile_id, profiles(id, full_name)')
         .eq('is_active', true)
 
       if (dbBarbers) {
@@ -123,11 +125,23 @@ export default function PainelPacotes() {
           .filter((b: any) => b.profiles)
           .map((b: any) => ({
             id: b.id,
-            full_name: b.profiles.full_name
+            profile_id: b.profile_id || b.profiles.id,
+            full_name: b.profiles.full_name,
+            photo_url: b.photo_url || (b.profiles.full_name?.toLowerCase()?.includes('sergio') ? '/barbers/sergio.jpg' : null)
           }))
         setBarbers(formatted)
         if (formatted.length === 1) {
           setBarberId(formatted[0].id)
+        }
+
+        // Set logged-in user's barber ID as default filter
+        const me = formatted.find((b: any) => b.profile_id === session.user.id)
+        if (me) {
+          setAdminBarberId(me.id)
+          setFilterBarberId((prev) => (prev ? prev : me.id))
+        } else if (formatted.length > 0) {
+          setAdminBarberId(formatted[0].id)
+          setFilterBarberId((prev) => (prev ? prev : formatted[0].id))
         }
       } else {
         setBarbers([])
@@ -219,6 +233,17 @@ export default function PainelPacotes() {
   }
 
   useEffect(() => { loadData() }, [])
+
+  // Filtered packages based on selected barber avatar (for Admin) or locked to own barber (for Barber)
+  const filteredPackages = useMemo(() => {
+    if (userRole === 'barber' && adminBarberId) {
+      return packages.filter(p => p.barber_id === adminBarberId)
+    }
+    if (!filterBarberId || filterBarberId === 'all') {
+      return packages
+    }
+    return packages.filter(p => p.barber_id === filterBarberId)
+  }, [packages, filterBarberId, userRole, adminBarberId])
 
   // ──── Auto-compute start date when dayOfWeek changes ────
   useEffect(() => {
@@ -667,10 +692,101 @@ export default function PainelPacotes() {
           </div>
         )}
 
+        {/* ── Admin Barber Avatar Filter Selector ─────────────────────── */}
+        {userRole === 'admin' && barbers.length > 0 && (
+          <div className="glass p-4 rounded-2xl border border-border/80 space-y-3 shadow-md">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <Users className="w-4 h-4 text-primary" />
+                Filtrar por Barbeiro:
+              </span>
+              <span className="text-[11px] text-muted-foreground font-semibold">
+                Exibindo {filteredPackages.length} de {packages.length} pacote(s)
+              </span>
+            </div>
+
+            <div className="flex items-center gap-3 sm:gap-4 overflow-x-auto pb-1.5 pt-1 scrollbar-none">
+              {/* Option 1: Todos os Barbeiros */}
+              <button
+                type="button"
+                onClick={() => setFilterBarberId('all')}
+                className={`flex flex-col items-center gap-1.5 shrink-0 group cursor-pointer transition-all ${
+                  filterBarberId === 'all' ? 'scale-105' : 'opacity-70 hover:opacity-100'
+                }`}
+              >
+                <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 p-0.5 flex items-center justify-center transition-all shadow-md ${
+                  filterBarberId === 'all'
+                    ? 'border-primary ring-4 ring-primary/20 bg-gradient-to-tr from-primary/30 via-secondary to-primary/10'
+                    : 'border-border/80 group-hover:border-primary/50 bg-secondary/40'
+                }`}>
+                  <Users className={`w-6 h-6 sm:w-7 sm:h-7 ${filterBarberId === 'all' ? 'text-primary' : 'text-muted-foreground'}`} />
+                </div>
+                <div className="text-center">
+                  <span className={`text-xs font-bold block leading-none ${filterBarberId === 'all' ? 'text-primary' : 'text-foreground'}`}>
+                    Todos
+                  </span>
+                  <span className="text-[10px] text-muted-foreground font-medium">
+                    ({packages.length})
+                  </span>
+                </div>
+              </button>
+
+              {/* Barber Avatars */}
+              {barbers.map((b) => {
+                const isSelected = filterBarberId === b.id
+                const count = packages.filter(p => p.barber_id === b.id).length
+                const firstName = b.full_name.split(' ')[0]
+
+                return (
+                  <button
+                    key={b.id}
+                    type="button"
+                    onClick={() => setFilterBarberId(b.id)}
+                    className={`flex flex-col items-center gap-1.5 shrink-0 group cursor-pointer transition-all ${
+                      isSelected ? 'scale-105' : 'opacity-70 hover:opacity-100'
+                    }`}
+                  >
+                    <div className={`relative w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 p-0.5 overflow-hidden transition-all shadow-md ${
+                      isSelected
+                        ? 'border-primary ring-4 ring-primary/20'
+                        : 'border-border/80 group-hover:border-primary/50'
+                    }`}>
+                      {b.photo_url ? (
+                        <img
+                          src={b.photo_url}
+                          alt={b.full_name}
+                          className="w-full h-full object-cover rounded-full"
+                        />
+                      ) : (
+                        <div className="w-full h-full rounded-full bg-gradient-to-tr from-primary/30 via-secondary to-muted flex items-center justify-center text-primary font-serif font-bold text-lg sm:text-xl shadow-inner">
+                          {firstName.charAt(0)}
+                        </div>
+                      )}
+                      {isSelected && (
+                        <span className="absolute bottom-0 right-0 w-4 h-4 bg-primary text-primary-foreground rounded-full flex items-center justify-center border border-background text-[10px] font-bold">
+                          ✓
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-center">
+                      <span className={`text-xs font-bold block leading-none ${isSelected ? 'text-primary' : 'text-foreground'}`}>
+                        {firstName}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground font-medium">
+                        ({count})
+                      </span>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
         {/* ── Packages List ──────────────────────────────────── */}
-        {packages.length > 0 ? (
+        {filteredPackages.length > 0 ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            {packages.map((pkg) => {
+            {filteredPackages.map((pkg) => {
               const remaining = pkg.total_sessions - pkg.completedSessions - pkg.cancelledSessions
               const progressPct = Math.round((pkg.completedSessions / pkg.total_sessions) * 100)
 
