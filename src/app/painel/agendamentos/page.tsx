@@ -21,7 +21,7 @@ import {
   bulkCheckoutAction,
   type BulkCheckoutResult
 } from './actions'
-import { apptShortCode } from '@/lib/utils'
+import { apptShortCode, getLocalDateStr } from '@/lib/utils'
 import { isRecurringReservationActiveOnDate } from '@/lib/booking'
 
 export default function PainelAgendamentos() {
@@ -272,7 +272,7 @@ export default function PainelAgendamentos() {
 
     // Date Picker Filter
     if (filterDate) {
-      result = result.filter(a => a.start_time.split('T')[0] === filterDate)
+      result = result.filter(a => getLocalDateStr(a.start_time) === filterDate)
     }
 
     // Status tab filter
@@ -284,7 +284,7 @@ export default function PainelAgendamentos() {
     }).split('/').reverse().join('-')
 
     if (statusFilter === 'today') {
-      result = result.filter(a => a.start_time.split('T')[0] === todayStr && a.status !== 'cancelled')
+      result = result.filter(a => getLocalDateStr(a.start_time) === todayStr && a.status !== 'cancelled')
     } else if (statusFilter === 'confirmed') {
       result = result.filter(a => a.status === 'confirmed' || a.status === 'pending')
     } else if (statusFilter === 'completed') {
@@ -529,7 +529,7 @@ export default function PainelAgendamentos() {
         month: '2-digit',
         day: '2-digit'
       }).split('/').reverse().join('-')
-      return a.start_time.split('T')[0] === todayStr && a.status !== 'cancelled'
+      return getLocalDateStr(a.start_time) === todayStr && a.status !== 'cancelled'
     }).length,
     confirmed: appointments.filter(a => a.status === 'confirmed' || a.status === 'pending').length,
     completed: appointments.filter(a => a.status === 'completed').length,
@@ -833,7 +833,7 @@ export default function PainelAgendamentos() {
                               const slotHour = slotStr.substring(0, 2)
                               const appt = appointments.find(a => {
                                 if (a.barber_id !== barber.id) return false
-                                if (a.start_time.split('T')[0] !== selectedAgendaDate) return false
+                                if (getLocalDateStr(a.start_time) !== selectedAgendaDate) return false
                                 if (a.status === 'cancelled') return false
                                 const aHour = formatTime(a.start_time).substring(0, 2)
                                 return aHour === slotHour
@@ -982,7 +982,7 @@ export default function PainelAgendamentos() {
             {/* Checkout do Dia Button */}
             {(() => {
               const unpaidAppts = appointments.filter(a => {
-                if (a.start_time.split('T')[0] !== selectedAgendaDate) return false
+                if (getLocalDateStr(a.start_time) !== selectedAgendaDate) return false
                 if (a.status === 'completed' || a.status === 'cancelled' || a.status === 'no_show') return false
                 const payStatus = Array.isArray(a.payments) ? a.payments[0]?.status : a.payments?.status
                 if (payStatus === 'paid' || payStatus === 'confirmed_manually') return false

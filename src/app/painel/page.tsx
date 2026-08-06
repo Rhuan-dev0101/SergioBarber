@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { createServerSupabaseClient } from '@/lib/supabase'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
+import { getLocalDateStr } from '@/lib/utils'
 
 export default async function PainelDashboard() {
   const supabase = await createServerSupabaseClient()
@@ -94,7 +95,7 @@ export default async function PainelDashboard() {
   const serviceCounts: Record<string, number> = {}
 
   apptsList.forEach((appt: any) => {
-    const apptDateStr = appt.start_time.split('T')[0]
+    const apptDateStr = getLocalDateStr(appt.start_time)
     
     // Status counting
     if (appt.status === 'completed') {
@@ -339,9 +340,9 @@ export default async function PainelDashboard() {
               </div>
               
               <div className="space-y-3">
-                {apptsList.filter((a: any) => a.start_time.split('T')[0] === todayStr && a.status !== 'cancelled').length > 0 ? (
+                {apptsList.filter((a: any) => getLocalDateStr(a.start_time) === todayStr && a.status !== 'cancelled').length > 0 ? (
                   apptsList
-                    .filter((a: any) => a.start_time.split('T')[0] === todayStr && a.status !== 'cancelled')
+                    .filter((a: any) => getLocalDateStr(a.start_time) === todayStr && a.status !== 'cancelled')
                     .sort((a, b) => a.start_time.localeCompare(b.start_time))
                     .map((appt: any) => (
                       <div 

@@ -17,3 +17,23 @@ export function apptShortCode(appointmentId: string): string {
   return '#' + appointmentId.replace(/-/g, '').slice(0, 6).toUpperCase()
 }
 
+/**
+ * Safely converts an ISO timestamp string or Date object into a local date string ("YYYY-MM-DD")
+ * in the specified timezone (default: 'America/Sao_Paulo').
+ *
+ * Avoids naive string splitting (`isoStr.split('T')[0]`), which causes timezone shifts
+ * for evening/night appointments (e.g. 21:00 BRT is 00:00 UTC next day).
+ */
+export function getLocalDateStr(dateInput: string | Date, timeZone: string = 'America/Sao_Paulo'): string {
+  if (!dateInput) return ''
+  const dateObj = typeof dateInput === 'string' ? new Date(dateInput) : dateInput
+  if (isNaN(dateObj.getTime())) return ''
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(dateObj)
+}
+
+
