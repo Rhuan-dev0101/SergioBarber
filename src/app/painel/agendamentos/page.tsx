@@ -6,11 +6,12 @@ import {
   Scissors, Calendar, Clock, Search, Edit2, Trash2, CheckCircle2, 
   AlertCircle, Plus, Loader2, Save, X, User, Sparkles, Check, AlertTriangle, UserX,
   Filter, RotateCcw, CheckCircle, ChevronRight, Wallet, DollarSign, RefreshCw, FileText,
-  Repeat, ChevronLeft, CalendarDays, LayoutList, Coffee
+  Repeat, ChevronLeft, CalendarDays, LayoutList, Coffee, Crown
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
 import { ReceiptModal } from '@/components/ReceiptModal'
+import { CreatePackageForm } from '@/components/CreatePackageForm'
 import { 
   updateAppointmentStatusAction, 
   updateAppointmentNotesAction, 
@@ -52,8 +53,9 @@ export default function PainelAgendamentos() {
   const [filterDate, setFilterDate] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
 
-  // Walk-in form states
+  // Walk-in / Novo Agendamento modal form states
   const [showWalkInModal, setShowWalkInModal] = useState(false)
+  const [modalTab, setModalTab] = useState<'avulso' | 'pacote'>('avulso')
   const [clientName, setClientName] = useState('')
   const [selectedBarberId, setSelectedBarberId] = useState('')
   const [selectedServiceId, setSelectedServiceId] = useState('')
@@ -1669,162 +1671,224 @@ export default function PainelAgendamentos() {
           </div>
         )}
 
-        {/* Walk-in Modal overlay */}
+        {/* Walk-in / Novo Agendamento Modal overlay */}
         {showWalkInModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="bg-card border border-border/80 rounded-2xl p-6 sm:p-8 max-w-md w-full space-y-5 relative shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className={`bg-card border border-border/80 rounded-2xl p-6 sm:p-8 w-full space-y-5 relative shadow-2xl max-h-[90vh] overflow-y-auto transition-all ${
+              modalTab === 'pacote' ? 'max-w-xl' : 'max-w-md'
+            }`}>
               
-              <div className="flex justify-between items-center pb-3 border-b border-border/40">
-                <h3 className="font-serif font-bold text-lg text-foreground flex items-center gap-2">
-                  <Scissors className="w-5 h-5 text-primary rotate-45" /> Agendar Presencial (Walk-in)
-                </h3>
-                <button
-                  onClick={() => setShowWalkInModal(false)}
-                  className="text-muted-foreground hover:text-foreground p-1.5 hover:bg-secondary rounded-lg transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+              {/* Header & Segmented Tab Controls */}
+              <div className="space-y-3 pb-3 border-b border-border/40">
+                <div className="flex justify-between items-center">
+                  <h3 className="font-serif font-bold text-lg text-foreground flex items-center gap-2">
+                    {modalTab === 'avulso' ? (
+                      <><Scissors className="w-5 h-5 text-primary rotate-45" /> Novo Agendamento Presencial</>
+                    ) : (
+                      <><Crown className="w-5 h-5 text-primary" /> Novo Pacote Mensal VIP</>
+                    )}
+                  </h3>
+                  <button
+                    onClick={() => {
+                      setShowWalkInModal(false)
+                      setModalTab('avulso')
+                    }}
+                    className="text-muted-foreground hover:text-foreground p-1.5 hover:bg-secondary rounded-lg transition-colors cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Segmented Tab Selector */}
+                <div className="flex items-center gap-1.5 bg-secondary/60 p-1 rounded-xl border border-border/60">
+                  <button
+                    type="button"
+                    onClick={() => setModalTab('avulso')}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      modalTab === 'avulso'
+                        ? 'bg-primary text-primary-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    <Clock className="w-3.5 h-3.5" />
+                    <span>Horário Avulso</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setModalTab('pacote')}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      modalTab === 'pacote'
+                        ? 'bg-primary text-primary-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    <Crown className="w-3.5 h-3.5" />
+                    <span>Pacote Mensal</span>
+                  </button>
+                </div>
               </div>
 
-              <form onSubmit={handleCreateWalkIn} className="space-y-4">
-                <div className="space-y-1.5">
-                  <label htmlFor="wName" className="text-xs font-semibold text-muted-foreground uppercase">Nome do Cliente</label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <input
-                      id="wName"
-                      type="text"
-                      placeholder="Nome completo do cliente"
-                      value={clientName}
-                      onChange={(e) => setClientName(e.target.value)}
-                      disabled={isPending}
-                      className="w-full pl-10 pr-4 py-2.5 bg-secondary/50 border border-border focus:border-primary rounded-xl text-base outline-none text-foreground"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label htmlFor="wBarber" className="text-xs font-semibold text-muted-foreground uppercase">Barbeiro</label>
-                  <select
-                    id="wBarber"
-                    value={selectedBarberId}
-                    onChange={(e) => setSelectedBarberId(e.target.value)}
-                    disabled={isPending}
-                    className="w-full px-3.5 py-2.5 bg-secondary/50 border border-border focus:border-primary rounded-xl text-base text-foreground outline-none cursor-pointer"
-                    required
-                  >
-                    <option value="">Selecione o profissional</option>
-                    {barbers.map(b => (
-                      <option key={b.id} value={b.id}>{b.full_name}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label htmlFor="wService" className="text-xs font-semibold text-muted-foreground uppercase">Serviço</label>
-                  <select
-                    id="wService"
-                    value={selectedServiceId}
-                    onChange={(e) => setSelectedServiceId(e.target.value)}
-                    disabled={isPending}
-                    className="w-full px-3.5 py-2.5 bg-secondary/50 border border-border focus:border-primary rounded-xl text-base text-foreground outline-none cursor-pointer"
-                    required
-                  >
-                    <option value="">Selecione o serviço</option>
-                    {services.map(s => (
-                      <option key={s.id} value={s.id}>{s.name} - R$ {Number(s.price).toFixed(2)} ({s.duration}min)</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label htmlFor="wDate" className="text-xs font-semibold text-muted-foreground uppercase">Data</label>
-                  <input
-                    id="wDate"
-                    type="date"
-                    value={walkInDate}
-                    onChange={(e) => setWalkInDate(e.target.value)}
-                    disabled={isPending}
-                    className="w-full px-3 py-2.5 bg-secondary/50 border border-border focus:border-primary rounded-xl text-base text-foreground outline-none cursor-pointer"
-                    required
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label htmlFor="wTime" className="text-xs font-semibold text-muted-foreground uppercase">Horários Disponíveis</label>
-                  {loadingSlots ? (
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground py-2">
-                      <Loader2 className="w-4 h-4 animate-spin text-primary" /> Carregando horários livres...
+              {/* Tab 1: Horário Avulso (Single Walk-in Appointment) */}
+              {modalTab === 'avulso' && (
+                <form onSubmit={handleCreateWalkIn} className="space-y-4">
+                  <div className="space-y-1.5">
+                    <label htmlFor="wName" className="text-xs font-semibold text-muted-foreground uppercase">Nome do Cliente</label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <input
+                        id="wName"
+                        type="text"
+                        placeholder="Nome completo do cliente"
+                        value={clientName}
+                        onChange={(e) => setClientName(e.target.value)}
+                        disabled={isPending}
+                        className="w-full pl-10 pr-4 py-2.5 bg-secondary/50 border border-border focus:border-primary rounded-xl text-base outline-none text-foreground"
+                        required
+                      />
                     </div>
-                  ) : availableSlots.length > 0 ? (
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label htmlFor="wBarber" className="text-xs font-semibold text-muted-foreground uppercase">Barbeiro</label>
                     <select
-                      id="wTime"
-                      value={walkInTime}
-                      onChange={(e) => setWalkInTime(e.target.value)}
+                      id="wBarber"
+                      value={selectedBarberId}
+                      onChange={(e) => setSelectedBarberId(e.target.value)}
                       disabled={isPending}
                       className="w-full px-3.5 py-2.5 bg-secondary/50 border border-border focus:border-primary rounded-xl text-base text-foreground outline-none cursor-pointer"
                       required
                     >
-                      <option value="">Escolha um horário livre</option>
-                      {availableSlots.map(t => (
-                        <option key={t} value={t}>{t}</option>
+                      <option value="">Selecione o profissional</option>
+                      {barbers.map(b => (
+                        <option key={b.id} value={b.id}>{b.full_name}</option>
                       ))}
                     </select>
-                  ) : (
-                    <p className="text-[11px] text-muted-foreground italic bg-secondary/40 p-2.5 rounded-xl border border-border">
-                      Selecione barbeiro, serviço e data para carregar horários disponíveis.
-                    </p>
-                  )}
-                </div>
+                  </div>
 
-                <div className="space-y-1.5">
-                  <label htmlFor="wPaymentMethod" className="text-xs font-semibold text-muted-foreground uppercase">Forma de Pagamento (Presencial)</label>
-                  <select
-                    id="wPaymentMethod"
-                    value={walkInPaymentMethod}
-                    onChange={(e) => setWalkInPaymentMethod(e.target.value)}
-                    disabled={isPending}
-                    className="w-full px-3.5 py-2.5 bg-secondary/50 border border-border focus:border-primary rounded-xl text-xs text-foreground outline-none cursor-pointer"
+                  <div className="space-y-1.5">
+                    <label htmlFor="wService" className="text-xs font-semibold text-muted-foreground uppercase">Serviço</label>
+                    <select
+                      id="wService"
+                      value={selectedServiceId}
+                      onChange={(e) => setSelectedServiceId(e.target.value)}
+                      disabled={isPending}
+                      className="w-full px-3.5 py-2.5 bg-secondary/50 border border-border focus:border-primary rounded-xl text-base text-foreground outline-none cursor-pointer"
+                      required
+                    >
+                      <option value="">Selecione o serviço</option>
+                      {services.map(s => (
+                        <option key={s.id} value={s.id}>{s.name} - R$ {Number(s.price).toFixed(2)} ({s.duration}min)</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label htmlFor="wDate" className="text-xs font-semibold text-muted-foreground uppercase">Data</label>
+                    <input
+                      id="wDate"
+                      type="date"
+                      value={walkInDate}
+                      onChange={(e) => setWalkInDate(e.target.value)}
+                      disabled={isPending}
+                      className="w-full px-3 py-2.5 bg-secondary/50 border border-border focus:border-primary rounded-xl text-base text-foreground outline-none cursor-pointer"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label htmlFor="wTime" className="text-xs font-semibold text-muted-foreground uppercase">Horários Disponíveis</label>
+                    {loadingSlots ? (
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground py-2">
+                        <Loader2 className="w-4 h-4 animate-spin text-primary" /> Carregando horários livres...
+                      </div>
+                    ) : availableSlots.length > 0 ? (
+                      <select
+                        id="wTime"
+                        value={walkInTime}
+                        onChange={(e) => setWalkInTime(e.target.value)}
+                        disabled={isPending}
+                        className="w-full px-3.5 py-2.5 bg-secondary/50 border border-border focus:border-primary rounded-xl text-base text-foreground outline-none cursor-pointer"
+                        required
+                      >
+                        <option value="">Escolha um horário livre</option>
+                        {availableSlots.map(t => (
+                          <option key={t} value={t}>{t}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <p className="text-[11px] text-muted-foreground italic bg-secondary/40 p-2.5 rounded-xl border border-border">
+                        Selecione barbeiro, serviço e data para carregar horários disponíveis.
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label htmlFor="wPaymentMethod" className="text-xs font-semibold text-muted-foreground uppercase">Forma de Pagamento (Presencial)</label>
+                    <select
+                      id="wPaymentMethod"
+                      value={walkInPaymentMethod}
+                      onChange={(e) => setWalkInPaymentMethod(e.target.value)}
+                      disabled={isPending}
+                      className="w-full px-3.5 py-2.5 bg-secondary/50 border border-border focus:border-primary rounded-xl text-xs text-foreground outline-none cursor-pointer"
+                    >
+                      <option value="cash">Dinheiro</option>
+                      <option value="card">Cartão (Débito / Crédito)</option>
+                      <option value="pix">Pix (No local)</option>
+                      <option value="other">Outro</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label htmlFor="wNotes" className="text-xs font-semibold text-muted-foreground uppercase">Observações Extras</label>
+                    <textarea
+                      id="wNotes"
+                      placeholder="Ex: Prefere corte tesoura, cliente novo..."
+                      value={walkInNotes}
+                      onChange={(e) => setWalkInNotes(e.target.value)}
+                      disabled={isPending}
+                      rows={2}
+                      className="w-full p-3 bg-secondary/50 border border-border focus:border-primary rounded-xl text-xs text-foreground placeholder:text-muted-foreground/60 outline-none resize-none"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isPending || (availableSlots.length > 0 && !walkInTime)}
+                    className="w-full py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md disabled:opacity-50"
                   >
-                    <option value="cash">Dinheiro</option>
-                    <option value="card">Cartão (Débito / Crédito)</option>
-                    <option value="pix">Pix (No local)</option>
-                    <option value="other">Outro</option>
-                  </select>
-                </div>
+                    {isPending ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Registrando...
+                      </>
+                    ) : (
+                      <>
+                        Confirmar Agendamento Presencial
+                        <Check className="w-4 h-4" />
+                      </>
+                    )}
+                  </button>
+                </form>
+              )}
 
-                <div className="space-y-1.5">
-                  <label htmlFor="wNotes" className="text-xs font-semibold text-muted-foreground uppercase">Observações Extras</label>
-                  <textarea
-                    id="wNotes"
-                    placeholder="Ex: Prefere corte tesoura, cliente novo..."
-                    value={walkInNotes}
-                    onChange={(e) => setWalkInNotes(e.target.value)}
-                    disabled={isPending}
-                    rows={2}
-                    className="w-full p-3 bg-secondary/50 border border-border focus:border-primary rounded-xl text-xs text-foreground placeholder:text-muted-foreground/60 outline-none resize-none"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isPending || (availableSlots.length > 0 && !walkInTime)}
-                  className="w-full py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md disabled:opacity-50"
-                >
-                  {isPending ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Registrando...
-                    </>
-                  ) : (
-                    <>
-                      Confirmar Agendamento Presencial
-                      <Check className="w-4 h-4" />
-                    </>
-                  )}
-                </button>
-              </form>
+              {/* Tab 2: Pacote Mensal VIP */}
+              {modalTab === 'pacote' && (
+                <CreatePackageForm
+                  initialBarberId={selectedBarberId}
+                  initialStartDate={walkInDate}
+                  initialTimeSlot={walkInTime}
+                  onSuccess={(msg) => {
+                    setSuccessMsg(msg || 'Pacote mensal criado com sucesso!')
+                    setShowWalkInModal(false)
+                    setModalTab('avulso')
+                    loadData()
+                  }}
+                  onCancel={() => {
+                    setShowWalkInModal(false)
+                    setModalTab('avulso')
+                  }}
+                />
+              )}
             </div>
           </div>
         )}
