@@ -117,7 +117,7 @@ export default function PainelPacotes() {
       // Fetch active barbers
       const { data: dbBarbers } = await supabase
         .from('barbers')
-        .select('id, is_active, photo_url, profile_id, profiles(id, full_name)')
+        .select('id, is_active, photo_url, profiles(id, full_name)')
         .eq('is_active', true)
 
       if (dbBarbers) {
@@ -125,7 +125,7 @@ export default function PainelPacotes() {
           .filter((b: any) => b.profiles)
           .map((b: any) => ({
             id: b.id,
-            profile_id: b.profile_id || b.profiles.id,
+            profile_id: b.profiles?.id || b.id,
             full_name: b.profiles.full_name,
             photo_url: b.photo_url || (b.profiles.full_name?.toLowerCase()?.includes('sergio') ? '/barbers/sergio.jpg' : null)
           }))
@@ -135,7 +135,7 @@ export default function PainelPacotes() {
         }
 
         // Set logged-in user's barber ID as default filter
-        const me = formatted.find((b: any) => b.profile_id === session.user.id)
+        const me = formatted.find((b: any) => b.id === session.user.id || b.profile_id === session.user.id)
         if (me) {
           setAdminBarberId(me.id)
           setFilterBarberId((prev) => (prev ? prev : me.id))
