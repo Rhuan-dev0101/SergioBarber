@@ -191,7 +191,8 @@ export async function createWalkInAppointmentAction(
   dateStr: string,
   timeStr: string,
   notes: string,
-  paymentMethod: string = 'cash'
+  paymentMethod: string = 'cash',
+  customerId?: string | null
 ): Promise<ActionResponse> {
   const staff = await verifyStaffSession()
   if (!staff) {
@@ -228,12 +229,12 @@ export async function createWalkInAppointmentAction(
     const startDate = new Date(startTimeStr)
     const endDate = addMinutes(startDate, duration)
 
-    // 4. Insert appointment directly as 'confirmed' (customer_id is null for anonymous walk-ins)
-    const formattedNotes = `[Walk-in] Cliente: ${clientName}. ${notes}`
+    // 4. Insert appointment directly as 'confirmed'
+    const formattedNotes = customerId ? (notes || '') : `[Walk-in] Cliente: ${clientName}. ${notes || ''}`
     const { data: appt, error: apptError } = await supabase
       .from('appointments')
       .insert({
-        customer_id: null,
+        customer_id: customerId || null,
         barber_id: barberId,
         service_id: serviceId,
         start_time: startDate.toISOString(),

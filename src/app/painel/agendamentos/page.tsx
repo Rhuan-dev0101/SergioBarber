@@ -23,7 +23,7 @@ import {
 } from './actions'
 import { apptShortCode, getLocalDateStr } from '@/lib/utils'
 import { isRecurringReservationActiveOnDate } from '@/lib/booking'
-import { CustomServiceSelect, CustomBarberSelect, CustomGenericSelect } from '@/components/CustomSelect'
+import { CustomServiceSelect, CustomBarberSelect, CustomGenericSelect, CustomCustomerSelect } from '@/components/CustomSelect'
 
 function getAppointmentPrice(appt: any): number {
   if (!appt) return 0
@@ -73,8 +73,11 @@ export default function PainelAgendamentos() {
   const [walkInTime, setWalkInTime] = useState('')
   const [walkInNotes, setWalkInNotes] = useState('')
   const [walkInPaymentMethod, setWalkInPaymentMethod] = useState('cash')
+  const [walkInCustomerId, setWalkInCustomerId] = useState<string>('')
+  const [walkInIsRegistered, setWalkInIsRegistered] = useState<boolean>(true)
   
   // Data for selectors
+  const [customers, setCustomers] = useState<any[]>([])
   const [barbers, setBarbers] = useState<any[]>([])
   const [services, setServices] = useState<any[]>([])
   const [availableSlots, setAvailableSlots] = useState<string[]>([])
@@ -164,6 +167,14 @@ export default function PainelAgendamentos() {
         .select('id, name, price, duration')
         .eq('is_active', true)
       setServices(dbServices || [])
+
+      // Fetch registered customers for walk-in form
+      const { data: dbCust } = await supabase
+        .from('profiles')
+        .select('id, full_name, phone, role')
+        .order('full_name')
+      const validCustomers = (dbCust || []).filter((c: any) => c.role !== 'admin')
+      setCustomers(validCustomers)
 
       // Fetch working hours & days off for agenda timeline
       const { data: dbWH } = await supabase.from('barber_working_hours').select('*')
@@ -407,20 +418,24 @@ export default function PainelAgendamentos() {
     setErrorMsg('')
     setSuccessMsg('')
 
-    if (!clientName || !selectedBarberId || !selectedServiceId || !walkInDate || !walkInTime) {
-      setErrorMsg('Todos os campos são obrigatórios.')
+    const selectedCust = customers.find(c => c.id === walkInCustomerId)
+    const finalClientName = walkInIsRegistered ? (selectedCust?.full_name || clientName) : clientName
+
+    if ((walkInIsRegistered && !walkInCustomerId) || (!walkInIsRegistered && !clientName.trim()) || !selectedBarberId || !selectedServiceId || !walkInDate || !walkInTime) {
+      setErrorMsg('Todos os campos são obrigatórios. Selecione o cliente ou digite o nome.')
       return
     }
 
     startTransition(async () => {
       const res = await createWalkInAppointmentAction(
-        clientName,
+        finalClientName,
         selectedBarberId,
         selectedServiceId,
         walkInDate,
         walkInTime,
         walkInNotes,
-        walkInPaymentMethod
+        walkInPaymentMethod,
+        walkInIsRegistered ? walkInCustomerId : null
       )
 
       if (!res.success) {
@@ -430,6 +445,7 @@ export default function PainelAgendamentos() {
         setShowWalkInModal(false)
         
         setClientName('')
+        setWalkInCustomerId('')
         setSelectedBarberId('')
         setSelectedServiceId('')
         setWalkInDate('')
@@ -1843,21 +1859,73 @@ export default function PainelAgendamentos() {
               {/* Tab 1: Horário Avulso (Single Walk-in Appointment) */}
               {modalTab === 'avulso' && (
                 <form onSubmit={handleCreateWalkIn} className="space-y-4">
-                  <div className="space-y-1.5">
-                    <label htmlFor="wName" className="text-xs font-semibold text-muted-foreground uppercase">Nome do Cliente</label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <input
-                        id="wName"
-                        type="text"
-                        placeholder="Nome completo do cliente"
-                        value={clientName}
-                        onChange={(e) => setClientName(e.target.value)}
-                        disabled={isPending}
-                        className="w-full pl-10 pr-4 py-2.5 bg-secondary/50 border border-border focus:border-primary rounded-xl text-base outline-none text-foreground"
-                        required
-                      />
+                  {/* Customer Selector with Segmented Tabs */}
+                  <div className="space-y-2.5 bg-secondary/30 p-3.5 rounded-xl border border-border/60">
+                    <div className="flex items-center justify-between border-b border-border/40 pb-2">
+                      <span className="text-[11px] uppercase font-bold text-primary tracking-wider flex items-center gap-1.5">
+                        <User className="w-3.5 h-3.5" /> Cliente
+                      </span>
+                      <div className="flex items-center gap-1 bg-background p-0.5 rounded-lg border border-border/60">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setWalkInIsRegistered(true)
+                            setClientName('')
+                          }}
+                          className={`px-2.5 py-1 text-[10px] font-bold rounded-md transition-all cursor-pointer ${
+                            walkInIsRegistered
+                              ? 'bg-primary text-primary-foreground shadow-sm'
+                              : 'text-muted-foreground hover:text-foreground'
+                          }`}
+                        >
+                          Cliente Cadastrado
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setWalkInIsRegistered(false)
+                            setWalkInCustomerId('')
+                          }}
+                          className={`px-2.5 py-1 text-[10px] font-bold rounded-md transition-all cursor-pointer ${
+                            !walkInIsRegistered
+                              ? 'bg-primary text-primary-foreground shadow-sm'
+                              : 'text-muted-foreground hover:text-foreground'
+                          }`}
+                        >
+                          Sem Cadastro / Presencial
+                        </button>
+                      </div>
                     </div>
+
+                    {walkInIsRegistered ? (
+                      <CustomCustomerSelect
+                        customers={customers}
+                        selectedId={walkInCustomerId}
+                        onSelect={(id, name) => {
+                          setWalkInCustomerId(id)
+                          setClientName(name)
+                        }}
+                        disabled={isPending}
+                      />
+                    ) : (
+                      <div className="space-y-1">
+                        <div className="relative">
+                          <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <input
+                            type="text"
+                            placeholder="Nome completo do cliente ou apelido (ex: Seu Zé, Beiço)..."
+                            value={clientName}
+                            onChange={(e) => setClientName(e.target.value)}
+                            disabled={isPending}
+                            className="w-full pl-10 pr-4 py-2.5 bg-secondary/60 border border-border focus:border-primary rounded-xl text-sm outline-none text-foreground placeholder:text-muted-foreground"
+                            required={!walkInIsRegistered}
+                          />
+                        </div>
+                        <p className="text-[10px] text-muted-foreground italic pl-1">
+                          Digite o nome ou apelido para agendamentos rápidos sem cadastro prévio.
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-1.5">
