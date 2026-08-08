@@ -1119,7 +1119,7 @@ export default function PainelAgendamentos() {
                 if (getLocalDateStr(a.start_time) !== selectedAgendaDate) return false
                 if (a.status === 'completed' || a.status === 'cancelled' || a.status === 'no_show') return false
                 const payStatus = Array.isArray(a.payments) ? a.payments[0]?.status : a.payments?.status
-                if (payStatus === 'paid' || payStatus === 'confirmed_manually') return false
+                if (payStatus === 'paid') return false
                 return true
               })
 

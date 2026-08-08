@@ -227,7 +227,7 @@ export async function createPackageAction(
           appointment_id: appt.id,
           total_amount: pricePerSession,
           deposit_amount: 0,
-          status: 'confirmed_manually',
+          status: 'pending',
           method: 'other',
           notes: `Pacote (${durationMonths}m) — Sessão ${i + 1}/${totalSessions}`
         })
