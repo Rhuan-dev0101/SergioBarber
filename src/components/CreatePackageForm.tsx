@@ -8,6 +8,7 @@ import {
 import { createClient } from '@/lib/supabase'
 import { getSessionDatesForDuration, getExpandedSessionDates } from '@/lib/package-utils'
 import { createPackageAction, validatePackageSlotsAction } from '@/app/painel/pacotes/actions'
+import { CustomServiceSelect, CustomBarberSelect } from '@/components/CustomSelect'
 
 const WEEKDAY_NAMES = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado']
 const WEEKDAY_SHORT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
@@ -509,17 +510,11 @@ export function CreatePackageForm({
         {/* Barber Selector */}
         <div className="space-y-1.5">
           <label className="text-xs font-bold text-foreground">Barbeiro Responsável</label>
-          <select
-            value={barberId}
-            onChange={(e) => setBarberId(e.target.value)}
-            className="w-full px-3.5 py-2.5 bg-background border border-border focus:border-primary rounded-lg text-base text-foreground outline-none cursor-pointer font-medium"
-            required
-          >
-            <option value="">Selecione o profissional</option>
-            {barbers.map(b => (
-              <option key={b.id} value={b.id}>{b.full_name}</option>
-            ))}
-          </select>
+          <CustomBarberSelect
+            barbers={barbers}
+            selectedId={barberId}
+            onSelect={setBarberId}
+          />
         </div>
       </div>
 
@@ -539,19 +534,12 @@ export function CreatePackageForm({
               <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" /> Carregando pacotes do profissional...
             </div>
           ) : barberServices.length > 0 ? (
-            <select
-              value={serviceId}
-              onChange={(e) => setServiceId(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-background border border-border focus:border-primary rounded-lg text-base text-foreground outline-none cursor-pointer font-medium"
-              required
-            >
-              <option value="">Selecione o pacote ({barberServices.length} {barberServices.length === 1 ? 'disponível' : 'disponíveis'})</option>
-              {barberServices.map(s => (
-                <option key={s.id} value={s.id}>
-                  {s.name} — R$ {Number(s.price).toFixed(2)}/mês ({s.duration} min)
-                </option>
-              ))}
-            </select>
+            <CustomServiceSelect
+              services={barberServices}
+              selectedId={serviceId}
+              onSelect={setServiceId}
+              placeholder={`Selecione o pacote (${barberServices.length} disponível)`}
+            />
           ) : (
             <p className="text-[10px] text-muted-foreground italic bg-background p-2.5 rounded-lg border border-border">
               Nenhum pacote mensal encontrado para este profissional.

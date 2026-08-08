@@ -23,6 +23,7 @@ import {
 } from './actions'
 import { apptShortCode, getLocalDateStr } from '@/lib/utils'
 import { isRecurringReservationActiveOnDate } from '@/lib/booking'
+import { CustomServiceSelect, CustomBarberSelect, CustomGenericSelect } from '@/components/CustomSelect'
 
 function getAppointmentPrice(appt: any): number {
   if (!appt) return 0
@@ -1860,93 +1861,86 @@ export default function PainelAgendamentos() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label htmlFor="wBarber" className="text-xs font-semibold text-muted-foreground uppercase">Barbeiro</label>
-                    <select
-                      id="wBarber"
-                      value={selectedBarberId}
-                      onChange={(e) => setSelectedBarberId(e.target.value)}
+                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">Barbeiro</label>
+                    <CustomBarberSelect
+                      barbers={barbers}
+                      selectedId={selectedBarberId}
+                      onSelect={setSelectedBarberId}
                       disabled={isPending}
-                      className="w-full px-3.5 py-2.5 bg-secondary/50 border border-border focus:border-primary rounded-xl text-base text-foreground outline-none cursor-pointer"
-                      required
-                    >
-                      <option value="">Selecione o profissional</option>
-                      {barbers.map(b => (
-                        <option key={b.id} value={b.id}>{b.full_name}</option>
-                      ))}
-                    </select>
+                    />
                   </div>
 
                   <div className="space-y-1.5">
-                    <label htmlFor="wService" className="text-xs font-semibold text-muted-foreground uppercase">Serviço</label>
-                    <select
-                      id="wService"
-                      value={selectedServiceId}
-                      onChange={(e) => setSelectedServiceId(e.target.value)}
+                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">Serviço</label>
+                    <CustomServiceSelect
+                      services={services}
+                      selectedId={selectedServiceId}
+                      onSelect={setSelectedServiceId}
                       disabled={isPending}
-                      className="w-full px-3.5 py-2.5 bg-secondary/50 border border-border focus:border-primary rounded-xl text-base text-foreground outline-none cursor-pointer"
-                      required
-                    >
-                      <option value="">Selecione o serviço</option>
-                      {services.map(s => (
-                        <option key={s.id} value={s.id}>{s.name} - R$ {Number(s.price).toFixed(2)} ({s.duration}min)</option>
-                      ))}
-                    </select>
+                    />
                   </div>
 
                   <div className="space-y-1.5">
-                    <label htmlFor="wDate" className="text-xs font-semibold text-muted-foreground uppercase">Data</label>
+                    <label htmlFor="wDate" className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">Data</label>
                     <input
                       id="wDate"
                       type="date"
                       value={walkInDate}
                       onChange={(e) => setWalkInDate(e.target.value)}
                       disabled={isPending}
-                      className="w-full px-3 py-2.5 bg-secondary/50 border border-border focus:border-primary rounded-xl text-base text-foreground outline-none cursor-pointer"
+                      className="w-full px-4 py-3 bg-secondary/60 border border-border focus:border-primary rounded-xl text-base text-foreground outline-none cursor-pointer"
                       required
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <label htmlFor="wTime" className="text-xs font-semibold text-muted-foreground uppercase">Horários Disponíveis</label>
+                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">Horários Disponíveis</label>
                     {loadingSlots ? (
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground py-2">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground py-3 bg-secondary/30 rounded-xl px-4 border border-border/40">
                         <Loader2 className="w-4 h-4 animate-spin text-primary" /> Carregando horários livres...
                       </div>
                     ) : availableSlots.length > 0 ? (
-                      <select
-                        id="wTime"
-                        value={walkInTime}
-                        onChange={(e) => setWalkInTime(e.target.value)}
-                        disabled={isPending}
-                        className="w-full px-3.5 py-2.5 bg-secondary/50 border border-border focus:border-primary rounded-xl text-base text-foreground outline-none cursor-pointer"
-                        required
-                      >
-                        <option value="">Escolha um horário livre</option>
-                        {availableSlots.map(t => (
-                          <option key={t} value={t}>{t}</option>
-                        ))}
-                      </select>
+                      <div className="grid grid-cols-4 gap-2 max-h-44 overflow-y-auto p-1 bg-secondary/20 rounded-xl border border-border/50">
+                        {availableSlots.map(t => {
+                          const isSelected = walkInTime === t
+                          return (
+                            <button
+                              key={t}
+                              type="button"
+                              onClick={() => setWalkInTime(t)}
+                              disabled={isPending}
+                              className={`py-2 px-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer border ${
+                                isSelected
+                                  ? 'bg-primary text-primary-foreground border-primary shadow-md shadow-amber-500/20 scale-105'
+                                  : 'bg-secondary/60 hover:bg-secondary/90 border-border text-foreground'
+                              }`}
+                            >
+                              <Clock className="w-3 h-3 shrink-0" />
+                              <span>{t}</span>
+                            </button>
+                          )
+                        })}
+                      </div>
                     ) : (
-                      <p className="text-[11px] text-muted-foreground italic bg-secondary/40 p-2.5 rounded-xl border border-border">
+                      <p className="text-xs text-muted-foreground italic bg-secondary/40 p-3 rounded-xl border border-border/60">
                         Selecione barbeiro, serviço e data para carregar horários disponíveis.
                       </p>
                     )}
                   </div>
 
                   <div className="space-y-1.5">
-                    <label htmlFor="wPaymentMethod" className="text-xs font-semibold text-muted-foreground uppercase">Forma de Pagamento (Presencial)</label>
-                    <select
-                      id="wPaymentMethod"
-                      value={walkInPaymentMethod}
-                      onChange={(e) => setWalkInPaymentMethod(e.target.value)}
+                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">Forma de Pagamento (Presencial)</label>
+                    <CustomGenericSelect
+                      options={[
+                        { value: 'cash', label: 'Dinheiro', icon: <DollarSign className="w-4 h-4 text-emerald-400" /> },
+                        { value: 'card', label: 'Cartão (Débito / Crédito)', icon: <Wallet className="w-4 h-4 text-sky-400" /> },
+                        { value: 'pix', label: 'Pix (No local)', icon: <Sparkles className="w-4 h-4 text-amber-400" /> },
+                        { value: 'other', label: 'Outro', icon: <Scissors className="w-4 h-4 text-purple-400" /> }
+                      ]}
+                      selectedValue={walkInPaymentMethod}
+                      onSelect={setWalkInPaymentMethod}
                       disabled={isPending}
-                      className="w-full px-3.5 py-2.5 bg-secondary/50 border border-border focus:border-primary rounded-xl text-xs text-foreground outline-none cursor-pointer"
-                    >
-                      <option value="cash">Dinheiro</option>
-                      <option value="card">Cartão (Débito / Crédito)</option>
-                      <option value="pix">Pix (No local)</option>
-                      <option value="other">Outro</option>
-                    </select>
+                    />
                   </div>
 
                   <div className="space-y-1.5">
