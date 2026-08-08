@@ -31,6 +31,11 @@ function getAppointmentPrice(appt: any): number {
   if (payment && payment.total_amount !== undefined && payment.total_amount !== null && Number(payment.total_amount) > 0) {
     return Number(payment.total_amount)
   }
+  const pkgSub = Array.isArray(appt.package_subscriptions) ? appt.package_subscriptions[0] : appt.package_subscriptions
+  if (pkgSub && pkgSub.package_price && pkgSub.total_sessions) {
+    const perSession = Number(pkgSub.package_price) / Number(pkgSub.total_sessions)
+    if (perSession > 0) return Math.round(perSession * 100) / 100
+  }
   return Number(appt.services?.price || 0)
 }
 
@@ -230,6 +235,7 @@ export default function PainelAgendamentos() {
           no_show,
           no_show_fee_charged,
           package_subscription_id,
+          package_subscriptions (package_price, total_sessions),
           services (name, price),
           payments (total_amount, status, method),
           customer_id,

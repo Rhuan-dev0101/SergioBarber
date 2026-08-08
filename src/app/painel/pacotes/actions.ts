@@ -221,16 +221,20 @@ export async function createPackageAction(
       }
 
       // Create a payment record for this appointment
-      await supabase
+      const { error: payErr } = await supabase
         .from('payments')
         .insert({
           appointment_id: appt.id,
           total_amount: pricePerSession,
           deposit_amount: 0,
           status: 'confirmed_manually',
-          method: 'package',
+          method: 'other',
           notes: `Pacote (${durationMonths}m) — Sessão ${i + 1}/${totalSessions}`
         })
+
+      if (payErr) {
+        console.error(`Error creating payment for session ${i + 1}:`, payErr)
+      }
     }
 
     const weekdayName = WEEKDAY_NAMES_PT[dayOfWeek]
