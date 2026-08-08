@@ -8,6 +8,15 @@ import {
   AlertCircle, CheckCircle, HelpCircle, Loader2, ArrowRight, Wallet, Star 
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
+
+function getAppointmentPrice(appt: any): number {
+  if (!appt) return 0
+  const payment = Array.isArray(appt.payments) ? appt.payments[0] : appt.payments
+  if (payment && payment.total_amount !== undefined && payment.total_amount !== null && Number(payment.total_amount) > 0) {
+    return Number(payment.total_amount)
+  }
+  return Number(appt.services?.price || 0)
+}
 import { cancelAppointmentAction } from './actions'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
@@ -310,7 +319,11 @@ export default function ClientePanel() {
                             </p>
                             <p className="flex items-center gap-1.5 font-semibold text-foreground">
                               <Wallet className="w-3.5 h-3.5 text-primary" />
-                              Valor: R$ {Number(appt.services?.price).toFixed(2)} (Sinal 50%: R$ {(Number(appt.services?.price) * 0.5).toFixed(2)})
+                              {appt.package_subscription_id ? (
+                                <span>Valor da Sessão: R$ {getAppointmentPrice(appt).toFixed(2)} (Pacote)</span>
+                              ) : (
+                                <span>Valor: R$ {getAppointmentPrice(appt).toFixed(2)} (Sinal 50%: R$ {(getAppointmentPrice(appt) * 0.5).toFixed(2)})</span>
+                              )}
                             </p>
                             {appt.payments?.[0] && (
                               <p className="text-[10px] text-primary italic">

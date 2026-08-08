@@ -24,6 +24,15 @@ import {
 import { apptShortCode, getLocalDateStr } from '@/lib/utils'
 import { isRecurringReservationActiveOnDate } from '@/lib/booking'
 
+function getAppointmentPrice(appt: any): number {
+  if (!appt) return 0
+  const payment = Array.isArray(appt.payments) ? appt.payments[0] : appt.payments
+  if (payment && payment.total_amount !== undefined && payment.total_amount !== null && Number(payment.total_amount) > 0) {
+    return Number(payment.total_amount)
+  }
+  return Number(appt.services?.price || 0)
+}
+
 export default function PainelAgendamentos() {
   const router = useRouter()
   const [appointments, setAppointments] = useState<any[]>([])
@@ -1100,7 +1109,7 @@ export default function PainelAgendamentos() {
                     apptId: a.id,
                     customerName: a.customerName || 'Cliente',
                     serviceName: a.services?.name || 'Serviço',
-                    price: Number(a.services?.price || 0),
+                    price: getAppointmentPrice(a),
                     time: formatTime(a.start_time),
                     originalMethod: payMethod || 'cash',
                     selectedMethod: payMethod || 'cash',
@@ -1390,7 +1399,7 @@ export default function PainelAgendamentos() {
                             <div className="text-right space-y-0.5">
                               <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider block">Valor</span>
                               <span className="font-serif font-bold text-amber-400 text-sm">
-                                R$ {Number(appt.services?.price || 0).toFixed(2)}
+                                R$ {getAppointmentPrice(appt).toFixed(2)}
                               </span>
                             </div>
                           </div>
@@ -1600,7 +1609,7 @@ export default function PainelAgendamentos() {
                     <DollarSign className="w-3.5 h-3.5 text-amber-400" /> Valor Total:
                   </span>
                   <span className="font-bold text-amber-400">
-                    R$ {Number(selectedAgendaAppt.services?.price || 0).toFixed(2)}
+                    R$ {getAppointmentPrice(selectedAgendaAppt).toFixed(2)}
                   </span>
                 </div>
                 {selectedAgendaAppt.notes && (
@@ -1746,7 +1755,7 @@ export default function PainelAgendamentos() {
                 </div>
                 <div className="flex justify-between border-t border-border/40 pt-1.5">
                   <span className="text-muted-foreground">Taxa (50%):</span>
-                  <span className="font-bold text-amber-400">R$ {(Number(noShowTarget.services?.price || 0) * 0.5).toFixed(2)}</span>
+                  <span className="font-bold text-amber-400">R$ {(getAppointmentPrice(noShowTarget) * 0.5).toFixed(2)}</span>
                 </div>
               </div>
 

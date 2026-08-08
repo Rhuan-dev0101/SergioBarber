@@ -7,6 +7,7 @@ import {
   AlertCircle, CheckCircle2, Loader2, Save, X, ArrowLeft, ChevronRight, Trash2,
   Copy, Check
 } from 'lucide-react'
+import { apptShortCode } from '@/lib/utils'
 import { createClient } from '@/lib/supabase'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
 import { 
@@ -14,6 +15,15 @@ import {
   deleteCustomerAction,
   registerCustomerManuallyAction
 } from './actions'
+
+function getAppointmentPrice(appt: any): number {
+  if (!appt) return 0
+  const payment = Array.isArray(appt.payments) ? appt.payments[0] : appt.payments
+  if (payment && payment.total_amount !== undefined && payment.total_amount !== null && Number(payment.total_amount) > 0) {
+    return Number(payment.total_amount)
+  }
+  return Number(appt.services?.price || 0)
+}
 
 export default function PainelClientes() {
   const router = useRouter()
@@ -183,6 +193,7 @@ export default function PainelClientes() {
           start_time,
           status,
           services (name, price),
+          payments (total_amount),
           barber_id
         `)
         .eq('customer_id', customer.id)
@@ -511,7 +522,7 @@ export default function PainelClientes() {
                             <div className="flex items-center gap-2">
                               <p className="font-bold text-foreground text-sm">{appt.services?.name}</p>
                               <span className="text-mono font-bold text-primary text-[11px]">
-                                R$&nbsp;{Number(appt.services?.price || 0).toFixed(2)}
+                                R$&nbsp;{getAppointmentPrice(appt).toFixed(2)}
                               </span>
                             </div>
                             <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
