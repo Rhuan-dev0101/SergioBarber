@@ -419,6 +419,34 @@ export default function PainelAgendamentos() {
     })
   }
 
+  const handleOpenWalkInModal = (defaultBarberId?: string) => {
+    let targetBarberId = defaultBarberId || ''
+    if (!targetBarberId) {
+      if (userRole === 'barber' && currentUser?.id) {
+        targetBarberId = currentUser.id
+      } else if (selectedBarberFilter && selectedBarberFilter !== 'all') {
+        targetBarberId = selectedBarberFilter
+      }
+    }
+    setSelectedBarberId(targetBarberId)
+    setWalkInDate(selectedAgendaDate || todayLocalStr)
+    setWalkInTime('')
+    setShowWalkInModal(true)
+  }
+
+  const handleCloseWalkInModal = () => {
+    setShowWalkInModal(false)
+    setClientName('')
+    setWalkInCustomerId('')
+    setSelectedBarberId('')
+    setSelectedServiceId('')
+    setWalkInDate('')
+    setWalkInTime('')
+    setWalkInNotes('')
+    setWalkInPaymentMethod('cash')
+    setModalTab('avulso')
+  }
+
   const handleCreateWalkIn = (e: React.FormEvent) => {
     e.preventDefault()
     setErrorMsg('')
@@ -448,17 +476,7 @@ export default function PainelAgendamentos() {
         setErrorMsg(res.message)
       } else {
         setSuccessMsg(res.message)
-        setShowWalkInModal(false)
-        
-        setClientName('')
-        setWalkInCustomerId('')
-        setSelectedBarberId('')
-        setSelectedServiceId('')
-        setWalkInDate('')
-        setWalkInTime('')
-        setWalkInNotes('')
-        setWalkInPaymentMethod('cash')
-
+        handleCloseWalkInModal()
         loadData()
       }
     })
@@ -648,7 +666,7 @@ export default function PainelAgendamentos() {
               <RefreshCw className={`w-4 h-4 ${isRefreshing || isPending ? 'animate-spin' : ''}`} />
             </button>
             <button
-              onClick={() => setShowWalkInModal(true)}
+              onClick={() => handleOpenWalkInModal()}
               className="flex-1 sm:flex-none px-4 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-95"
             >
               <Plus className="w-4 h-4 text-primary-foreground" />
@@ -1079,10 +1097,8 @@ export default function PainelAgendamentos() {
                                 <div
                                   key={slotStr}
                                   onClick={() => {
-                                    setWalkInDate(selectedAgendaDate)
+                                    handleOpenWalkInModal(barber.id)
                                     setWalkInTime(slotStr)
-                                    setSelectedBarberId(barber.id)
-                                    setShowWalkInModal(true)
                                   }}
                                   className="bg-[#121212] hover:bg-[#161616] border border-white/10 hover:border-amber-500/40 rounded-2xl p-4 transition-all duration-200 flex items-center justify-between shadow-md cursor-pointer group"
                                 >
@@ -1823,10 +1839,7 @@ export default function PainelAgendamentos() {
                     )}
                   </h3>
                   <button
-                    onClick={() => {
-                      setShowWalkInModal(false)
-                      setModalTab('avulso')
-                    }}
+                    onClick={handleCloseWalkInModal}
                     className="text-muted-foreground hover:text-foreground p-1.5 hover:bg-secondary rounded-lg transition-colors cursor-pointer"
                   >
                     <X className="w-5 h-5" />
@@ -1940,7 +1953,7 @@ export default function PainelAgendamentos() {
                       barbers={barbers}
                       selectedId={selectedBarberId}
                       onSelect={setSelectedBarberId}
-                      disabled={isPending}
+                      disabled={isPending || userRole === 'barber'}
                     />
                   </div>
 
@@ -2062,10 +2075,7 @@ export default function PainelAgendamentos() {
                     setModalTab('avulso')
                     loadData()
                   }}
-                  onCancel={() => {
-                    setShowWalkInModal(false)
-                    setModalTab('avulso')
-                  }}
+                  onCancel={handleCloseWalkInModal}
                 />
               )}
             </div>

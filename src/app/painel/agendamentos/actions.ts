@@ -199,6 +199,10 @@ export async function createWalkInAppointmentAction(
     return { success: false, message: 'Não autorizado.' }
   }
 
+  if (staff.role === 'barber' && barberId !== staff.user.id) {
+    return { success: false, message: 'Barbeiros só podem registrar agendamentos para si mesmos.' }
+  }
+
   if (!clientName || !barberId || !serviceId || !dateStr || !timeStr) {
     return { success: false, message: 'Todos os campos são obrigatórios.' }
   }
