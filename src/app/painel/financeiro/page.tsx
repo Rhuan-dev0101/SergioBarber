@@ -1,20 +1,30 @@
 'use client'
 
-import React, { useEffect, useState, useTransition } from 'react'
+import React, { useEffect, useState, useTransition, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { 
   Scissors, DollarSign, Calendar, Clock, Check, X, 
-  AlertCircle, CheckCircle2, Loader2, ArrowUpRight, TrendingUp, Search, Crown, FileText
+  AlertCircle, CheckCircle2, Loader2, ArrowUpRight, TrendingUp, Search, Crown, FileText, Users, BarChart3
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
 import { ReceiptModal } from '@/components/ReceiptModal'
 import { confirmPaymentAction } from './actions'
 
+type BarberInfo = {
+  id: string
+  profile_id: string
+  full_name: string
+  photo_url?: string | null
+}
+
 export default function PainelFinanceiro() {
   const router = useRouter()
   const [payments, setPayments] = useState<any[]>([])
-  const [filteredPayments, setFilteredPayments] = useState<any[]>([])
+  const [barbers, setBarbers] = useState<BarberInfo[]>([])
+  const [userRole, setUserRole] = useState<'admin' | 'barber' | null>(null)
+  const [adminBarberId, setAdminBarberId] = useState<string>('')
+  const [filterBarberId, setFilterBarberId] = useState<string>('')
   const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(true)
 
@@ -34,16 +44,45 @@ export default function PainelFinanceiro() {
         return
       }
 
-      // Check admin auth
+      // Check auth role
       const { data: profile } = await supabase
         .from('profiles')
-        .select('role')
+        .select('role, full_name')
         .eq('id', session.user.id)
         .single()
       
-      if (!profile || profile.role !== 'admin') {
-        router.push('/painel') // regular barbers redirect to overview
+      if (!profile || (profile.role !== 'admin' && profile.role !== 'barber')) {
+        router.push('/painel')
         return
+      }
+
+      setUserRole(profile.role)
+
+      // Fetch active barbers for avatar filter (admin view)
+      const { data: dbBarbers } = await supabase
+        .from('barbers')
+        .select('id, is_active, photo_url, profiles (id, full_name)')
+        .eq('is_active', true)
+
+      if (dbBarbers) {
+        const formatted: BarberInfo[] = dbBarbers
+          .filter((b: any) => b.profiles)
+          .map((b: any) => ({
+            id: b.id,
+            profile_id: b.profiles?.id || b.id,
+            full_name: b.profiles.full_name,
+            photo_url: b.photo_url || (b.profiles.full_name?.toLowerCase()?.includes('sergio') ? '/barbers/sergio.jpg' : null)
+          }))
+        setBarbers(formatted)
+
+        const me = formatted.find((b: any) => b.id === session.user.id || b.profile_id === session.user.id)
+        if (me) {
+          setAdminBarberId(me.id)
+          setFilterBarberId((prev) => (prev ? prev : me.id))
+        } else {
+          setAdminBarberId(session.user.id)
+          setFilterBarberId((prev) => (prev ? prev : session.user.id))
+        }
       }
 
       // Fetch payment entries joining appointments
@@ -58,7 +97,11 @@ export default function PainelFinanceiro() {
           method,
           notes,
           created_at,
-          appointments (customer_id, services (name))
+          appointments (
+            customer_id,
+            barber_id,
+            services (name)
+          )
         `)
         .order('created_at', { ascending: false })
 
@@ -68,44 +111,51 @@ export default function PainelFinanceiro() {
         .select(`
           id,
           customer_id,
+          barber_id,
           package_price,
           payment_status,
           created_at,
           services (name)
         `)
+        .order('created_at', { ascending: false })
 
       const paymentsList = payLogs || []
       const packagesList = pkgSubs || []
 
-      // Fetch profiles to map names of customers
-      const payCustomerIds = paymentsList.map(p => {
+      // Map profiles for customer and barber names
+      const allIds = new Set<string>()
+      paymentsList.forEach(p => {
         const appt: any = Array.isArray(p.appointments) ? p.appointments[0] : p.appointments
-        return appt?.customer_id
-      }).filter(Boolean)
+        if (appt?.customer_id) allIds.add(appt.customer_id)
+        if (appt?.barber_id) allIds.add(appt.barber_id)
+      })
+      packagesList.forEach(pkg => {
+        if (pkg.customer_id) allIds.add(pkg.customer_id)
+        if (pkg.barber_id) allIds.add(pkg.barber_id)
+      })
 
-      const pkgCustomerIds = packagesList.map(pkg => pkg.customer_id).filter(Boolean)
-
-      const customerIds = Array.from(new Set([...payCustomerIds, ...pkgCustomerIds]))
-
-      const { data: customers } = await supabase
+      const { data: profilesData } = await supabase
         .from('profiles')
         .select('id, full_name')
-        .in('id', customerIds)
+        .in('id', Array.from(allIds))
 
-      const nameMap = (customers || []).reduce((acc: any, c: any) => {
+      const nameMap = (profilesData || []).reduce((acc: any, c: any) => {
         acc[c.id] = c.full_name
         return acc
       }, {})
 
       const enrichedPayments = paymentsList.map(p => {
-        let cName = 'Cliente Presencial'
         const appt: any = Array.isArray(p.appointments) ? p.appointments[0] : p.appointments
+        const barberId = appt?.barber_id || ''
+        let cName = 'Cliente Presencial'
         if (appt?.customer_id) {
           cName = nameMap[appt.customer_id] || 'Cliente'
         }
         return {
           id: p.id,
           appointment_id: p.appointment_id,
+          barberId,
+          barberName: nameMap[barberId] || 'Barbeiro',
           total_amount: Number(p.total_amount),
           deposit_amount: Number(p.deposit_amount),
           status: p.status,
@@ -120,9 +170,12 @@ export default function PainelFinanceiro() {
 
       const enrichedPackages = packagesList.map(pkg => {
         const cName = nameMap[pkg.customer_id] || 'Cliente'
+        const barberId = pkg.barber_id || ''
         return {
           id: `pkg_${pkg.id}`,
           appointment_id: null,
+          barberId,
+          barberName: nameMap[barberId] || 'Barbeiro',
           total_amount: Number(pkg.package_price),
           deposit_amount: 0,
           status: pkg.payment_status,
@@ -150,19 +203,72 @@ export default function PainelFinanceiro() {
     loadPayments()
   }, [])
 
-  // Filter payments
-  useEffect(() => {
-    let result = payments
+  // Filter payments by barber selection
+  const barberFilteredPayments = useMemo(() => {
+    if (userRole === 'barber' && adminBarberId) {
+      return payments.filter(p => p.barberId === adminBarberId)
+    }
+    if (!filterBarberId || filterBarberId === 'all') {
+      return payments
+    }
+    return payments.filter(p => p.barberId === filterBarberId)
+  }, [payments, filterBarberId, userRole, adminBarberId])
+
+  // Filter payments by search query
+  const searchFilteredPayments = useMemo(() => {
+    let result = barberFilteredPayments
     if (searchQuery) {
       const q = searchQuery.toLowerCase()
       result = result.filter(p => 
         p.customerName.toLowerCase().includes(q) ||
         p.serviceName.toLowerCase().includes(q) ||
-        p.status.toLowerCase().includes(q)
+        p.status.toLowerCase().includes(q) ||
+        p.barberName.toLowerCase().includes(q)
       )
     }
-    setFilteredPayments(result)
-  }, [payments, searchQuery])
+    return result
+  }, [barberFilteredPayments, searchQuery])
+
+  // Per-barber summary stats for "Todos" view & admin breakdown
+  const perBarberStats = useMemo(() => {
+    return barbers.map(b => {
+      const bPayments = payments.filter(p => p.barberId === b.id)
+      let confirmed = 0
+      let deposits = 0
+      let pending = 0
+      let count = 0
+
+      bPayments.forEach(p => {
+        if (p.isPackage) {
+          if (p.status === 'paid') confirmed += Number(p.total_amount)
+        } else {
+          if (p.status === 'confirmed_manually' || p.status === 'paid') {
+            confirmed += Number(p.total_amount)
+            if (p.method === 'pix') deposits += Number(p.deposit_amount)
+          } else if (p.status === 'pending') {
+            if (p.method === 'pix') pending += Number(p.deposit_amount)
+          }
+        }
+        count++
+      })
+
+      return {
+        barberId: b.id,
+        fullName: b.full_name,
+        firstName: b.full_name.split(' ')[0],
+        photoUrl: b.photo_url,
+        confirmed,
+        deposits,
+        pending,
+        count
+      }
+    })
+  }, [barbers, payments])
+
+  // Total confirmed across all barbers for percentage calculation
+  const grandTotalConfirmed = useMemo(() => {
+    return perBarberStats.reduce((acc, b) => acc + b.confirmed, 0)
+  }, [perBarberStats])
 
   const handleConfirmPayment = (payId: string, status: 'confirmed_manually' | 'paid' | 'refunded') => {
     setErrorMsg('')
@@ -179,12 +285,12 @@ export default function PainelFinanceiro() {
     })
   }
 
-  // Calculate metrics
+  // Calculate metrics for current barber filter selection
   let totalConfirmed = 0
   let totalDeposits = 0
   let totalPending = 0
 
-  payments.forEach(p => {
+  barberFilteredPayments.forEach(p => {
     if (p.isPackage) {
       if (p.status === 'paid') {
         totalConfirmed += Number(p.total_amount)
@@ -238,7 +344,7 @@ export default function PainelFinanceiro() {
             <DollarSign className="w-7 h-7 text-emerald-500 shrink-0" />
             Controle Financeiro & Fluxo de Caixa 💰
           </h1>
-          <p className="text-xs text-muted-foreground">Acompanhe entradas de caixa, estornos e aprove sinaleiras via Pix dos agendamentos</p>
+          <p className="text-xs text-muted-foreground">Acompanhe entradas de caixa, liquidações e faturamento por barbeiro</p>
         </div>
 
         {errorMsg && (
@@ -255,12 +361,181 @@ export default function PainelFinanceiro() {
           </div>
         )}
 
+        {/* ── Admin Barber Avatar Filter Selector ─────────────────────── */}
+        {userRole === 'admin' && barbers.length > 0 && (
+          <div className="glass p-4 rounded-2xl border border-border/80 space-y-3 shadow-md">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <Users className="w-4 h-4 text-primary" />
+                Filtrar Financeiro por Barbeiro:
+              </span>
+              <span className="text-[11px] text-muted-foreground font-semibold">
+                Exibindo {barberFilteredPayments.length} de {payments.length} lançamento(s)
+              </span>
+            </div>
+
+            <div className="flex items-center gap-3 sm:gap-4 overflow-x-auto pb-1.5 pt-1 scrollbar-none">
+              {/* Option 1: Todos os Barbeiros */}
+              <button
+                type="button"
+                onClick={() => setFilterBarberId('all')}
+                className={`flex flex-col items-center gap-1.5 shrink-0 group cursor-pointer transition-all ${
+                  filterBarberId === 'all' ? 'scale-105' : 'opacity-70 hover:opacity-100'
+                }`}
+              >
+                <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 p-0.5 flex items-center justify-center transition-all shadow-md ${
+                  filterBarberId === 'all'
+                    ? 'border-primary ring-4 ring-primary/20 bg-gradient-to-tr from-primary/30 via-secondary to-primary/10'
+                    : 'border-border/80 group-hover:border-primary/50 bg-secondary/40'
+                }`}>
+                  <Users className={`w-6 h-6 sm:w-7 sm:h-7 ${filterBarberId === 'all' ? 'text-primary' : 'text-muted-foreground'}`} />
+                </div>
+                <div className="text-center">
+                  <span className={`text-xs font-bold block leading-none ${filterBarberId === 'all' ? 'text-primary' : 'text-foreground'}`}>
+                    Todos
+                  </span>
+                  <span className="text-[10px] text-muted-foreground font-medium">
+                    ({payments.length})
+                  </span>
+                </div>
+              </button>
+
+              {/* Barber Avatars */}
+              {barbers.map((b) => {
+                const isSelected = filterBarberId === b.id
+                const count = payments.filter(p => p.barberId === b.id).length
+                const firstName = b.full_name.split(' ')[0]
+
+                return (
+                  <button
+                    key={b.id}
+                    type="button"
+                    onClick={() => setFilterBarberId(b.id)}
+                    className={`flex flex-col items-center gap-1.5 shrink-0 group cursor-pointer transition-all ${
+                      isSelected ? 'scale-105' : 'opacity-70 hover:opacity-100'
+                    }`}
+                  >
+                    <div className={`relative w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 p-0.5 overflow-hidden transition-all shadow-md ${
+                      isSelected
+                        ? 'border-primary ring-4 ring-primary/20'
+                        : 'border-border/80 group-hover:border-primary/50'
+                    }`}>
+                      {b.photo_url ? (
+                        <img
+                          src={b.photo_url}
+                          alt={b.full_name}
+                          className="w-full h-full object-cover rounded-full"
+                        />
+                      ) : (
+                        <div className="w-full h-full rounded-full bg-gradient-to-tr from-primary/30 via-secondary to-muted flex items-center justify-center text-primary font-serif font-bold text-lg sm:text-xl shadow-inner">
+                          {firstName.charAt(0)}
+                        </div>
+                      )}
+                      {isSelected && (
+                        <span className="absolute bottom-0 right-0 w-4 h-4 bg-primary text-primary-foreground rounded-full flex items-center justify-center border border-background text-[10px] font-bold">
+                          ✓
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-center">
+                      <span className={`text-xs font-bold block leading-none ${isSelected ? 'text-primary' : 'text-foreground'}`}>
+                        {firstName}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground font-medium">
+                        ({count})
+                      </span>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ── Per-Barber Comparison Section ("Todos" View / Admin Executive Breakdown) ── */}
+        {userRole === 'admin' && filterBarberId === 'all' && (
+          <div className="glass p-5 rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/5 via-secondary/30 to-transparent space-y-4 shadow-lg">
+            <div className="flex items-center justify-between border-b border-border/50 pb-3">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-emerald-400" />
+                <h3 className="font-serif font-bold text-base text-foreground">
+                  Comparativo de Desempenho por Barbeiro
+                </h3>
+              </div>
+              <span className="text-xs text-muted-foreground font-medium">
+                Faturamento Total Liquidado: <strong className="text-emerald-400 font-mono font-bold">R$&nbsp;{grandTotalConfirmed.toFixed(2)}</strong>
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {perBarberStats.map((stat) => {
+                const pct = grandTotalConfirmed > 0 ? Math.round((stat.confirmed / grandTotalConfirmed) * 100) : 0
+
+                return (
+                  <div
+                    key={stat.barberId}
+                    className="p-4 rounded-xl bg-card/80 border border-border/60 space-y-3 shadow-md hover:border-primary/40 transition-all"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full border border-primary/40 overflow-hidden shrink-0 bg-secondary flex items-center justify-center text-primary font-bold">
+                          {stat.photoUrl ? (
+                            <img src={stat.photoUrl} alt={stat.fullName} className="w-full h-full object-cover" />
+                          ) : (
+                            stat.firstName.charAt(0)
+                          )}
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-sm text-foreground">{stat.fullName}</h4>
+                          <span className="text-[10px] text-muted-foreground font-semibold">
+                            {stat.count} transações
+                          </span>
+                        </div>
+                      </div>
+                      <span className="text-xs font-mono font-black text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
+                        {pct}%
+                      </span>
+                    </div>
+
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">Faturamento Liquidado:</span>
+                        <span className="font-bold font-mono text-emerald-400">R$&nbsp;{stat.confirmed.toFixed(2)}</span>
+                      </div>
+                      <div className="h-2 bg-secondary rounded-full overflow-hidden border border-border/40">
+                        <div
+                          className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-500"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex justify-between items-center text-[11px] text-muted-foreground pt-1 border-t border-border/30">
+                      <span>Sinais Pix: <strong className="text-foreground">R$&nbsp;{stat.deposits.toFixed(2)}</strong></span>
+                      {stat.pending > 0 && (
+                        <span className="text-amber-400 font-semibold">Pendente: R$&nbsp;{stat.pending.toFixed(2)}</span>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Finance stats row */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           
           <div className="glass p-5 rounded-2xl border border-emerald-500/30 flex justify-between items-center shadow-lg shadow-emerald-500/5 bg-gradient-to-br from-emerald-500/5 to-transparent">
             <div className="space-y-1">
-              <span className="text-[10px] uppercase font-bold text-emerald-500 tracking-wider block">Faturamento Total Liquidado</span>
+              <span className="text-[10px] uppercase font-bold text-emerald-500 tracking-wider block">
+                Faturamento Total Liquidado
+                {filterBarberId !== 'all' && (
+                  <span className="text-foreground font-extrabold ml-1">
+                    ({barbers.find(b => b.id === filterBarberId)?.full_name.split(' ')[0] || 'Barbeiro'})
+                  </span>
+                )}
+              </span>
               <span className="text-2xl font-serif font-bold text-emerald-500">R$&nbsp;{totalConfirmed.toFixed(2)}</span>
             </div>
             <div className="p-3 rounded-xl bg-emerald-500/15 text-emerald-500 border border-emerald-500/20">
@@ -295,7 +570,7 @@ export default function PainelFinanceiro() {
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Buscar por cliente, serviço ou status..."
+            placeholder="Buscar por cliente, serviço, barbeiro ou status..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 bg-secondary/50 border border-border focus:border-primary rounded-xl text-base outline-none text-foreground font-medium"
@@ -309,6 +584,7 @@ export default function PainelFinanceiro() {
               <tr className="bg-secondary/40 border-b border-border/60 text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
                 <th className="p-4">Data Registro</th>
                 <th className="p-4">Cliente</th>
+                <th className="p-4">Barbeiro</th>
                 <th className="p-4">Serviço</th>
                 <th className="p-4">Valor Total</th>
                 <th className="p-4">Sinal (50%)</th>
@@ -318,8 +594,8 @@ export default function PainelFinanceiro() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border/40 text-xs">
-              {filteredPayments.length > 0 ? (
-                filteredPayments.map((p) => (
+              {searchFilteredPayments.length > 0 ? (
+                searchFilteredPayments.map((p) => (
                   <tr key={p.id} className="hover:bg-secondary/20 transition-colors">
                     <td className="p-4 whitespace-nowrap text-muted-foreground font-mono text-[11px]">
                       {formatDate(p.created_at)} às {formatTime(p.created_at)}
@@ -334,6 +610,12 @@ export default function PainelFinanceiro() {
                           </span>
                         )}
                       </div>
+                    </td>
+                    <td className="p-4 whitespace-nowrap font-medium">
+                      <span className="inline-flex items-center gap-1 bg-secondary text-foreground border border-border/80 text-[10px] font-bold px-2 py-0.5 rounded-md">
+                        <Scissors className="w-3 h-3 text-primary" />
+                        {p.barberName?.split(' ')[0]}
+                      </span>
                     </td>
                     <td className="p-4 whitespace-nowrap text-muted-foreground font-medium">
                       {p.serviceName}
@@ -472,8 +754,8 @@ export default function PainelFinanceiro() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={8} className="p-10 text-center text-muted-foreground italic">
-                    Nenhum lançamento financeiro registrado.
+                  <td colSpan={9} className="p-10 text-center text-muted-foreground italic">
+                    Nenhum lançamento financeiro encontrado.
                   </td>
                 </tr>
               )}

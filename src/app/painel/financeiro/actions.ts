@@ -19,7 +19,7 @@ async function verifyAdminSession() {
     .eq('id', user.id)
     .single()
 
-  return profile && profile.role === 'admin'
+  return profile && (profile.role === 'admin' || profile.role === 'barber')
 }
 
 /**
