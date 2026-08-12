@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import {
   Repeat, Plus, Loader2, Search, X, Check, AlertCircle,
   CheckCircle2, Calendar, Clock, User, Trash2,
-  AlertTriangle, CalendarClock
+  AlertTriangle, CalendarClock, Scissors
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
@@ -345,7 +345,13 @@ export default function ReservasRecorrentesPage() {
                     <User className="w-4 h-4 text-cyan-400" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-foreground">{r.customer_display_name}</p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm font-semibold text-foreground">{r.customer_display_name}</p>
+                      <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded-md bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 flex items-center gap-1 shrink-0">
+                        <Scissors className="w-3 h-3 text-cyan-400" />
+                        {r.barber_name?.split(' ')[0]}
+                      </span>
+                    </div>
                     <p className="text-[11px] text-muted-foreground">
                       {r.customer_id ? 'Cliente cadastrado' : 'Sem cadastro'}
                     </p>

@@ -111,6 +111,7 @@ export default function PainelAgendamentos() {
     apptId: string
     customerName: string
     serviceName: string
+    barberName?: string
     price: number
     time: string
     originalMethod: string
@@ -1018,6 +1019,10 @@ export default function PainelAgendamentos() {
                                             <span className="font-mono text-xs text-zinc-900 bg-zinc-950/20 px-2 py-0.5 rounded border border-zinc-950/30 font-bold">
                                               {apptShortCode(appt.id)}
                                             </span>
+                                            <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded-md bg-zinc-950/30 text-zinc-950 border border-zinc-950/40 flex items-center gap-1 shrink-0">
+                                              <Scissors className="w-3 h-3 text-zinc-950" />
+                                              {appt.barberName?.split(' ')[0] || barber.full_name?.split(' ')[0]}
+                                            </span>
                                           </div>
                                           <p className="text-xs font-extrabold text-zinc-900/90 truncate">
                                             • {appt.services?.name || 'Pacote Mensal'}
@@ -1053,9 +1058,14 @@ export default function PainelAgendamentos() {
                                         <p className="text-xs text-[#a7f3d0]/80 font-medium">
                                           {formatTime(appt.start_time) || slotStr} - {appt.end_time ? formatTime(appt.end_time) : slotStr}
                                         </p>
-                                        <h5 className="font-bold text-base text-white uppercase flex items-center gap-2 truncate">
+                                        <h5 className="font-bold text-base text-white uppercase flex items-center gap-2 flex-wrap truncate">
                                           <User className="w-4 h-4 text-[#34d399] shrink-0" />
-                                          {appt.customerName} <span className="text-zinc-400 font-normal">• {appt.services?.name}</span>
+                                          <span>{appt.customerName}</span>
+                                          <span className="text-zinc-400 font-normal">• {appt.services?.name}</span>
+                                          <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1 shrink-0">
+                                            <Scissors className="w-3 h-3 text-emerald-400" />
+                                            {appt.barberName?.split(' ')[0] || barber.full_name?.split(' ')[0]}
+                                          </span>
                                         </h5>
                                       </div>
                                     </div>
@@ -1079,7 +1089,13 @@ export default function PainelAgendamentos() {
                                     <div className="flex items-center gap-4">
                                       <span className="text-2xl font-bold font-mono text-cyan-400 tracking-tight w-16">{slotStr}</span>
                                       <div>
-                                        <span className="font-bold text-white text-base block">{rec.customer_display_name}</span>
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                          <span className="font-bold text-white text-base block">{rec.customer_display_name}</span>
+                                          <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded-md bg-cyan-500/25 text-cyan-200 border border-cyan-500/40 flex items-center gap-1 shrink-0">
+                                            <Scissors className="w-3 h-3 text-cyan-300" />
+                                            {rec.barber_name?.split(' ')[0] || barber.full_name?.split(' ')[0]}
+                                          </span>
+                                        </div>
                                         <span className="text-xs text-cyan-300 font-semibold flex items-center gap-1.5">
                                           <Repeat className="w-3.5 h-3.5" /> Reserva Fixa ({rec.interval_weeks === 1 ? 'Semanal' : 'Quinzenal'})
                                         </span>
@@ -1148,6 +1164,7 @@ export default function PainelAgendamentos() {
                     apptId: a.id,
                     customerName: a.customerName || 'Cliente',
                     serviceName: a.services?.name || 'Serviço',
+                    barberName: a.barberName || 'Barbeiro',
                     price: getAppointmentPrice(a),
                     time: formatTime(a.start_time),
                     originalMethod: payMethod || 'cash',
@@ -1409,15 +1426,19 @@ export default function PainelAgendamentos() {
                               {appt.customerName ? appt.customerName.charAt(0).toUpperCase() : 'C'}
                             </div>
                             <div className="space-y-0.5 min-w-0 flex-1">
-                              <h4 className="font-bold text-sm text-foreground truncate">
-                                {appt.customerName}
-                              </h4>
-                              {userRole === 'admin' && (
-                                <p className="text-[11px] text-muted-foreground flex items-center gap-1 truncate">
-                                  <User className="w-3 h-3 text-primary" />
-                                  Profissional: <strong className="text-foreground font-medium">{appt.barberName}</strong>
-                                </p>
-                              )}
+                              <div className="flex items-center justify-between gap-2">
+                                <h4 className="font-bold text-sm text-foreground truncate">
+                                  {appt.customerName}
+                                </h4>
+                                <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded-md bg-primary/15 text-primary border border-primary/30 flex items-center gap-1 shrink-0">
+                                  <Scissors className="w-3 h-3 text-primary" />
+                                  {appt.barberName?.split(' ')[0]}
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-muted-foreground flex items-center gap-1 truncate">
+                                <User className="w-3 h-3 text-primary" />
+                                Profissional: <strong className="text-foreground font-medium">{appt.barberName}</strong>
+                              </p>
                             </div>
                           </div>
 
@@ -1595,7 +1616,7 @@ export default function PainelAgendamentos() {
               
               <div className="flex justify-between items-start pb-3 border-b border-border/40">
                 <div className="space-y-0.5">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-mono text-xs text-primary font-bold bg-primary/10 px-2 py-0.5 rounded border border-primary/20">
                       {apptShortCode(selectedAgendaAppt.id)}
                     </span>
@@ -1607,6 +1628,10 @@ export default function PainelAgendamentos() {
                         : 'bg-primary/10 text-primary border-primary/30'
                     }`}>
                       {selectedAgendaAppt.status === 'completed' ? 'Concluído' : selectedAgendaAppt.status === 'no_show' ? 'Não Compareceu' : 'Confirmado'}
+                    </span>
+                    <span className="text-[10px] uppercase font-black px-2.5 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/30 flex items-center gap-1">
+                      <Scissors className="w-3 h-3 text-primary" />
+                      {selectedAgendaAppt.barberName?.split(' ')[0]}
                     </span>
                   </div>
                   <h3 className="font-serif font-bold text-lg text-foreground mt-1">
@@ -1637,11 +1662,13 @@ export default function PainelAgendamentos() {
                   </span>
                   <span className="font-semibold text-foreground">{selectedAgendaAppt.services?.name}</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
                   <span className="text-muted-foreground flex items-center gap-1">
                     <User className="w-3.5 h-3.5 text-primary" /> Profissional:
                   </span>
-                  <span className="font-semibold text-foreground">{selectedAgendaAppt.barberName}</span>
+                  <span className="px-2.5 py-1 rounded-lg bg-primary/15 text-primary border border-primary/30 font-bold text-xs flex items-center gap-1">
+                    <Scissors className="w-3.5 h-3.5 text-primary" /> {selectedAgendaAppt.barberName}
+                  </span>
                 </div>
                 <div className="flex justify-between border-t border-border/40 pt-1.5">
                   <span className="text-muted-foreground flex items-center gap-1">
@@ -2155,13 +2182,17 @@ export default function PainelAgendamentos() {
 
                         {/* Customer + Service */}
                         <div className="flex-1 min-w-0">
-                          <h5 className="font-bold text-sm text-foreground truncate flex items-center gap-1.5">
+                          <h5 className="font-bold text-sm text-foreground truncate flex items-center gap-1.5 flex-wrap">
                             {item.customerName}
                             {item.isPackage && (
                               <span className="text-[9px] uppercase font-extrabold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/30 shrink-0">
                                 Pacote
                               </span>
                             )}
+                            <span className="text-[9px] uppercase font-extrabold px-1.5 py-0.5 rounded bg-secondary/80 text-foreground border border-border/60 shrink-0 flex items-center gap-1">
+                              <Scissors className="w-2.5 h-2.5 text-primary" />
+                              {item.barberName?.split(' ')[0]}
+                            </span>
                           </h5>
                           <p className="text-xs text-muted-foreground truncate">{item.serviceName}</p>
                         </div>

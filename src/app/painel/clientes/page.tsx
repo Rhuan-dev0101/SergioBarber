@@ -519,10 +519,14 @@ export default function PainelClientes() {
                           className="flex justify-between items-center p-3.5 rounded-xl bg-secondary/35 border border-border/60 text-xs shadow-sm hover:bg-secondary/50 transition-colors"
                         >
                           <div className="space-y-1">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <p className="font-bold text-foreground text-sm">{appt.services?.name}</p>
                               <span className="text-mono font-bold text-primary text-[11px]">
                                 R$&nbsp;{getAppointmentPrice(appt).toFixed(2)}
+                              </span>
+                              <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded-md bg-primary/15 text-primary border border-primary/30 flex items-center gap-1 shrink-0">
+                                <Scissors className="w-3 h-3 text-primary" />
+                                {appt.barberName?.split(' ')[0]}
                               </span>
                             </div>
                             <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">

@@ -804,6 +804,11 @@ export default function PainelPacotes() {
                         <h3 className="font-serif font-bold text-lg sm:text-xl text-foreground tracking-tight">{pkg.customerName}</h3>
                         
                         <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="text-[10px] uppercase font-black px-2.5 py-1 rounded-full bg-primary/15 text-primary border border-primary/30 flex items-center gap-1">
+                            <Scissors className="w-3 h-3 text-primary" />
+                            {pkg.barberName?.split(' ')[0]}
+                          </span>
+
                           <span className={`text-[10px] uppercase font-extrabold px-2.5 py-1 rounded-full ${
                             pkg.status === 'active'
                               ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
