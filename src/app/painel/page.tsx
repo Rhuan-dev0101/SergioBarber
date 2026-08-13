@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { createServerSupabaseClient } from '@/lib/supabase'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
+import { PainelQuickActions } from '@/components/PainelQuickActions'
 import { getLocalDateStr } from '@/lib/utils'
 
 export default async function PainelDashboard() {
@@ -207,6 +208,9 @@ export default async function PainelDashboard() {
             <span>Hoje: {dateFormatted}</span>
           </div>
         </div>
+
+        {/* Quick Actions Bar */}
+        <PainelQuickActions />
 
         {/* Stats Cards Row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
