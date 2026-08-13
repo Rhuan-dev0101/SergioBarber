@@ -6,7 +6,7 @@ import {
   Scissors, Calendar, Clock, Search, Edit2, Trash2, CheckCircle2, 
   AlertCircle, Plus, Loader2, Save, X, User, Sparkles, Check, AlertTriangle, UserX,
   Filter, RotateCcw, CheckCircle, ChevronRight, Wallet, DollarSign, RefreshCw, FileText,
-  Repeat, ChevronLeft, CalendarDays, LayoutList, Coffee, Crown, Users
+  Repeat, ChevronLeft, CalendarDays, LayoutList, Coffee, Crown, Users, Zap
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
@@ -16,6 +16,7 @@ import {
   updateAppointmentStatusAction, 
   updateAppointmentNotesAction, 
   createWalkInAppointmentAction,
+  createExtraAppointmentAction,
   deleteAppointmentAction,
   markNoShowAction,
   bulkCheckoutAction,
@@ -80,6 +81,20 @@ export default function PainelAgendamentos() {
   const [walkInPaymentMethod, setWalkInPaymentMethod] = useState('cash')
   const [walkInCustomerId, setWalkInCustomerId] = useState<string>('')
   const [walkInIsRegistered, setWalkInIsRegistered] = useState<boolean>(true)
+
+  // Atendimento Extra modal form states
+  const [showExtraModal, setShowExtraModal] = useState(false)
+  const [extraClientName, setExtraClientName] = useState('')
+  const [extraCustomerId, setExtraCustomerId] = useState<string>('')
+  const [extraIsRegistered, setExtraIsRegistered] = useState<boolean>(true)
+  const [extraBarberId, setExtraBarberId] = useState('')
+  const [extraServiceId, setExtraServiceId] = useState('')
+  const [extraDate, setExtraDate] = useState('')
+  const [extraTime, setExtraTime] = useState('')
+  const [extraNotes, setExtraNotes] = useState('')
+  const [extraPaymentMethod, setExtraPaymentMethod] = useState('cash')
+  const [extraIsPaid, setExtraIsPaid] = useState(true)
+  const [extraPrice, setExtraPrice] = useState<string>('')
   
   // Data for selectors
   const [customers, setCustomers] = useState<any[]>([])
@@ -118,6 +133,7 @@ export default function PainelAgendamentos() {
     selectedMethod: string
     selected: boolean
     isPackage: boolean
+    isExtra: boolean
     status: 'idle' | 'success' | 'error'
     errorMsg?: string
   }
@@ -240,7 +256,8 @@ export default function PainelAgendamentos() {
           services (name, price),
           payments (total_amount, status, method),
           customer_id,
-          barber_id
+          barber_id,
+          is_extra
         `)
       
       if (profile.role === 'barber') {
@@ -267,6 +284,9 @@ export default function PainelAgendamentos() {
           let cName = 'Cliente Presencial'
           if (a.customer_id) {
             cName = nameMap[a.customer_id] || 'Cliente'
+          } else if (a.notes && a.notes.includes('[Atendimento Extra] Cliente:')) {
+            const match = a.notes.match(/\[Atendimento Extra\] Cliente:\s*([^.]+)/)
+            if (match) cName = match[1]
           } else if (a.notes && a.notes.includes('[Walk-in] Cliente:')) {
             const match = a.notes.match(/\[Walk-in\] Cliente:\s*([^.]+)/)
             if (match) cName = match[1]
@@ -483,6 +503,79 @@ export default function PainelAgendamentos() {
     })
   }
 
+  const handleOpenExtraModal = () => {
+    let targetBarberId = ''
+    if (userRole === 'barber' && currentUser?.id) {
+      targetBarberId = currentUser.id
+    } else if (selectedBarberFilter && selectedBarberFilter !== 'all') {
+      targetBarberId = selectedBarberFilter
+    }
+    setExtraBarberId(targetBarberId)
+    setExtraDate(selectedAgendaDate || todayLocalStr)
+    // Pre-fill with current time
+    const now = new Date()
+    const h = String(now.getHours()).padStart(2, '0')
+    const m = String(now.getMinutes()).padStart(2, '0')
+    setExtraTime(`${h}:${m}`)
+    setExtraIsPaid(true)
+    setExtraPaymentMethod('cash')
+    setShowExtraModal(true)
+  }
+
+  const handleCloseExtraModal = () => {
+    setShowExtraModal(false)
+    setExtraClientName('')
+    setExtraCustomerId('')
+    setExtraIsRegistered(true)
+    setExtraBarberId('')
+    setExtraServiceId('')
+    setExtraDate('')
+    setExtraTime('')
+    setExtraNotes('')
+    setExtraPaymentMethod('cash')
+    setExtraIsPaid(true)
+    setExtraPrice('')
+  }
+
+  const handleCreateExtra = (e: React.FormEvent) => {
+    e.preventDefault()
+    setErrorMsg('')
+    setSuccessMsg('')
+
+    const selectedCust = customers.find(c => c.id === extraCustomerId)
+    const finalClientName = extraIsRegistered ? (selectedCust?.full_name || extraClientName) : extraClientName
+
+    if ((extraIsRegistered && !extraCustomerId) || (!extraIsRegistered && !extraClientName.trim()) || !extraBarberId || !extraServiceId || !extraDate || !extraTime) {
+      setErrorMsg('Preencha todos os campos obrigatórios.')
+      return
+    }
+
+    const priceOverride = extraPrice !== '' ? parseFloat(extraPrice) : null
+
+    startTransition(async () => {
+      const res = await createExtraAppointmentAction(
+        finalClientName,
+        extraBarberId,
+        extraServiceId,
+        extraDate,
+        extraTime,
+        extraNotes,
+        extraIsPaid ? extraPaymentMethod : 'cash',
+        extraIsPaid,
+        priceOverride,
+        extraIsRegistered ? extraCustomerId : null
+      )
+
+      if (!res.success) {
+        setErrorMsg(res.message)
+      } else {
+        setSuccessMsg(res.message)
+        handleCloseExtraModal()
+        loadData()
+      }
+    })
+  }
+
   const handleDelete = (appt: any) => {
     setDeleteTarget(appt)
   }
@@ -672,6 +765,14 @@ export default function PainelAgendamentos() {
             >
               <Plus className="w-4 h-4 text-primary-foreground" />
               <span>Encaixe Presencial</span>
+            </button>
+            <button
+              onClick={handleOpenExtraModal}
+              className="flex-1 sm:flex-none px-4 py-2.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 font-bold text-xs rounded-xl border-2 border-dashed border-amber-500/50 hover:border-amber-500/80 flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-95 shadow-sm"
+              title="Registrar atendimento fora do horário (sem validação de disponibilidade)"
+            >
+              <Zap className="w-4 h-4 text-amber-400" />
+              <span>Atendimento Extra</span>
             </button>
           </div>
         </div>
@@ -921,6 +1022,14 @@ export default function PainelAgendamentos() {
 
                     const lunchStartSlot = wh?.lunch_break_start ? String(wh.lunch_break_start).substring(0, 5) : null
 
+                    // Extra appointments for this barber on this date
+                    const extraAppts = appointments.filter(a =>
+                      a.barber_id === barber.id &&
+                      a.is_extra === true &&
+                      getLocalDateStr(a.start_time) === selectedAgendaDate &&
+                      a.status !== 'cancelled'
+                    )
+
                     return (
                       <div
                         key={barber.id}
@@ -1138,6 +1247,61 @@ export default function PainelAgendamentos() {
                             })}
                           </div>
                         )}
+
+                        {/* ⚡ Atendimento Extra Section */}
+                        {extraAppts.length > 0 && (
+                          <div className="mt-4 space-y-3">
+                            <div className="flex items-center gap-2 px-1">
+                              <Zap className="w-4 h-4 text-amber-400" />
+                              <span className="text-[11px] uppercase font-black text-amber-400 tracking-wider">
+                                Atendimentos Extra ({extraAppts.length})
+                              </span>
+                              <div className="flex-1 border-t border-dashed border-amber-500/30" />
+                            </div>
+                            {extraAppts.map((exAppt) => {
+                              const exPayStatus = Array.isArray(exAppt.payments) ? exAppt.payments[0]?.status : exAppt.payments?.status
+                              const exIsPaid = exPayStatus === 'confirmed_manually' || exPayStatus === 'paid'
+                              return (
+                                <div
+                                  key={exAppt.id}
+                                  onClick={() => setSelectedAgendaAppt(exAppt)}
+                                  className="bg-gradient-to-r from-[#1a150a] to-[#1c1408] border-2 border-dashed border-amber-500/40 hover:border-amber-500/70 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg transition-all cursor-pointer group"
+                                >
+                                  <div className="flex items-center gap-4 min-w-0">
+                                    <span className="text-2xl font-bold font-mono text-amber-400 tracking-tight w-16 shrink-0">
+                                      {formatTime(exAppt.start_time)}
+                                    </span>
+                                    <div className="min-w-0 space-y-0.5">
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                        <h5 className="font-bold text-base text-white uppercase truncate">{exAppt.customerName}</h5>
+                                        <span className="text-[9px] uppercase font-black px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1 shrink-0">
+                                          <Zap className="w-3 h-3 text-amber-400" />
+                                          Extra
+                                        </span>
+                                      </div>
+                                      <p className="text-xs text-amber-200/70 font-medium truncate">
+                                        {exAppt.services?.name} • R$ {getAppointmentPrice(exAppt).toFixed(2)}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                                    <span className={`px-3 py-1.5 rounded-xl text-xs font-extrabold uppercase flex items-center gap-1.5 shadow-sm ${
+                                      exIsPaid
+                                        ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                                        : 'bg-amber-500/15 text-amber-400 border border-amber-500/30 animate-pulse'
+                                    }`}>
+                                      {exIsPaid ? (
+                                        <><CheckCircle2 className="w-3.5 h-3.5" /> Pago</>
+                                      ) : (
+                                        <><Clock className="w-3.5 h-3.5" /> Pendente</>
+                                      )}
+                                    </span>
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )}
                       </div>
                     )
                   })}
@@ -1171,6 +1335,7 @@ export default function PainelAgendamentos() {
                     selectedMethod: payMethod || 'cash',
                     selected: true,
                     isPackage: !!a.package_subscription_id,
+                    isExtra: !!a.is_extra,
                     status: 'idle'
                   }
                 })
@@ -1417,6 +1582,12 @@ export default function PainelAgendamentos() {
                                   Taxa Cobrada ✓
                                 </span>
                               )}
+                              {appt.is_extra && (
+                                <span className="text-[9px] uppercase font-black px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-dashed border-amber-500/40 flex items-center gap-0.5">
+                                  <Zap className="w-2.5 h-2.5 text-amber-400" />
+                                  Extra
+                                </span>
+                              )}
                             </div>
                           </div>
 
@@ -1633,6 +1804,12 @@ export default function PainelAgendamentos() {
                       <Scissors className="w-3 h-3 text-primary" />
                       {selectedAgendaAppt.barberName?.split(' ')[0]}
                     </span>
+                    {selectedAgendaAppt.is_extra && (
+                      <span className="text-[10px] uppercase font-black px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-dashed border-amber-500/40 flex items-center gap-1">
+                        <Zap className="w-3 h-3 text-amber-400" />
+                        Extra
+                      </span>
+                    )}
                   </div>
                   <h3 className="font-serif font-bold text-lg text-foreground mt-1">
                     {selectedAgendaAppt.customerName}
@@ -2109,6 +2286,247 @@ export default function PainelAgendamentos() {
           </div>
         )}
 
+        {/* Atendimento Extra Modal */}
+        {showExtraModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-card border-2 border-dashed border-amber-500/40 rounded-2xl p-6 sm:p-8 w-full max-w-md space-y-5 relative shadow-2xl max-h-[90vh] overflow-y-auto">
+              
+              {/* Header */}
+              <div className="flex justify-between items-center pb-3 border-b border-amber-500/20">
+                <h3 className="font-serif font-bold text-lg text-foreground flex items-center gap-2">
+                  <Zap className="w-5 h-5 text-amber-400" />
+                  Atendimento Extra
+                </h3>
+                <button
+                  onClick={handleCloseExtraModal}
+                  className="text-muted-foreground hover:text-foreground p-1.5 hover:bg-secondary rounded-lg transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <p className="text-[11px] text-amber-400/80 bg-amber-500/5 border border-amber-500/20 rounded-lg p-2.5 flex items-start gap-2">
+                <Zap className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                <span>Este atendimento <strong>ignora validação de horário</strong> — ideal para encaixes durante almoço, folga ou fora do expediente.</span>
+              </p>
+
+              <form onSubmit={handleCreateExtra} className="space-y-4">
+                {/* Customer Selector */}
+                <div className="space-y-2.5 bg-secondary/30 p-3.5 rounded-xl border border-border/60">
+                  <div className="flex items-center justify-between border-b border-border/40 pb-2">
+                    <span className="text-[11px] uppercase font-bold text-amber-400 tracking-wider flex items-center gap-1.5">
+                      <User className="w-3.5 h-3.5" /> Cliente
+                    </span>
+                    <div className="flex items-center gap-1 bg-background p-0.5 rounded-lg border border-border/60">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setExtraIsRegistered(true)
+                          setExtraClientName('')
+                        }}
+                        className={`px-2.5 py-1 text-[10px] font-bold rounded-md transition-all cursor-pointer ${
+                          extraIsRegistered
+                            ? 'bg-amber-500/20 text-amber-400 shadow-sm'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        Cadastrado
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setExtraIsRegistered(false)
+                          setExtraCustomerId('')
+                        }}
+                        className={`px-2.5 py-1 text-[10px] font-bold rounded-md transition-all cursor-pointer ${
+                          !extraIsRegistered
+                            ? 'bg-amber-500/20 text-amber-400 shadow-sm'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        Sem Cadastro
+                      </button>
+                    </div>
+                  </div>
+
+                  {extraIsRegistered ? (
+                    <CustomCustomerSelect
+                      customers={customers}
+                      selectedId={extraCustomerId}
+                      onSelect={(id, name) => {
+                        setExtraCustomerId(id)
+                        setExtraClientName(name)
+                      }}
+                      disabled={isPending}
+                    />
+                  ) : (
+                    <div className="relative">
+                      <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <input
+                        type="text"
+                        placeholder="Nome do cliente (ex: Seu Zé)..."
+                        value={extraClientName}
+                        onChange={(e) => setExtraClientName(e.target.value)}
+                        disabled={isPending}
+                        className="w-full pl-10 pr-4 py-2.5 bg-secondary/60 border border-border focus:border-amber-500 rounded-xl text-sm outline-none text-foreground placeholder:text-muted-foreground"
+                        required={!extraIsRegistered}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Barber */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">Barbeiro</label>
+                  <CustomBarberSelect
+                    barbers={barbers}
+                    selectedId={extraBarberId}
+                    onSelect={setExtraBarberId}
+                    disabled={isPending || userRole === 'barber'}
+                  />
+                </div>
+
+                {/* Service */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">Serviço</label>
+                  <CustomServiceSelect
+                    services={services}
+                    selectedId={extraServiceId}
+                    onSelect={(id) => {
+                      setExtraServiceId(id)
+                      const svc = services.find(s => s.id === id)
+                      if (svc) setExtraPrice(String(svc.price))
+                    }}
+                    disabled={isPending}
+                  />
+                </div>
+
+                {/* Editable Price */}
+                {extraServiceId && (
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">Valor (R$)</label>
+                    <div className="relative">
+                      <DollarSign className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-400" />
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={extraPrice}
+                        onChange={(e) => setExtraPrice(e.target.value)}
+                        disabled={isPending}
+                        className="w-full pl-10 pr-4 py-2.5 bg-secondary/60 border border-border focus:border-amber-500 rounded-xl text-sm outline-none text-foreground font-bold"
+                        placeholder="Preço do serviço"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Date & Time (side by side) */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">Data</label>
+                    <input
+                      type="date"
+                      value={extraDate}
+                      onChange={(e) => setExtraDate(e.target.value)}
+                      disabled={isPending}
+                      className="w-full px-3 py-2.5 bg-secondary/60 border border-border focus:border-amber-500 rounded-xl text-sm text-foreground outline-none cursor-pointer"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">Hora</label>
+                    <input
+                      type="time"
+                      value={extraTime}
+                      onChange={(e) => setExtraTime(e.target.value)}
+                      disabled={isPending}
+                      className="w-full px-3 py-2.5 bg-secondary/60 border border-border focus:border-amber-500 rounded-xl text-sm text-foreground outline-none cursor-pointer"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Notes */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">Observação (opcional)</label>
+                  <textarea
+                    placeholder="Ex: atendido durante o almoço, cliente chegou sem marcar..."
+                    value={extraNotes}
+                    onChange={(e) => setExtraNotes(e.target.value)}
+                    disabled={isPending}
+                    rows={2}
+                    className="w-full p-3 bg-secondary/50 border border-border focus:border-amber-500 rounded-xl text-xs text-foreground placeholder:text-muted-foreground/60 outline-none resize-none"
+                  />
+                </div>
+
+                {/* Paid Toggle */}
+                <div className="space-y-3 bg-secondary/30 p-3.5 rounded-xl border border-border/60">
+                  <label className="flex items-center justify-between cursor-pointer">
+                    <span className="text-xs font-bold text-foreground flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                      Já foi pago
+                    </span>
+                    <div className="relative">
+                      <input
+                        type="checkbox"
+                        checked={extraIsPaid}
+                        onChange={(e) => setExtraIsPaid(e.target.checked)}
+                        disabled={isPending}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-secondary rounded-full peer peer-checked:bg-emerald-600 transition-colors border border-border peer-checked:border-emerald-500 cursor-pointer" />
+                      <div className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5" />
+                    </div>
+                  </label>
+
+                  {extraIsPaid && (
+                    <div className="space-y-1.5 pt-1 border-t border-border/40">
+                      <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Forma de Pagamento</label>
+                      <CustomGenericSelect
+                        options={[
+                          { value: 'cash', label: 'Dinheiro', icon: <DollarSign className="w-4 h-4 text-emerald-400" /> },
+                          { value: 'card', label: 'Cartão', icon: <Wallet className="w-4 h-4 text-sky-400" /> },
+                          { value: 'pix', label: 'Pix', icon: <Sparkles className="w-4 h-4 text-amber-400" /> },
+                        ]}
+                        selectedValue={extraPaymentMethod}
+                        onSelect={setExtraPaymentMethod}
+                        disabled={isPending}
+                      />
+                    </div>
+                  )}
+
+                  {!extraIsPaid && (
+                    <p className="text-[10px] text-amber-400/70 italic flex items-center gap-1.5">
+                      <Clock className="w-3 h-3 text-amber-400" />
+                      Aparecerá no Checkout do Dia para pagamento posterior.
+                    </p>
+                  )}
+                </div>
+
+                {/* Submit */}
+                <button
+                  type="submit"
+                  disabled={isPending}
+                  className="w-full py-3 bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 hover:from-amber-500 hover:via-amber-400 hover:to-amber-500 text-black font-black rounded-xl text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg shadow-amber-500/20 disabled:opacity-50 active:scale-[0.98]"
+                >
+                  {isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Registrando...
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="w-4 h-4" />
+                      Registrar Atendimento Extra
+                    </>
+                  )}
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+
         {/* Checkout do Dia Modal */}
         {showCheckoutModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
@@ -2187,6 +2605,12 @@ export default function PainelAgendamentos() {
                             {item.isPackage && (
                               <span className="text-[9px] uppercase font-extrabold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/30 shrink-0">
                                 Pacote
+                              </span>
+                            )}
+                            {item.isExtra && (
+                              <span className="text-[9px] uppercase font-extrabold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-dashed border-amber-500/40 shrink-0 flex items-center gap-0.5">
+                                <Zap className="w-2.5 h-2.5 text-amber-400" />
+                                Extra
                               </span>
                             )}
                             <span className="text-[9px] uppercase font-extrabold px-1.5 py-0.5 rounded bg-secondary/80 text-foreground border border-border/60 shrink-0 flex items-center gap-1">

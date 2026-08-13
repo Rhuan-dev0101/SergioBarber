@@ -274,6 +274,113 @@ export async function createWalkInAppointmentAction(
 }
 
 /**
+ * Create an "Atendimento Extra" (off-schedule / exception appointment).
+ * This flow COMPLETELY SKIPS availability validation (working hours, lunch break, days off).
+ * It is intended for walk-ins the barber decides to accept outside normal hours.
+ */
+export async function createExtraAppointmentAction(
+  clientName: string,
+  barberId: string,
+  serviceId: string,
+  dateStr: string,
+  timeStr: string,
+  notes: string,
+  paymentMethod: string = 'cash',
+  isPaid: boolean = true,
+  price: number | null = null,
+  customerId?: string | null
+): Promise<ActionResponse> {
+  const staff = await verifyStaffSession()
+  if (!staff) {
+    return { success: false, message: 'Não autorizado.' }
+  }
+
+  // Barber role can only create for themselves
+  if (staff.role === 'barber' && barberId !== staff.user.id) {
+    return { success: false, message: 'Barbeiros só podem registrar atendimentos para si mesmos.' }
+  }
+
+  if (!clientName || !barberId || !serviceId || !dateStr || !timeStr) {
+    return { success: false, message: 'Todos os campos obrigatórios devem ser preenchidos.' }
+  }
+
+  try {
+    const supabase = await createServerSupabaseClient()
+
+    // 1. Fetch service info (for duration and default price)
+    const { data: service } = await supabase
+      .from('services')
+      .select('name, duration, price')
+      .eq('id', serviceId)
+      .single()
+
+    if (!service) {
+      return { success: false, message: 'Serviço selecionado inválido.' }
+    }
+
+    // 2. NO AVAILABILITY CHECK — this is the key difference from createWalkInAppointmentAction
+    // Atendimento Extra explicitly bypasses working hours, lunch breaks, and days off.
+
+    // 3. Construct timestamps
+    const startTimeStr = `${dateStr}T${timeStr}:00-03:00`
+    const startDate = new Date(startTimeStr)
+    const endDate = addMinutes(startDate, service.duration)
+
+    // 4. Determine final price (use override if provided, otherwise service default)
+    const finalPrice = (price !== null && price >= 0) ? price : service.price
+
+    // 5. Insert appointment with is_extra = true
+    const formattedNotes = customerId
+      ? `[Atendimento Extra] ${notes || ''}`
+      : `[Atendimento Extra] Cliente: ${clientName}. ${notes || ''}`
+
+    const appointmentStatus = isPaid ? 'completed' : 'confirmed'
+
+    const { data: appt, error: apptError } = await supabase
+      .from('appointments')
+      .insert({
+        customer_id: customerId || null,
+        barber_id: barberId,
+        service_id: serviceId,
+        start_time: startDate.toISOString(),
+        end_time: endDate.toISOString(),
+        status: appointmentStatus,
+        notes: formattedNotes,
+        is_extra: true
+      })
+      .select('id')
+      .single()
+
+    if (apptError || !appt) {
+      console.error('Extra appointment insert error:', apptError)
+      return { success: false, message: 'Erro ao registrar atendimento extra.' }
+    }
+
+    // 6. Create payment record
+    const paymentStatus = isPaid ? 'confirmed_manually' : 'pending'
+    await supabase
+      .from('payments')
+      .insert({
+        appointment_id: appt.id,
+        total_amount: finalPrice,
+        deposit_amount: 0.00,
+        status: paymentStatus,
+        method: paymentMethod || 'cash',
+        notes: `Atendimento Extra registrado no painel${isPaid ? ' (pago no ato)' : ' (pagamento pendente)'}`
+      })
+
+    const statusMsg = isPaid
+      ? 'Atendimento Extra registrado e marcado como pago!'
+      : 'Atendimento Extra registrado (pagamento pendente — aparecerá no Checkout do Dia).'
+
+    return { success: true, message: statusMsg }
+  } catch (err) {
+    console.error('Error inside createExtraAppointmentAction:', err)
+    return { success: false, message: 'Erro interno no servidor.' }
+  }
+}
+
+/**
  * Permanently delete an appointment and its linked payment record.
  * ADMIN ROLE ONLY — barbers are rejected server-side even if the UI is bypassed.
  */
