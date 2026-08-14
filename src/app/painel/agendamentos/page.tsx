@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState, useTransition } from 'react'
+import React, { useEffect, useState, useTransition, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { 
   Scissors, Calendar, Clock, Search, Edit2, Trash2, CheckCircle2, 
@@ -11,20 +11,18 @@ import {
 import { createClient } from '@/lib/supabase'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
 import { ReceiptModal } from '@/components/ReceiptModal'
-import { CreatePackageForm } from '@/components/CreatePackageForm'
+import { WalkInModal } from '@/components/agendamentos/WalkInModal'
+import { ExtraAppointmentModal } from '@/components/agendamentos/ExtraAppointmentModal'
+import { CheckoutModal } from '@/components/agendamentos/CheckoutModal'
+import { AgendaTimeline } from '@/components/agendamentos/AgendaTimeline'
 import { 
   updateAppointmentStatusAction, 
   updateAppointmentNotesAction, 
-  createWalkInAppointmentAction,
-  createExtraAppointmentAction,
   deleteAppointmentAction,
-  markNoShowAction,
-  bulkCheckoutAction,
-  type BulkCheckoutResult
+  markNoShowAction
 } from './actions'
 import { apptShortCode, getLocalDateStr } from '@/lib/utils'
 import { isRecurringReservationActiveOnDate } from '@/lib/booking'
-import { CustomServiceSelect, CustomBarberSelect, CustomGenericSelect, CustomCustomerSelect } from '@/components/CustomSelect'
 
 function getAppointmentPrice(appt: any): number {
   if (!appt) return 0
@@ -44,7 +42,6 @@ export default function PainelAgendamentos() {
   const router = useRouter()
   const [appointments, setAppointments] = useState<any[]>([])
   const [recurringReservations, setRecurringReservations] = useState<any[]>([])
-  const [filteredAppointments, setFilteredAppointments] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [currentUser, setCurrentUser] = useState<any>(null)
   const [userRole, setUserRole] = useState<string | null>(null)
@@ -66,42 +63,32 @@ export default function PainelAgendamentos() {
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('')
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('')
   const [filterDate, setFilterDate] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
 
-  // Walk-in / Novo Agendamento modal form states
-  const [showWalkInModal, setShowWalkInModal] = useState(false)
-  const [modalTab, setModalTab] = useState<'avulso' | 'pacote'>('avulso')
-  const [clientName, setClientName] = useState('')
-  const [selectedBarberId, setSelectedBarberId] = useState('')
-  const [selectedServiceId, setSelectedServiceId] = useState('')
-  const [walkInDate, setWalkInDate] = useState('')
-  const [walkInTime, setWalkInTime] = useState('')
-  const [walkInNotes, setWalkInNotes] = useState('')
-  const [walkInPaymentMethod, setWalkInPaymentMethod] = useState('cash')
-  const [walkInCustomerId, setWalkInCustomerId] = useState<string>('')
-  const [walkInIsRegistered, setWalkInIsRegistered] = useState<boolean>(true)
+  // Debounce search input (300ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [searchQuery])
 
-  // Atendimento Extra modal form states
+  // Modals open state
+  const [showWalkInModal, setShowWalkInModal] = useState(false)
+  const [walkInModalBarberId, setWalkInModalBarberId] = useState('')
+  const [walkInModalTime, setWalkInModalTime] = useState('')
+
   const [showExtraModal, setShowExtraModal] = useState(false)
-  const [extraClientName, setExtraClientName] = useState('')
-  const [extraCustomerId, setExtraCustomerId] = useState<string>('')
-  const [extraIsRegistered, setExtraIsRegistered] = useState<boolean>(true)
-  const [extraBarberId, setExtraBarberId] = useState('')
-  const [extraServiceId, setExtraServiceId] = useState('')
-  const [extraDate, setExtraDate] = useState('')
-  const [extraTime, setExtraTime] = useState('')
-  const [extraNotes, setExtraNotes] = useState('')
-  const [extraPaymentMethod, setExtraPaymentMethod] = useState('cash')
-  const [extraIsPaid, setExtraIsPaid] = useState(true)
-  const [extraPrice, setExtraPrice] = useState<string>('')
-  
+  const [extraModalBarberId, setExtraModalBarberId] = useState('')
+
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false)
+
   // Data for selectors
   const [customers, setCustomers] = useState<any[]>([])
   const [barbers, setBarbers] = useState<any[]>([])
   const [services, setServices] = useState<any[]>([])
-  const [availableSlots, setAvailableSlots] = useState<string[]>([])
-  const [loadingSlots, setLoadingSlots] = useState(false)
 
   // Edit notes state
   const [editingNotesId, setEditingNotesId] = useState<string | null>(null)
@@ -120,27 +107,6 @@ export default function PainelAgendamentos() {
 
   // Receipt modal state
   const [selectedReceiptApptId, setSelectedReceiptApptId] = useState<string | null>(null)
-
-  // Checkout do Dia state
-  type CheckoutItem = {
-    apptId: string
-    customerName: string
-    serviceName: string
-    barberName?: string
-    price: number
-    time: string
-    originalMethod: string
-    selectedMethod: string
-    selected: boolean
-    isPackage: boolean
-    isExtra: boolean
-    status: 'idle' | 'success' | 'error'
-    errorMsg?: string
-  }
-  const [showCheckoutModal, setShowCheckoutModal] = useState(false)
-  const [checkoutItems, setCheckoutItems] = useState<CheckoutItem[]>([])
-  const [checkoutProcessing, setCheckoutProcessing] = useState(false)
-  const [checkoutDone, setCheckoutDone] = useState(false)
 
   const supabase = createClient()
 
@@ -165,117 +131,83 @@ export default function PainelAgendamentos() {
       }
       setUserRole(profile.role)
 
-      // Fetch active barbers and services for walk-in form
+      // Fetch active barbers and services
       const { data: dbBarbers } = await supabase
         .from('barbers')
-        .select('id, is_active, photo_url, profiles(id, full_name)')
+        .select('id, full_name, is_active, photo_url')
         .eq('is_active', true)
+        .order('full_name')
 
-      if (dbBarbers) {
-        const formatted = dbBarbers
-          .filter((b: any) => b.profiles)
-          .map((b: any) => ({
-            id: b.id,
-            full_name: b.profiles.full_name,
-            photo_url: b.photo_url || (b.profiles.full_name?.toLowerCase()?.includes('sergio') ? '/barbers/sergio.jpg' : null)
-          }))
-        setBarbers(formatted)
-      } else {
-        setBarbers([])
-      }
+      if (dbBarbers) setBarbers(dbBarbers)
 
       const { data: dbServices } = await supabase
         .from('services')
-        .select('id, name, price, duration')
+        .select('id, name, duration, price, is_active')
         .eq('is_active', true)
-      setServices(dbServices || [])
+        .order('name')
 
-      // Fetch registered customers for walk-in form
-      const { data: dbCust } = await supabase
+      if (dbServices) setServices(dbServices)
+
+      // Fetch customers for selector
+      const { data: dbCustomers } = await supabase
         .from('profiles')
-        .select('id, full_name, phone, role')
+        .select('id, full_name, phone')
+        .eq('role', 'customer')
         .order('full_name')
-      const validCustomers = (dbCust || []).filter((c: any) => c.role !== 'admin')
-      setCustomers(validCustomers)
 
-      // Fetch working hours & days off for agenda timeline
-      const { data: dbWH } = await supabase.from('barber_working_hours').select('*')
-      setWorkingHours(dbWH || [])
+      if (dbCustomers) setCustomers(dbCustomers)
 
-      const { data: dbDO } = await supabase.from('days_off').select('*')
-      setDaysOff(dbDO || [])
+      // Fetch working hours & days off
+      const { data: dbWH } = await supabase
+        .from('barber_working_hours')
+        .select('*')
+      if (dbWH) setWorkingHours(dbWH)
 
-      // Fetch recurring reservations
-      let recQuery = supabase
+      const { data: dbDO } = await supabase
+        .from('barber_days_off')
+        .select('*')
+      if (dbDO) setDaysOff(dbDO)
+
+      // Fetch active recurring reservations
+      const { data: dbRec } = await supabase
         .from('recurring_reservations')
         .select('*')
         .eq('status', 'active')
-
-      if (profile.role === 'barber') {
-        recQuery = recQuery.eq('barber_id', session.user.id)
-      }
-      const { data: dbRec } = await recQuery
-
-      if (dbRec && dbRec.length > 0) {
-        const recCustIds = Array.from(new Set(dbRec.map(r => r.customer_id).filter(Boolean)))
-        const recBarbIds = Array.from(new Set(dbRec.map(r => r.barber_id)))
-
-        const { data: recProfiles } = await supabase
-          .from('profiles')
-          .select('id, full_name')
-          .in('id', [...recCustIds, ...recBarbIds])
-
-        const recNameMap = (recProfiles || []).reduce((acc: any, p: any) => {
-          acc[p.id] = p.full_name
-          return acc
-        }, {})
-
-        const enrichedRec = dbRec.map(r => ({
-          ...r,
-          customer_display_name: r.customer_name || (r.customer_id ? recNameMap[r.customer_id] : 'Cliente'),
-          barber_name: recNameMap[r.barber_id] || 'Barbeiro'
-        }))
-        setRecurringReservations(enrichedRec)
-      } else {
-        setRecurringReservations([])
-      }
+      if (dbRec) setRecurringReservations(dbRec)
 
       // Fetch appointments
       let query = supabase
         .from('appointments')
         .select(`
-          id,
-          start_time,
-          end_time,
-          status,
-          notes,
-          no_show,
-          no_show_fee_charged,
-          package_subscription_id,
-          package_subscriptions (package_price, total_sessions),
-          services (name, price),
-          payments (total_amount, status, method),
-          customer_id,
-          barber_id,
-          is_extra
+          *,
+          services (id, name, price, duration),
+          payments (id, method, status, total_amount),
+          package_subscriptions (id, package_name, package_price, total_sessions, remaining_sessions)
         `)
-      
+        .order('start_time', { ascending: false })
+
       if (profile.role === 'barber') {
         query = query.eq('barber_id', session.user.id)
       }
 
-      const { data: appts } = await query.order('start_time', { ascending: true })
+      const { data: appts, error: apptsErr } = await query
 
-      if (appts && appts.length > 0) {
-        const customerIds = Array.from(new Set(appts.map(a => a.customer_id).filter(Boolean)))
-        const barberIds = Array.from(new Set(appts.map(a => a.barber_id)))
+      if (apptsErr) {
+        console.error('Error fetching appointments:', apptsErr)
+        setErrorMsg('Erro ao carregar agendamentos.')
+      } else if (appts) {
+        // Fetch customer & barber names from profiles
+        const allUserIds = Array.from(new Set([
+          ...appts.map(a => a.customer_id).filter(Boolean),
+          ...appts.map(a => a.barber_id).filter(Boolean)
+        ]))
 
-        const { data: usersProfiles } = await supabase
+        const { data: profilesData } = await supabase
           .from('profiles')
           .select('id, full_name')
-          .in('id', [...customerIds, ...barberIds])
+          .in('id', allUserIds.length > 0 ? allUserIds : ['00000000-0000-0000-0000-000000000000'])
 
-        const nameMap = (usersProfiles || []).reduce((acc: any, p: any) => {
+        const nameMap: Record<string, string> = (profilesData || []).reduce((acc: any, p: any) => {
           acc[p.id] = p.full_name
           return acc
         }, {})
@@ -315,16 +247,14 @@ export default function PainelAgendamentos() {
     loadData()
   }, [])
 
-  // Filter pipeline
-  useEffect(() => {
+  // Filter pipeline via useMemo
+  const filteredAppointments = useMemo(() => {
     let result = [...appointments]
 
-    // Date Picker Filter
     if (filterDate) {
       result = result.filter(a => getLocalDateStr(a.start_time) === filterDate)
     }
 
-    // Status tab filter
     const todayStr = new Date().toLocaleDateString('pt-BR', {
       timeZone: 'America/Sao_Paulo',
       year: 'numeric',
@@ -342,7 +272,6 @@ export default function PainelAgendamentos() {
       result = result.filter(a => a.status === 'cancelled' || a.status === 'no_show')
     }
 
-    // Determine target date for projecting active recurring reservations
     const targetDateStr = filterDate || (statusFilter === 'today' ? todayStr : null)
 
     if (targetDateStr && recurringReservations.length > 0) {
@@ -371,9 +300,8 @@ export default function PainelAgendamentos() {
       result = [...result, ...recAppointments]
     }
 
-    // Search Query
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase()
+    if (debouncedSearchQuery) {
+      const q = debouncedSearchQuery.toLowerCase()
       result = result.filter(a => 
         a.customerName.toLowerCase().includes(q) || 
         (a.notes && a.notes.toLowerCase().includes(q)) ||
@@ -382,37 +310,35 @@ export default function PainelAgendamentos() {
       )
     }
 
-    setFilteredAppointments(result)
-  }, [appointments, recurringReservations, filterDate, statusFilter, searchQuery])
+    return result
+  }, [appointments, recurringReservations, filterDate, statusFilter, debouncedSearchQuery])
 
-  // Load slots for walk-in form
-  useEffect(() => {
-    if (!selectedBarberId || !selectedServiceId || !walkInDate) {
-      setAvailableSlots([])
-      return
+  const unpaidApptsForCheckout = useMemo(() => {
+    return appointments.filter(a => {
+      if (getLocalDateStr(a.start_time) !== selectedAgendaDate) return false
+      if (a.status === 'completed' || a.status === 'cancelled' || a.status === 'no_show') return false
+      const payStatus = Array.isArray(a.payments) ? a.payments[0]?.status : a.payments?.status
+      if (payStatus === 'paid') return false
+      return true
+    })
+  }, [appointments, selectedAgendaDate])
+
+  const counts = useMemo(() => {
+    const todayStr = new Date().toLocaleDateString('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).split('/').reverse().join('-')
+
+    return {
+      all: appointments.length,
+      today: appointments.filter(a => getLocalDateStr(a.start_time) === todayStr && a.status !== 'cancelled').length,
+      confirmed: appointments.filter(a => a.status === 'confirmed' || a.status === 'pending').length,
+      completed: appointments.filter(a => a.status === 'completed').length,
+      cancelled: appointments.filter(a => a.status === 'cancelled' || a.status === 'no_show').length
     }
-
-    async function loadSlots() {
-      setLoadingSlots(true)
-      const service = services.find(s => s.id === selectedServiceId)
-      if (!service) {
-        setLoadingSlots(false)
-        return
-      }
-
-      try {
-        const res = await fetch(`/api/booking/slots?barberId=${selectedBarberId}&dateStr=${walkInDate}&duration=${service.duration}&allowPast=true`)
-        const data = await res.json()
-        const fetchedSlots: string[] = data.slots || []
-        setAvailableSlots(fetchedSlots)
-      } catch (error) {
-        console.error('Error fetching slots:', error)
-      } finally {
-        setLoadingSlots(false)
-      }
-    }
-    loadSlots()
-  }, [selectedBarberId, selectedServiceId, walkInDate, services])
+  }, [appointments])
 
   const handleStatusUpdate = (apptId: string, status: string) => {
     setErrorMsg('')
@@ -443,7 +369,7 @@ export default function PainelAgendamentos() {
     })
   }
 
-  const handleOpenWalkInModal = (defaultBarberId?: string, defaultTime?: string) => {
+  const handleOpenWalkInModal = useCallback((defaultBarberId?: string, defaultTime?: string) => {
     let targetBarberId = defaultBarberId || ''
     if (!targetBarberId) {
       if (userRole === 'barber' && currentUser?.id) {
@@ -452,132 +378,21 @@ export default function PainelAgendamentos() {
         targetBarberId = selectedBarberFilter
       }
     }
-    setSelectedBarberId(targetBarberId)
-    setWalkInDate(selectedAgendaDate || todayLocalStr)
-    setWalkInTime(defaultTime || '')
+    setWalkInModalBarberId(targetBarberId)
+    setWalkInModalTime(defaultTime || '')
     setShowWalkInModal(true)
-  }
+  }, [userRole, currentUser, selectedBarberFilter])
 
-  const handleCloseWalkInModal = () => {
-    setShowWalkInModal(false)
-    setClientName('')
-    setWalkInCustomerId('')
-    setSelectedBarberId('')
-    setSelectedServiceId('')
-    setWalkInDate('')
-    setWalkInTime('')
-    setWalkInNotes('')
-    setWalkInPaymentMethod('cash')
-    setModalTab('avulso')
-  }
-
-  const handleCreateWalkIn = (e: React.FormEvent) => {
-    e.preventDefault()
-    setErrorMsg('')
-    setSuccessMsg('')
-
-    const selectedCust = customers.find(c => c.id === walkInCustomerId)
-    const finalClientName = walkInIsRegistered ? (selectedCust?.full_name || clientName) : clientName
-
-    if ((walkInIsRegistered && !walkInCustomerId) || (!walkInIsRegistered && !clientName.trim()) || !selectedBarberId || !selectedServiceId || !walkInDate || !walkInTime) {
-      setErrorMsg('Todos os campos são obrigatórios. Selecione o cliente ou digite o nome.')
-      return
-    }
-
-    startTransition(async () => {
-      const res = await createWalkInAppointmentAction(
-        finalClientName,
-        selectedBarberId,
-        selectedServiceId,
-        walkInDate,
-        walkInTime,
-        walkInNotes,
-        walkInPaymentMethod,
-        walkInIsRegistered ? walkInCustomerId : null
-      )
-
-      if (!res.success) {
-        setErrorMsg(res.message)
-      } else {
-        setSuccessMsg(res.message)
-        handleCloseWalkInModal()
-        loadData()
-      }
-    })
-  }
-
-  const handleOpenExtraModal = () => {
+  const handleOpenExtraModal = useCallback(() => {
     let targetBarberId = ''
     if (userRole === 'barber' && currentUser?.id) {
       targetBarberId = currentUser.id
     } else if (selectedBarberFilter && selectedBarberFilter !== 'all') {
       targetBarberId = selectedBarberFilter
     }
-    setExtraBarberId(targetBarberId)
-    setExtraDate(selectedAgendaDate || todayLocalStr)
-    // Pre-fill with current time
-    const now = new Date()
-    const h = String(now.getHours()).padStart(2, '0')
-    const m = String(now.getMinutes()).padStart(2, '0')
-    setExtraTime(`${h}:${m}`)
-    setExtraIsPaid(true)
-    setExtraPaymentMethod('cash')
+    setExtraModalBarberId(targetBarberId)
     setShowExtraModal(true)
-  }
-
-  const handleCloseExtraModal = () => {
-    setShowExtraModal(false)
-    setExtraClientName('')
-    setExtraCustomerId('')
-    setExtraIsRegistered(true)
-    setExtraBarberId('')
-    setExtraServiceId('')
-    setExtraDate('')
-    setExtraTime('')
-    setExtraNotes('')
-    setExtraPaymentMethod('cash')
-    setExtraIsPaid(true)
-    setExtraPrice('')
-  }
-
-  const handleCreateExtra = (e: React.FormEvent) => {
-    e.preventDefault()
-    setErrorMsg('')
-    setSuccessMsg('')
-
-    const selectedCust = customers.find(c => c.id === extraCustomerId)
-    const finalClientName = extraIsRegistered ? (selectedCust?.full_name || extraClientName) : extraClientName
-
-    if ((extraIsRegistered && !extraCustomerId) || (!extraIsRegistered && !extraClientName.trim()) || !extraBarberId || !extraServiceId || !extraDate || !extraTime) {
-      setErrorMsg('Preencha todos os campos obrigatórios.')
-      return
-    }
-
-    const priceOverride = extraPrice !== '' ? parseFloat(extraPrice) : null
-
-    startTransition(async () => {
-      const res = await createExtraAppointmentAction(
-        finalClientName,
-        extraBarberId,
-        extraServiceId,
-        extraDate,
-        extraTime,
-        extraNotes,
-        extraIsPaid ? extraPaymentMethod : 'cash',
-        extraIsPaid,
-        priceOverride,
-        extraIsRegistered ? extraCustomerId : null
-      )
-
-      if (!res.success) {
-        setErrorMsg(res.message)
-      } else {
-        setSuccessMsg(res.message)
-        handleCloseExtraModal()
-        loadData()
-      }
-    })
-  }
+  }, [userRole, currentUser, selectedBarberFilter])
 
   const handleDelete = (appt: any) => {
     setDeleteTarget(appt)
@@ -615,13 +430,13 @@ export default function PainelAgendamentos() {
     })
   }
 
-  const formatDate = (dateStr: string) => {
+  const formatDate = useCallback((dateStr: string) => {
     if (!dateStr) return ''
     const d = new Date(dateStr)
     return d.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: 'numeric' })
-  }
+  }, [])
 
-  const formatTime = (dateStr: string) => {
+  const formatTime = useCallback((dateStr: string) => {
     if (!dateStr) return ''
     return new Date(dateStr).toLocaleTimeString('pt-BR', {
       timeZone: 'America/Sao_Paulo',
@@ -629,7 +444,7 @@ export default function PainelAgendamentos() {
       minute: '2-digit',
       hour12: false
     })
-  }
+  }, [])
 
   const handlePrevDay = () => {
     const [y, m, d] = selectedAgendaDate.split('-').map(Number)
@@ -655,7 +470,7 @@ export default function PainelAgendamentos() {
     setSelectedAgendaDate(todayLocalStr)
   }
 
-  const formatAgendaHeaderDate = (dateStr: string) => {
+  const formatAgendaHeaderDate = useCallback((dateStr: string) => {
     if (!dateStr) return ''
     const [y, m, d] = dateStr.split('-').map(Number)
     const dateObj = new Date(y, m - 1, d)
@@ -666,23 +481,7 @@ export default function PainelAgendamentos() {
       year: 'numeric'
     })
     return formatted.charAt(0).toUpperCase() + formatted.slice(1)
-  }
-
-  const counts = {
-    all: appointments.length,
-    today: appointments.filter(a => {
-      const todayStr = new Date().toLocaleDateString('pt-BR', {
-        timeZone: 'America/Sao_Paulo',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-      }).split('/').reverse().join('-')
-      return getLocalDateStr(a.start_time) === todayStr && a.status !== 'cancelled'
-    }).length,
-    confirmed: appointments.filter(a => a.status === 'confirmed' || a.status === 'pending').length,
-    completed: appointments.filter(a => a.status === 'completed').length,
-    cancelled: appointments.filter(a => a.status === 'cancelled' || a.status === 'no_show').length
-  }
+  }, [])
 
   const handleManualRefresh = async () => {
     setIsRefreshing(true)
@@ -780,52 +579,47 @@ export default function PainelAgendamentos() {
           </div>
         </div>
 
-        {/* Banners */}
+        {/* Global Feedback Notifications */}
         {errorMsg && (
-          <div className="p-4 bg-destructive/10 border border-destructive/30 rounded-xl flex items-center justify-between gap-3 text-xs sm:text-sm text-destructive shadow-sm">
-            <div className="flex items-center gap-2">
+          <div className="p-4 bg-destructive/10 border border-destructive/30 rounded-2xl flex items-center justify-between gap-3 text-destructive animate-in fade-in">
+            <div className="flex items-center gap-2 text-xs font-semibold">
               <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{errorMsg}</span>
             </div>
-            <button onClick={() => setErrorMsg('')} className="text-muted-foreground hover:text-foreground">
+            <button onClick={() => setErrorMsg('')} className="p-1 hover:bg-destructive/10 rounded-lg">
               <X className="w-4 h-4" />
             </button>
           </div>
         )}
 
         {successMsg && (
-          <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center justify-between gap-3 text-xs sm:text-sm text-emerald-400 font-medium shadow-sm">
-            <div className="flex items-center gap-2">
+          <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl flex items-center justify-between gap-3 text-emerald-400 animate-in fade-in">
+            <div className="flex items-center gap-2 text-xs font-semibold">
               <CheckCircle2 className="w-4 h-4 shrink-0" />
               <span>{successMsg}</span>
             </div>
-            <button onClick={() => setSuccessMsg('')} className="text-muted-foreground hover:text-foreground">
+            <button onClick={() => setSuccessMsg('')} className="p-1 hover:bg-emerald-500/10 rounded-lg">
               <X className="w-4 h-4" />
             </button>
           </div>
         )}
 
-        {/* AGENDA TIMELINE VIEW (DEFAULT) */}
+        {/* Main Content Area: Agenda Mode vs List Mode */}
         {viewMode === 'agenda' ? (
           <div className="space-y-6">
-            {/* OSanchez Luxury Top Branding & Control Bar */}
-            <div className="bg-[#121212] border border-white/10 p-5 rounded-2xl shadow-xl space-y-4">
-              
-              {/* Upper row: Branding + Date navigation */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
-                
-                {/* Brand Title */}
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2">
-                    <Scissors className="w-5 h-5 text-primary rotate-45" />
-                    <span className="font-serif font-bold text-base tracking-widest text-white uppercase">
-                      OSanchez Agenda
-                    </span>
-                  </div>
+            {/* Agenda Navigation Toolbar */}
+            <div className="bg-[#121214] border border-white/10 p-4 rounded-3xl space-y-4 shadow-xl">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                {/* Date quick navigation */}
+                <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={handleToday}
-                    className="px-3.5 py-1 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 rounded-full text-[11px] font-extrabold uppercase tracking-wider transition-all cursor-pointer shadow-sm active:scale-95 flex items-center gap-1"
+                    className={`px-3.5 py-2 rounded-xl text-xs font-extrabold uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer border ${
+                      selectedAgendaDate === todayLocalStr
+                        ? 'bg-primary text-primary-foreground border-primary shadow-md'
+                        : 'bg-secondary/60 hover:bg-secondary border-border/80 text-foreground'
+                    }`}
                   >
                     <Sparkles className="w-3 h-3 text-emerald-400" />
                     HOJE
@@ -868,22 +662,20 @@ export default function PainelAgendamentos() {
 
               {/* Lower row: Barber Avatar Selector (Admin Only) */}
               {userRole === 'admin' && barbers.length > 0 && (
-                <div className="space-y-2.5 pt-1">
+                <div className="pt-3 border-t border-white/10 space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                      <Users className="w-3.5 h-3.5 text-primary" />
-                      FILTRAR POR BARBEIRO:
-                    </span>
-                    <span className="text-[10px] text-muted-foreground font-semibold">
-                      Data: {formatDate(selectedAgendaDate)}
+                    <span className="text-[11px] font-extrabold uppercase text-amber-400 tracking-wider flex items-center gap-1.5">
+                      <Users className="w-3.5 h-3.5 text-amber-400" />
+                      Filtrar por Barbeiro:
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-3 sm:gap-4 overflow-x-auto pb-1 pt-0.5 scrollbar-none">
-                    {/* "Todos" Avatar Bubble */}
+                  <div className="flex items-center gap-3 overflow-x-auto pb-1 scrollbar-none">
+                    {/* All Barbers Bubble */}
                     {(() => {
                       const isSelected = selectedBarberFilter === 'all'
                       const totalTodayAppts = appointments.filter(a => getLocalDateStr(a.start_time) === selectedAgendaDate && a.status !== 'cancelled').length
+
                       return (
                         <button
                           type="button"
@@ -892,12 +684,12 @@ export default function PainelAgendamentos() {
                             isSelected ? 'scale-105' : 'opacity-70 hover:opacity-100'
                           }`}
                         >
-                          <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 p-0.5 flex items-center justify-center transition-all shadow-md ${
+                          <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 p-0.5 overflow-hidden transition-all flex items-center justify-center shadow-md ${
                             isSelected
-                              ? 'border-primary ring-4 ring-primary/20 bg-gradient-to-tr from-primary/30 via-secondary to-primary/10'
-                              : 'border-border/80 group-hover:border-primary/50 bg-secondary/40'
+                              ? 'border-primary ring-4 ring-primary/20 bg-primary/20 text-primary'
+                              : 'border-border/80 bg-secondary/60 text-muted-foreground group-hover:border-primary/50'
                           }`}>
-                            <Users className={`w-6 h-6 sm:w-7 sm:h-7 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`} />
+                            <Users className="w-6 h-6 sm:w-7 sm:h-7" />
                           </div>
                           <div className="text-center">
                             <span className={`text-xs font-bold block leading-none ${isSelected ? 'text-primary' : 'text-foreground'}`}>
@@ -975,392 +767,25 @@ export default function PainelAgendamentos() {
                   </span>
                 </div>
               )}
-
             </div>
 
-            {/* Agenda Timeline Grid */}
-            {(() => {
-              const agendaBarbers = barbers.filter(b => {
-                if (userRole === 'barber') return b.id === currentUser?.id
-                if (selectedBarberFilter === 'all') return true
-                return b.id === selectedBarberFilter
-              })
-
-              if (agendaBarbers.length === 0) {
-                return (
-                  <div className="p-12 text-center text-muted-foreground bg-[#121212] border border-white/10 rounded-2xl">
-                    <User className="w-12 h-12 mx-auto mb-2 opacity-40" />
-                    <p className="text-sm font-semibold text-white">Nenhum barbeiro ativo encontrado.</p>
-                  </div>
-                )
-              }
-
-              const [y, m, d] = selectedAgendaDate.split('-').map(Number)
-              const dayOfWeek = new Date(y, m - 1, d).getDay()
-
-              return (
-                <div className={`grid gap-6 ${
-                  agendaBarbers.length > 1 ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'
-                }`}>
-                  {agendaBarbers.map((barber) => {
-                    const isDayOff = daysOff.some(doItem => doItem.barber_id === barber.id && doItem.date === selectedAgendaDate)
-                    const wh = workingHours.find(w => w.barber_id === barber.id && w.day_of_week === dayOfWeek)
-                    const isClosed = !wh || wh.is_closed || isDayOff
-
-                    // Generate hourly slots
-                    let startHour = 8
-                    let endHour = 19
-
-                    if (wh?.slots && Array.isArray(wh.slots) && wh.slots.length > 0) {
-                      const firstSlot = wh.slots[0]?.start
-                      const lastSlot = wh.slots[wh.slots.length - 1]?.end
-                      if (firstSlot) startHour = parseInt(firstSlot.split(':')[0], 10)
-                      if (lastSlot) endHour = parseInt(lastSlot.split(':')[0], 10)
-                    }
-
-                    const timeSlots: string[] = []
-                    for (let h = startHour; h <= endHour; h++) {
-                      timeSlots.push(`${String(h).padStart(2, '0')}:00`)
-                    }
-
-                    const lunchStartSlot = wh?.lunch_break_start ? String(wh.lunch_break_start).substring(0, 5) : null
-
-                    // Extra appointments for this barber on this date
-                    const extraAppts = appointments.filter(a =>
-                      a.barber_id === barber.id &&
-                      a.is_extra === true &&
-                      getLocalDateStr(a.start_time) === selectedAgendaDate &&
-                      a.status !== 'cancelled'
-                    )
-
-                    return (
-                      <div
-                        key={barber.id}
-                        className="bg-[#0e0e10] border border-white/10 rounded-3xl p-5 shadow-2xl space-y-4"
-                      >
-                        {/* Barber Header */}
-                        <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full border border-primary/40 overflow-hidden shrink-0 shadow-md">
-                              {barber.photo_url ? (
-                                <img src={barber.photo_url} alt={barber.full_name} className="w-full h-full object-cover rounded-full" />
-                              ) : (
-                                <div className="w-full h-full bg-amber-500/10 flex items-center justify-center text-amber-400 font-bold text-base">
-                                  {barber.full_name.charAt(0).toUpperCase()}
-                                </div>
-                              )}
-                            </div>
-                            <div>
-                              <h4 className="font-extrabold text-sm text-white">{barber.full_name}</h4>
-                              <p className="text-[11px] text-zinc-400">
-                                {isClosed ? '🚪 Fechado neste dia' : `Horário: ${String(startHour).padStart(2, '0')}:00 às ${String(endHour).padStart(2, '0')}:00`}
-                              </p>
-                            </div>
-                          </div>
-                          {isClosed && (
-                            <span className="text-[10px] uppercase font-black px-3 py-1 rounded-full bg-destructive/15 text-destructive border border-destructive/30">
-                              Fechado / Folga
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Slots list */}
-                        {isClosed ? (
-                          <div className="p-8 text-center bg-[#141416] rounded-2xl border border-white/5 text-zinc-400">
-                            <Coffee className="w-8 h-8 mx-auto mb-2 opacity-40 text-amber-400" />
-                            <p className="text-xs font-bold text-white">Dia Sem Atendimento</p>
-                            <p className="text-[11px] text-zinc-400 mt-1">Este profissional não trabalha neste dia da semana.</p>
-                          </div>
-                        ) : (
-                          <div className="space-y-3">
-                            {timeSlots.map((slotStr) => {
-                              const isLunch = lunchStartSlot === slotStr
-
-                              if (isLunch) {
-                                return (
-                                  <div
-                                    key={slotStr}
-                                    className="bg-[#18181b] border border-white/5 rounded-2xl p-4 flex items-center justify-between opacity-85 transition-all"
-                                  >
-                                    <div className="flex items-center gap-4">
-                                      <span className="text-2xl font-bold font-mono text-zinc-400 tracking-tight w-16">{slotStr}</span>
-                                      <div className="flex items-center gap-2 text-amber-400 font-bold text-sm tracking-wide uppercase">
-                                        <Coffee className="w-4 h-4 text-amber-400" />
-                                        <span>INTERVALO DE ALMOÇO</span>
-                                      </div>
-                                    </div>
-                                    <span className="text-xs font-semibold text-zinc-500 uppercase tracking-widest">Indisponível</span>
-                                  </div>
-                                )
-                              }
-
-                              // Find appointment for this slot
-                              const slotHour = slotStr.substring(0, 2)
-                              const appt = appointments.find(a => {
-                                if (a.barber_id !== barber.id) return false
-                                if (getLocalDateStr(a.start_time) !== selectedAgendaDate) return false
-                                if (a.status === 'cancelled') return false
-                                const aHour = formatTime(a.start_time).substring(0, 2)
-                                return aHour === slotHour
-                              })
-
-                              // Find recurring reservation for this slot
-                              const rec = recurringReservations.find(r => {
-                                if (r.barber_id !== barber.id) return false
-                                if (r.day_of_week !== dayOfWeek) return false
-                                const rHour = r.time_slot.substring(0, 2)
-                                if (rHour !== slotHour) return false
-                                return isRecurringReservationActiveOnDate(r.start_date, r.interval_weeks, selectedAgendaDate)
-                              })
-
-                              if (appt) {
-                                const isPackage = appt.package_subscription_id || appt.services?.name?.toLowerCase().includes('pacote')
-
-                                if (isPackage) {
-                                  return (
-                                    <div
-                                      key={slotStr}
-                                      onClick={() => setSelectedAgendaAppt(appt)}
-                                      className="bg-gradient-to-r from-[#947629] via-[#b39034] to-[#c7a33b] border border-amber-300/60 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xl shadow-amber-500/10 hover:brightness-105 transition-all cursor-pointer text-zinc-950 group"
-                                    >
-                                      <div className="flex items-center gap-4 min-w-0">
-                                        <span className="text-2xl font-black font-mono text-zinc-950 tracking-tight w-16 shrink-0">{slotStr}</span>
-                                        <div className="min-w-0 space-y-0.5">
-                                          <div className="flex items-center gap-2 flex-wrap">
-                                            <h5 className="font-black text-base text-zinc-950 uppercase tracking-wide truncate">{appt.customerName}</h5>
-                                            <span className="font-mono text-xs text-zinc-900 bg-zinc-950/20 px-2 py-0.5 rounded border border-zinc-950/30 font-bold">
-                                              {apptShortCode(appt.id)}
-                                            </span>
-                                            <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded-md bg-zinc-950/30 text-zinc-950 border border-zinc-950/40 flex items-center gap-1 shrink-0">
-                                              <Scissors className="w-3 h-3 text-zinc-950" />
-                                              {appt.barberName?.split(' ')[0] || barber.full_name?.split(' ')[0]}
-                                            </span>
-                                          </div>
-                                          <p className="text-xs font-extrabold text-zinc-900/90 truncate">
-                                            • {appt.services?.name || 'Pacote Mensal'}
-                                          </p>
-                                        </div>
-                                      </div>
-
-                                      <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
-                                        <span className="px-3.5 py-1.5 rounded-xl bg-zinc-950/30 text-zinc-950 border border-zinc-950/40 text-xs font-black uppercase flex items-center gap-1.5 shadow-sm">
-                                          <CheckCircle2 className="w-4 h-4 text-zinc-950" />
-                                          {appt.status === 'completed' ? 'CONCLUÍDO' : 'CONFIRMADO'}
-                                        </span>
-                                      </div>
-                                    </div>
-                                  )
-                                }
-
-                                return (
-                                  <div
-                                    key={slotStr}
-                                    onClick={() => setSelectedAgendaAppt(appt)}
-                                    className={`bg-gradient-to-r from-[#06261a] to-[#0a3825] border border-[#10b981]/40 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg hover:border-[#10b981]/70 transition-all cursor-pointer group ${
-                                      appt.status === 'completed'
-                                        ? 'brightness-110'
-                                        : appt.status === 'no_show'
-                                        ? 'from-[#332208] to-[#472f0b] border-amber-500/40'
-                                        : ''
-                                    }`}
-                                  >
-                                    <div className="flex items-center gap-4 min-w-0">
-                                      <span className="text-2xl font-bold font-mono text-[#34d399] tracking-tight w-16 shrink-0">{slotStr}</span>
-                                      <div className="min-w-0 space-y-0.5">
-                                        <p className="text-xs text-[#a7f3d0]/80 font-medium">
-                                          {formatTime(appt.start_time) || slotStr} - {appt.end_time ? formatTime(appt.end_time) : slotStr}
-                                        </p>
-                                        <h5 className="font-bold text-base text-white uppercase flex items-center gap-2 flex-wrap truncate">
-                                          <User className="w-4 h-4 text-[#34d399] shrink-0" />
-                                          <span>{appt.customerName}</span>
-                                          <span className="text-zinc-400 font-normal">• {appt.services?.name}</span>
-                                          <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1 shrink-0">
-                                            <Scissors className="w-3 h-3 text-emerald-400" />
-                                            {appt.barberName?.split(' ')[0] || barber.full_name?.split(' ')[0]}
-                                          </span>
-                                        </h5>
-                                      </div>
-                                    </div>
-
-                                    <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
-                                      <span className="px-3.5 py-1.5 rounded-xl bg-[#262010] text-[#e5c158] border border-[#a3832c]/50 text-xs font-extrabold flex items-center gap-1.5 shadow-sm">
-                                        <CheckCircle2 className="w-4 h-4 text-[#e5c158]" />
-                                        {appt.status === 'completed' ? 'Concluído' : appt.status === 'no_show' ? 'Não Compareceu' : 'Confirmado'}
-                                      </span>
-                                    </div>
-                                  </div>
-                                )
-                              }
-
-                              if (rec) {
-                                return (
-                                  <div
-                                    key={slotStr}
-                                    className="bg-gradient-to-r from-cyan-950/90 to-slate-900 border border-cyan-500/50 rounded-2xl p-4 flex items-center justify-between gap-3 text-cyan-200 shadow-md"
-                                  >
-                                    <div className="flex items-center gap-4">
-                                      <span className="text-2xl font-bold font-mono text-cyan-400 tracking-tight w-16">{slotStr}</span>
-                                      <div>
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                          <span className="font-bold text-white text-base block">{rec.customer_display_name}</span>
-                                          <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded-md bg-cyan-500/25 text-cyan-200 border border-cyan-500/40 flex items-center gap-1 shrink-0">
-                                            <Scissors className="w-3 h-3 text-cyan-300" />
-                                            {rec.barber_name?.split(' ')[0] || barber.full_name?.split(' ')[0]}
-                                          </span>
-                                        </div>
-                                        <span className="text-xs text-cyan-300 font-semibold flex items-center gap-1.5">
-                                          <Repeat className="w-3.5 h-3.5" /> Reserva Fixa ({rec.interval_weeks === 1 ? 'Semanal' : 'Quinzenal'})
-                                        </span>
-                                      </div>
-                                    </div>
-                                    <span className="px-3 py-1 rounded-xl bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 text-xs font-bold uppercase">
-                                      ✔ Reservado
-                                    </span>
-                                  </div>
-                                )
-                              }
-
-                              // Free slot
-                              return (
-                                <div
-                                  key={slotStr}
-                                  onClick={() => {
-                                    handleOpenWalkInModal(barber.id, slotStr)
-                                  }}
-                                  className="bg-[#121212] hover:bg-[#161616] border border-white/10 hover:border-amber-500/40 rounded-2xl p-4 transition-all duration-200 flex items-center justify-between shadow-md cursor-pointer group"
-                                >
-                                  <div className="flex items-center gap-4">
-                                    <span className="text-2xl font-bold font-mono text-white tracking-tight w-16">{slotStr}</span>
-                                    <div className="flex items-center gap-2 text-zinc-400 text-sm font-medium group-hover:text-zinc-200 transition-colors">
-                                      <Calendar className="w-4 h-4 text-zinc-500 group-hover:text-amber-400 transition-colors" />
-                                      <span>Horário Disponível</span>
-                                    </div>
-                                  </div>
-
-                                  <button
-                                    type="button"
-                                    className="px-4 py-2 bg-[#262010] group-hover:bg-[#382f18] text-[#e5c158] border border-[#a3832c]/50 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1 active:scale-95"
-                                  >
-                                    <Plus className="w-3.5 h-3.5" />
-                                    <span>Agendar</span>
-                                  </button>
-                                </div>
-                              )
-                            })}
-                          </div>
-                        )}
-
-                        {/* ⚡ Atendimento Extra Section */}
-                        {extraAppts.length > 0 && (
-                          <div className="mt-4 space-y-3">
-                            <div className="flex items-center gap-2 px-1">
-                              <Zap className="w-4 h-4 text-amber-400" />
-                              <span className="text-[11px] uppercase font-black text-amber-400 tracking-wider">
-                                Atendimentos Extra ({extraAppts.length})
-                              </span>
-                              <div className="flex-1 border-t border-dashed border-amber-500/30" />
-                            </div>
-                            {extraAppts.map((exAppt) => {
-                              const exPayStatus = Array.isArray(exAppt.payments) ? exAppt.payments[0]?.status : exAppt.payments?.status
-                              const exIsPaid = exPayStatus === 'confirmed_manually' || exPayStatus === 'paid'
-                              return (
-                                <div
-                                  key={exAppt.id}
-                                  onClick={() => setSelectedAgendaAppt(exAppt)}
-                                  className="bg-gradient-to-r from-[#1a150a] to-[#1c1408] border-2 border-dashed border-amber-500/40 hover:border-amber-500/70 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg transition-all cursor-pointer group"
-                                >
-                                  <div className="flex items-center gap-4 min-w-0">
-                                    <span className="text-2xl font-bold font-mono text-amber-400 tracking-tight w-16 shrink-0">
-                                      {formatTime(exAppt.start_time)}
-                                    </span>
-                                    <div className="min-w-0 space-y-0.5">
-                                      <div className="flex items-center gap-2 flex-wrap">
-                                        <h5 className="font-bold text-base text-white uppercase truncate">{exAppt.customerName}</h5>
-                                        <span className="text-[9px] uppercase font-black px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1 shrink-0">
-                                          <Zap className="w-3 h-3 text-amber-400" />
-                                          Extra
-                                        </span>
-                                      </div>
-                                      <p className="text-xs text-amber-200/70 font-medium truncate">
-                                        {exAppt.services?.name} • R$ {getAppointmentPrice(exAppt).toFixed(2)}
-                                      </p>
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
-                                    <span className={`px-3 py-1.5 rounded-xl text-xs font-extrabold uppercase flex items-center gap-1.5 shadow-sm ${
-                                      exIsPaid
-                                        ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                                        : 'bg-amber-500/15 text-amber-400 border border-amber-500/30 animate-pulse'
-                                    }`}>
-                                      {exIsPaid ? (
-                                        <><CheckCircle2 className="w-3.5 h-3.5" /> Pago</>
-                                      ) : (
-                                        <><Clock className="w-3.5 h-3.5" /> Pendente</>
-                                      )}
-                                    </span>
-                                  </div>
-                                </div>
-                              )
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              )
-            })()}
-
-            {/* Checkout do Dia Button */}
-            {(() => {
-              const unpaidAppts = appointments.filter(a => {
-                if (getLocalDateStr(a.start_time) !== selectedAgendaDate) return false
-                if (a.status === 'completed' || a.status === 'cancelled' || a.status === 'no_show') return false
-                const payStatus = Array.isArray(a.payments) ? a.payments[0]?.status : a.payments?.status
-                if (payStatus === 'paid') return false
-                return true
-              })
-
-              if (unpaidAppts.length === 0) return null
-
-              const openCheckoutModal = () => {
-                const items: CheckoutItem[] = unpaidAppts.map(a => {
-                  const payMethod = Array.isArray(a.payments) ? a.payments[0]?.method : a.payments?.method
-                  return {
-                    apptId: a.id,
-                    customerName: a.customerName || 'Cliente',
-                    serviceName: a.services?.name || 'Serviço',
-                    barberName: a.barberName || 'Barbeiro',
-                    price: getAppointmentPrice(a),
-                    time: formatTime(a.start_time),
-                    originalMethod: payMethod || 'cash',
-                    selectedMethod: payMethod || 'cash',
-                    selected: true,
-                    isPackage: !!a.package_subscription_id,
-                    isExtra: !!a.is_extra,
-                    status: 'idle'
-                  }
-                })
-                setCheckoutItems(items)
-                setCheckoutDone(false)
-                setCheckoutProcessing(false)
-                setShowCheckoutModal(true)
-              }
-
-              return (
-                <div className="pt-2">
-                  <button
-                    type="button"
-                    onClick={openCheckoutModal}
-                    className="w-full py-4 bg-gradient-to-r from-[#6b4f1d] via-[#947629] to-[#6b4f1d] hover:from-[#7a5b22] hover:via-[#a8862f] hover:to-[#7a5b22] text-white border border-amber-400/40 rounded-2xl font-black text-sm uppercase tracking-wider flex items-center justify-center gap-3 transition-all cursor-pointer shadow-xl shadow-amber-900/20 active:scale-[0.98]"
-                  >
-                    <DollarSign className="w-5 h-5 text-amber-300" />
-                    Checkout do Dia — {unpaidAppts.length} pendente{unpaidAppts.length > 1 ? 's' : ''}
-                    <ChevronRight className="w-4 h-4 text-amber-300" />
-                  </button>
-                </div>
-              )
-            })()}
+            {/* Isolated React.memo Agenda Timeline Component */}
+            <AgendaTimeline
+              appointments={appointments}
+              recurringReservations={recurringReservations}
+              barbers={barbers}
+              workingHours={workingHours}
+              daysOff={daysOff}
+              selectedAgendaDate={selectedAgendaDate}
+              selectedBarberFilter={selectedBarberFilter}
+              userRole={userRole}
+              currentUser={currentUser}
+              formatTime={formatTime}
+              getAppointmentPrice={getAppointmentPrice}
+              onSelectAgendaAppt={(appt) => setSelectedAgendaAppt(appt)}
+              onOpenWalkInModal={handleOpenWalkInModal}
+              onOpenCheckoutModal={() => setShowCheckoutModal(true)}
+            />
           </div>
         ) : (
           <div className="space-y-6">
@@ -1549,389 +974,287 @@ export default function PainelAgendamentos() {
                                   <Clock className="w-4 h-4 text-primary shrink-0" />
                                   {formatTime(appt.start_time)}
                                 </span>
-                                <span className="font-mono text-[10px] text-muted-foreground bg-secondary px-2 py-0.5 rounded-lg border border-border/60 tracking-widest font-semibold">
-                                  {apptShortCode(appt.id)}
-                                </span>
-                              </div>
-                              <p className="text-[11px] text-muted-foreground font-medium">
-                                {formatDate(appt.start_time)}
-                              </p>
-                            </div>
-
-                            <div className="flex flex-col items-end gap-1">
-                              <span className={`text-[10px] uppercase font-extrabold px-2.5 py-1 rounded-full border flex items-center gap-1 shrink-0 ${
-                                appt.isRecurringReservation
-                                  ? 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30'
-                                  : appt.status === 'completed' 
-                                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' 
-                                  : appt.status === 'cancelled'
-                                  ? 'bg-destructive/10 text-destructive border-destructive/30'
-                                  : appt.status === 'no_show'
-                                  ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-                                  : appt.status === 'confirmed'
-                                  ? 'bg-primary/10 text-primary border-primary/30'
-                                  : 'bg-amber-400/10 text-amber-400 border-amber-400/30 animate-pulse'
-                              }`}>
-                                {appt.isRecurringReservation && <Repeat className="w-3 h-3 text-cyan-400" />}
-                                {appt.status === 'completed' && <CheckCircle2 className="w-3 h-3" />}
-                                {appt.status === 'confirmed' && <CheckCircle className="w-3 h-3" />}
-                                {appt.status === 'pending' && <Clock className="w-3 h-3" />}
-                                {appt.isRecurringReservation ? 'Reserva Fixa' : appt.status === 'completed' ? 'Concluído' : appt.status === 'cancelled' ? 'Cancelado' : appt.status === 'no_show' ? 'Não Compareceu' : appt.status === 'confirmed' ? 'Confirmado' : 'Pendente'}
-                              </span>
-
-                              {appt.no_show_fee_charged && (
-                                <span className="text-[9px] uppercase font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                                  Taxa Cobrada ✓
-                                </span>
-                              )}
-                              {appt.is_extra && (
-                                <span className="text-[9px] uppercase font-black px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-dashed border-amber-500/40 flex items-center gap-0.5">
-                                  <Zap className="w-2.5 h-2.5 text-amber-400" />
-                                  Extra
-                                </span>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Customer Name & Info */}
-                          <div className="flex items-center gap-3 bg-secondary/30 p-3 rounded-xl border border-border/40">
-                            <div className="w-10 h-10 rounded-full bg-secondary border border-primary/30 flex items-center justify-center text-primary font-serif font-bold text-base shrink-0 shadow-inner">
-                              {appt.customerName ? appt.customerName.charAt(0).toUpperCase() : 'C'}
-                            </div>
-                            <div className="space-y-0.5 min-w-0 flex-1">
-                              <div className="flex items-center justify-between gap-2">
-                                <h4 className="font-bold text-sm text-foreground truncate">
-                                  {appt.customerName}
-                                </h4>
-                                <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded-md bg-primary/15 text-primary border border-primary/30 flex items-center gap-1 shrink-0">
-                                  <Scissors className="w-3 h-3 text-primary" />
-                                  {appt.barberName?.split(' ')[0]}
-                                </span>
-                              </div>
-                              <p className="text-[11px] text-muted-foreground flex items-center gap-1 truncate">
-                                <User className="w-3 h-3 text-primary" />
-                                Profissional: <strong className="text-foreground font-medium">{appt.barberName}</strong>
-                              </p>
-                            </div>
-                          </div>
-
-                          {/* Service & Price Row */}
-                          <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                            <div className="space-y-0.5">
-                              <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider block">Serviço</span>
-                              <span className="font-semibold text-foreground flex items-center gap-1.5">
-                                {appt.services?.name}
-                                {appt.package_subscription_id && (
-                                  <span className="text-[9px] uppercase font-extrabold px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-400 border border-amber-500/30">
-                                    Pacote
+                                {!appt.isRecurringReservation && (
+                                  <span className="font-mono text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded border border-border/60">
+                                    {apptShortCode(appt.id)}
                                   </span>
                                 )}
+                              </div>
+                              <span className="text-[11px] font-medium text-muted-foreground block">
+                                {formatDate(appt.start_time)}
                               </span>
                             </div>
 
-                            <div className="text-right space-y-0.5">
-                              <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider block">Valor</span>
-                              <span className="font-serif font-bold text-amber-400 text-sm">
+                            {/* Status Pill */}
+                            <div>
+                              {appt.isRecurringReservation ? (
+                                <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 flex items-center gap-1">
+                                  <Repeat className="w-3 h-3" /> Fixa
+                                </span>
+                              ) : appt.status === 'confirmed' || appt.status === 'pending' ? (
+                                <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30 flex items-center gap-1">
+                                  <Clock className="w-3 h-3" /> Ativo
+                                </span>
+                              ) : appt.status === 'completed' ? (
+                                <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                                  <CheckCircle2 className="w-3 h-3" /> Concluído
+                                </span>
+                              ) : appt.status === 'no_show' ? (
+                                <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1">
+                                  <UserX className="w-3 h-3" /> Não Compareceu
+                                </span>
+                              ) : (
+                                <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-destructive/15 text-destructive border border-destructive/30 flex items-center gap-1">
+                                  <X className="w-3 h-3" /> Cancelado
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Customer & Barber Details */}
+                          <div className="space-y-1 bg-secondary/30 p-3 rounded-xl border border-border/40">
+                            <div className="flex items-center justify-between">
+                              <span className="font-bold text-sm text-foreground flex items-center gap-1.5">
+                                <User className="w-4 h-4 text-primary shrink-0" />
+                                {appt.customerName}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-border/30">
+                              <span className="flex items-center gap-1">
+                                <Scissors className="w-3 h-3 text-muted-foreground" />
+                                {appt.services?.name || 'Serviço'}
+                              </span>
+                              <span className="font-semibold text-foreground">
                                 R$ {getAppointmentPrice(appt).toFixed(2)}
                               </span>
                             </div>
-                          </div>
 
-                          {/* Payment Method Badge */}
-                          <div className="flex items-center justify-between pt-1 border-t border-border/30 text-xs">
-                            <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-                              <Wallet className="w-3.5 h-3.5 text-primary" /> Formato Pagto:
-                            </span>
-                            <span className={`text-[10px] uppercase font-bold px-2.5 py-0.5 rounded-lg border ${
-                              payMethod === 'cash'
-                                ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
-                                : payMethod === 'card'
-                                ? 'bg-blue-500/15 text-blue-400 border-blue-500/30'
-                                : payMethod === 'pix'
-                                ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
-                                : 'bg-secondary text-muted-foreground border-border/50'
-                            }`}>
-                              {payMethod === 'cash' ? 'Dinheiro' : payMethod === 'card' ? 'Cartão' : payMethod === 'pix' ? 'Pix (Sinal)' : 'Não Inf.'}
-                            </span>
-                          </div>
-
-                          {/* Notes */}
-                          {appt.notes && (
-                            <div className="text-xs bg-secondary/50 p-2.5 rounded-xl border border-border/40">
-                              <div className="flex items-center justify-between mb-1">
-                                <span className="text-[10px] text-muted-foreground font-semibold uppercase">Observações</span>
-                                {editingNotesId !== appt.id && (
-                                  <button
-                                    onClick={() => {
-                                      setEditingNotesId(appt.id)
-                                      setNotesContent(appt.notes || '')
-                                    }}
-                                    className="text-[10px] text-primary hover:underline font-semibold flex items-center gap-0.5"
-                                  >
-                                    <Edit2 className="w-3 h-3" /> Editar
-                                  </button>
-                                )}
-                              </div>
-                              {editingNotesId === appt.id ? (
-                                <div className="space-y-2 mt-1">
-                                  <textarea
-                                    value={notesContent}
-                                    onChange={(e) => setNotesContent(e.target.value)}
-                                    rows={2}
-                                    className="w-full p-2 bg-background border border-primary rounded-lg text-xs text-foreground outline-none resize-none"
-                                  />
-                                  <div className="flex justify-end gap-1.5">
-                                    <button
-                                      onClick={() => setEditingNotesId(null)}
-                                      className="px-2 py-1 bg-secondary text-muted-foreground hover:text-foreground rounded text-[10px] font-semibold"
-                                    >
-                                      Cancelar
-                                    </button>
-                                    <button
-                                      onClick={() => handleSaveNotes(appt.id)}
-                                      disabled={isPending}
-                                      className="px-2.5 py-1 bg-primary text-primary-foreground rounded text-[10px] font-bold flex items-center gap-1"
-                                    >
-                                      {isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
-                                      Salvar
-                                    </button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <p className="text-foreground/90 italic text-[11px] leading-relaxed">
-                                  {appt.notes}
-                                </p>
+                            <div className="text-[11px] text-muted-foreground flex items-center justify-between pt-0.5">
+                              <span>Barbeiro: <strong className="text-foreground">{appt.barberName}</strong></span>
+                              {payMethod && (
+                                <span className="uppercase text-[9px] font-bold px-1.5 py-0.5 bg-background rounded border border-border">
+                                  {payMethod}
+                                </span>
                               )}
                             </div>
-                          )}
+                          </div>
+
+                          {/* Notes view/edit */}
+                          <div className="space-y-1">
+                            {editingNotesId === appt.id ? (
+                              <div className="space-y-2">
+                                <textarea
+                                  value={notesContent}
+                                  onChange={(e) => setNotesContent(e.target.value)}
+                                  placeholder="Adicionar observações..."
+                                  rows={2}
+                                  className="w-full p-2.5 bg-background border border-primary rounded-xl text-xs outline-none resize-none text-foreground"
+                                />
+                                <div className="flex justify-end gap-2">
+                                  <button
+                                    onClick={() => setEditingNotesId(null)}
+                                    className="px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground"
+                                  >
+                                    Cancelar
+                                  </button>
+                                  <button
+                                    onClick={() => handleSaveNotes(appt.id)}
+                                    disabled={isPending}
+                                    className="px-3 py-1 bg-primary text-primary-foreground text-xs font-bold rounded-lg flex items-center gap-1"
+                                  >
+                                    {isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                                    Salvar
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div
+                                onClick={() => {
+                                  if (!appt.isRecurringReservation) {
+                                    setEditingNotesId(appt.id)
+                                    setNotesContent(appt.notes || '')
+                                  }
+                                }}
+                                className="group/note p-2 bg-secondary/20 hover:bg-secondary/40 rounded-xl border border-border/30 text-xs text-muted-foreground transition-all cursor-pointer flex items-start justify-between gap-2 min-h-[36px]"
+                              >
+                                <p className="italic text-[11px] line-clamp-2">
+                                  {appt.notes || 'Sem observações (clique para adicionar)...'}
+                                </p>
+                                {!appt.isRecurringReservation && (
+                                  <Edit2 className="w-3 h-3 text-muted-foreground opacity-0 group-hover/note:opacity-100 transition-opacity shrink-0 mt-0.5" />
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </div>
 
                         {/* Action buttons footer */}
-                        <div className="pt-3 border-t border-border/60 flex items-center gap-2 flex-wrap sm:flex-nowrap">
-                          {appt.status !== 'completed' && appt.status !== 'cancelled' && (
-                            <button
-                              onClick={() => handleStatusUpdate(appt.id, 'completed')}
-                              disabled={isPending}
-                              className="flex-1 min-h-[44px] py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm active:scale-95 disabled:opacity-50"
-                            >
-                              <CheckCircle2 className="w-4 h-4 text-white" />
-                              <span>Concluir</span>
-                            </button>
-                          )}
+                        {!appt.isRecurringReservation && (
+                          <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/40">
+                            {appt.status !== 'completed' && appt.status !== 'cancelled' && appt.status !== 'no_show' && (
+                              <>
+                                <button
+                                  onClick={() => handleStatusUpdate(appt.id, 'completed')}
+                                  disabled={isPending}
+                                  className="flex-1 py-2 px-3 bg-emerald-600/15 hover:bg-emerald-600 text-emerald-400 hover:text-white border border-emerald-500/30 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                                >
+                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                  Concluir
+                                </button>
+                                <button
+                                  onClick={() => setNoShowTarget(appt)}
+                                  disabled={isPending}
+                                  className="py-2 px-2.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-xl text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer"
+                                  title="Marcar como Não Compareceu (gera cobrança de 50%)"
+                                >
+                                  <UserX className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => handleStatusUpdate(appt.id, 'cancelled')}
+                                  disabled={isPending}
+                                  className="py-2 px-2.5 bg-destructive/10 hover:bg-destructive text-destructive hover:text-white border border-destructive/20 rounded-xl text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer"
+                                  title="Cancelar agendamento"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </>
+                            )}
 
-                          {appt.status !== 'completed' && appt.status !== 'cancelled' && appt.status !== 'no_show' && (
-                            <button
-                              onClick={() => handleStatusUpdate(appt.id, 'cancelled')}
-                              disabled={isPending}
-                              className="min-h-[44px] py-2.5 px-3 bg-destructive/10 hover:bg-destructive/20 border border-destructive/30 text-destructive text-xs font-semibold rounded-xl flex items-center justify-center gap-1 transition-all cursor-pointer active:scale-95 disabled:opacity-50"
-                            >
-                              <X className="w-4 h-4" />
-                              <span>Cancelar</span>
-                            </button>
-                          )}
+                            {/* Receipt button for completed */}
+                            {appt.status === 'completed' && (
+                              <button
+                                onClick={() => setSelectedReceiptApptId(appt.id)}
+                                className="flex-1 py-2 px-3 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                              >
+                                <FileText className="w-3.5 h-3.5" /> Recibo
+                              </button>
+                            )}
 
-                          {appt.status !== 'completed' && appt.status !== 'cancelled' && appt.status !== 'no_show' && (payMethod === 'cash' || payMethod === 'card') && (
-                            <button
-                              onClick={() => setNoShowTarget(appt)}
-                              disabled={isPending}
-                              className="min-h-[44px] py-2.5 px-3 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 text-xs font-semibold rounded-xl flex items-center justify-center gap-1 transition-all cursor-pointer active:scale-95 disabled:opacity-50"
-                              title="Marcar como não compareceu"
-                            >
-                              <UserX className="w-4 h-4" />
-                              <span className="hidden sm:inline">Não Compareceu</span>
-                            </button>
-                          )}
-
-                          {(appt.status === 'completed' || (Array.isArray(appt.payments) ? appt.payments[0]?.status : appt.payments?.status) === 'confirmed_manually' || (Array.isArray(appt.payments) ? appt.payments[0]?.status : appt.payments?.status) === 'paid') && (
-                            <button
-                              onClick={() => setSelectedReceiptApptId(appt.id)}
-                              className="min-h-[44px] py-2.5 px-3 bg-primary/10 hover:bg-primary/20 border border-primary/30 text-primary font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95 shadow-sm"
-                              title="Emitir Recibo de Pagamento"
-                            >
-                              <FileText className="w-4 h-4 text-primary" />
-                              <span>Emitir Recibo</span>
-                            </button>
-                          )}
-
-                          {userRole === 'admin' && (
-                            <button
-                              onClick={() => handleDelete(appt)}
-                              disabled={isPending}
-                              className="min-h-[44px] p-2.5 bg-destructive/10 hover:bg-destructive/20 border border-destructive/25 text-destructive rounded-xl transition-all cursor-pointer flex items-center justify-center shrink-0"
-                              title="Excluir agendamento permanentemente"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          )}
-                        </div>
+                            {/* Admin Delete Button */}
+                            {userRole === 'admin' && (
+                              <button
+                                onClick={() => handleDelete(appt)}
+                                disabled={isPending}
+                                className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl transition-all cursor-pointer"
+                                title="Excluir agendamento permanentemente (Admin)"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )
                   })}
               </div>
             ) : (
-              <div className="p-12 text-center bg-secondary/20 border border-border/60 rounded-2xl space-y-3">
-                <Calendar className="w-12 h-12 text-muted-foreground/30 mx-auto" />
-                <h3 className="text-base font-semibold text-foreground">Nenhum agendamento encontrado</h3>
-                <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                  {searchQuery || filterDate || statusFilter !== 'all'
-                    ? 'Tente alterar os filtros ou termo de busca.'
-                    : 'Não há agendamentos cadastrados no momento.'}
-                </p>
+              <div className="p-12 text-center text-muted-foreground bg-card/40 rounded-3xl border border-border/60 space-y-3">
+                <Calendar className="w-10 h-10 mx-auto opacity-30" />
+                <p className="text-sm font-semibold">Nenhum agendamento encontrado para o filtro selecionado.</p>
+                {(filterDate || searchQuery || statusFilter !== 'all') && (
+                  <button
+                    onClick={() => {
+                      setFilterDate('')
+                      setSearchQuery('')
+                      setStatusFilter('all')
+                    }}
+                    className="text-xs text-primary underline font-medium cursor-pointer"
+                  >
+                    Limpar filtros
+                  </button>
+                )}
               </div>
             )}
           </div>
         )}
 
-        {/* Selected Agenda Appointment Action Detail Modal */}
+        {/* Selected Appointment Detail Modal */}
         {selectedAgendaAppt && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
-            <div className="bg-card border border-border/80 rounded-2xl p-6 max-w-md w-full space-y-5 shadow-2xl relative max-h-[90vh] overflow-y-auto">
-              
+            <div className="bg-card border border-border/80 rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl relative">
               <div className="flex justify-between items-start pb-3 border-b border-border/40">
-                <div className="space-y-0.5">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-mono text-xs text-primary font-bold bg-primary/10 px-2 py-0.5 rounded border border-primary/20">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs font-bold px-2 py-0.5 bg-primary/10 text-primary border border-primary/20 rounded">
                       {apptShortCode(selectedAgendaAppt.id)}
                     </span>
-                    <span className={`text-[10px] uppercase font-extrabold px-2.5 py-0.5 rounded-full border ${
-                      selectedAgendaAppt.status === 'completed'
-                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                        : selectedAgendaAppt.status === 'no_show'
-                        ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-                        : 'bg-primary/10 text-primary border-primary/30'
-                    }`}>
-                      {selectedAgendaAppt.status === 'completed' ? 'Concluído' : selectedAgendaAppt.status === 'no_show' ? 'Não Compareceu' : 'Confirmado'}
-                    </span>
-                    <span className="text-[10px] uppercase font-black px-2.5 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/30 flex items-center gap-1">
-                      <Scissors className="w-3 h-3 text-primary" />
-                      {selectedAgendaAppt.barberName?.split(' ')[0]}
-                    </span>
-                    {selectedAgendaAppt.is_extra && (
-                      <span className="text-[10px] uppercase font-black px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-dashed border-amber-500/40 flex items-center gap-1">
-                        <Zap className="w-3 h-3 text-amber-400" />
-                        Extra
-                      </span>
-                    )}
+                    <h3 className="font-serif font-bold text-lg text-foreground">{selectedAgendaAppt.customerName}</h3>
                   </div>
-                  <h3 className="font-serif font-bold text-lg text-foreground mt-1">
-                    {selectedAgendaAppt.customerName}
-                  </h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {formatDate(selectedAgendaAppt.start_time)} às {formatTime(selectedAgendaAppt.start_time)}
+                  </p>
                 </div>
                 <button
                   onClick={() => setSelectedAgendaAppt(null)}
-                  className="text-muted-foreground hover:text-foreground p-1 rounded-lg hover:bg-secondary cursor-pointer"
+                  className="p-1 text-muted-foreground hover:text-foreground rounded-lg"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              {/* Appointment details summary */}
-              <div className="p-3.5 bg-secondary/30 border border-border/50 rounded-xl space-y-2 text-xs">
+              <div className="space-y-2.5 text-xs bg-secondary/30 p-3.5 rounded-xl border border-border/40">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground flex items-center gap-1">
-                    <Calendar className="w-3.5 h-3.5 text-primary" /> Data & Hora:
-                  </span>
-                  <span className="font-bold text-foreground">
-                    {formatDate(selectedAgendaAppt.start_time)} às {formatTime(selectedAgendaAppt.start_time)}
-                  </span>
+                  <span className="text-muted-foreground">Serviço:</span>
+                  <span className="font-bold text-foreground">{selectedAgendaAppt.services?.name}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground flex items-center gap-1">
-                    <Scissors className="w-3.5 h-3.5 text-primary" /> Serviço:
-                  </span>
-                  <span className="font-semibold text-foreground">{selectedAgendaAppt.services?.name}</span>
+                  <span className="text-muted-foreground">Barbeiro:</span>
+                  <span className="font-semibold text-foreground">{selectedAgendaAppt.barberName}</span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground flex items-center gap-1">
-                    <User className="w-3.5 h-3.5 text-primary" /> Profissional:
-                  </span>
-                  <span className="px-2.5 py-1 rounded-lg bg-primary/15 text-primary border border-primary/30 font-bold text-xs flex items-center gap-1">
-                    <Scissors className="w-3.5 h-3.5 text-primary" /> {selectedAgendaAppt.barberName}
-                  </span>
-                </div>
-                <div className="flex justify-between border-t border-border/40 pt-1.5">
-                  <span className="text-muted-foreground flex items-center gap-1">
-                    <DollarSign className="w-3.5 h-3.5 text-amber-400" /> Valor Total:
-                  </span>
-                  <span className="font-bold text-amber-400">
-                    R$ {getAppointmentPrice(selectedAgendaAppt).toFixed(2)}
-                  </span>
+                <div className="flex justify-between border-t border-border/30 pt-2">
+                  <span className="text-muted-foreground">Valor:</span>
+                  <span className="font-bold text-amber-400">R$ {getAppointmentPrice(selectedAgendaAppt).toFixed(2)}</span>
                 </div>
                 {selectedAgendaAppt.notes && (
-                  <div className="border-t border-border/40 pt-1.5 text-muted-foreground">
-                    <span className="font-semibold text-foreground block mb-0.5">Observações:</span>
-                    <p className="italic bg-background/50 p-2 rounded border border-border/40">{selectedAgendaAppt.notes}</p>
+                  <div className="border-t border-border/30 pt-2">
+                    <span className="text-muted-foreground block mb-0.5">Observações:</span>
+                    <p className="italic text-foreground">{selectedAgendaAppt.notes}</p>
                   </div>
                 )}
               </div>
 
-              {/* Action buttons grid */}
-              <div className="space-y-2 pt-1">
-                <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block mb-2">
-                  Ações do Agendamento
-                </span>
-
-                {selectedAgendaAppt.status !== 'completed' && (
+              <div className="flex items-center justify-end gap-2 pt-2">
+                {selectedAgendaAppt.status !== 'completed' && selectedAgendaAppt.status !== 'cancelled' && (
                   <button
                     onClick={() => {
-                      handleStatusUpdate(selectedAgendaAppt.id, 'completed')
+                      const id = selectedAgendaAppt.id
                       setSelectedAgendaAppt(null)
+                      handleStatusUpdate(id, 'completed')
                     }}
-                    disabled={isPending}
-                    className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm"
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-sm"
                   >
-                    <CheckCircle2 className="w-4 h-4" /> Concluir Atendimento
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Concluir Atendimento
                   </button>
                 )}
-
-                <div className="grid grid-cols-2 gap-2">
+                {selectedAgendaAppt.status === 'completed' && (
                   <button
                     onClick={() => {
-                      setSelectedReceiptApptId(selectedAgendaAppt.id)
+                      const id = selectedAgendaAppt.id
                       setSelectedAgendaAppt(null)
+                      setSelectedReceiptApptId(id)
                     }}
-                    className="py-2 px-3 bg-secondary hover:bg-muted text-foreground font-semibold rounded-xl text-xs flex items-center justify-center gap-1.5 border border-border/60 transition-all cursor-pointer"
+                    className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-sm"
                   >
-                    <FileText className="w-3.5 h-3.5 text-primary" /> Recibo
+                    <FileText className="w-3.5 h-3.5" /> Emitir Recibo
                   </button>
-
-                  <button
-                    onClick={() => {
-                      setNoShowTarget(selectedAgendaAppt)
-                      setSelectedAgendaAppt(null)
-                    }}
-                    className="py-2 px-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 font-semibold rounded-xl text-xs flex items-center justify-center gap-1.5 border border-amber-500/30 transition-all cursor-pointer"
-                  >
-                    <UserX className="w-3.5 h-3.5" /> Não Compareceu
-                  </button>
-                </div>
-
-                <button
-                  onClick={() => {
-                    setDeleteTarget(selectedAgendaAppt)
-                    setSelectedAgendaAppt(null)
-                  }}
-                  className="w-full py-2.5 bg-destructive/10 hover:bg-destructive/20 text-destructive font-semibold rounded-xl text-xs flex items-center justify-center gap-2 border border-destructive/30 transition-all cursor-pointer mt-1"
-                >
-                  <Trash2 className="w-3.5 h-3.5" /> Cancelar / Excluir
-                </button>
+                )}
               </div>
-
             </div>
           </div>
         )}
 
-        {/* Delete Confirmation Modal (admin only) */}
+        {/* Delete Confirmation Modal (Admin only) */}
         {deleteTarget && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
-            <div className="bg-card border border-border/80 rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl">
+            <div className="bg-card border border-destructive/40 rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl">
               <div className="flex items-center gap-3 text-destructive">
                 <div className="p-3 bg-destructive/10 rounded-full">
                   <AlertTriangle className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-serif font-bold text-foreground">Excluir Agendamento?</h3>
-                  <p className="text-xs text-muted-foreground">Esta ação é permanente e irreversível.</p>
+                  <h3 className="text-lg font-serif font-bold text-foreground">Excluir Agendamento</h3>
+                  <p className="text-xs text-muted-foreground">Esta ação não pode ser desfeita.</p>
                 </div>
               </div>
 
@@ -1941,14 +1264,8 @@ export default function PainelAgendamentos() {
                   <span className="font-semibold text-foreground">{deleteTarget.customerName}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Serviço:</span>
-                  <span className="font-semibold text-foreground">{deleteTarget.services?.name}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Data / Hora:</span>
-                  <span className="font-semibold text-foreground">
-                    {formatDate(deleteTarget.start_time)} às {formatTime(deleteTarget.start_time)}
-                  </span>
+                  <span className="text-muted-foreground">Data/Hora:</span>
+                  <span className="font-semibold text-foreground">{formatDate(deleteTarget.start_time)} às {formatTime(deleteTarget.start_time)}</span>
                 </div>
               </div>
 
@@ -2027,770 +1344,54 @@ export default function PainelAgendamentos() {
           </div>
         )}
 
-        {/* Walk-in / Novo Agendamento Modal overlay */}
-        {showWalkInModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className={`bg-card border border-border/80 rounded-2xl p-6 sm:p-8 w-full space-y-5 relative shadow-2xl max-h-[90vh] overflow-y-auto transition-all ${
-              modalTab === 'pacote' ? 'max-w-xl' : 'max-w-md'
-            }`}>
-              
-              {/* Header & Segmented Tab Controls */}
-              <div className="space-y-3 pb-3 border-b border-border/40">
-                <div className="flex justify-between items-center">
-                  <h3 className="font-serif font-bold text-lg text-foreground flex items-center gap-2">
-                    {modalTab === 'avulso' ? (
-                      <><Scissors className="w-5 h-5 text-primary rotate-45" /> Novo Agendamento Presencial</>
-                    ) : (
-                      <><Crown className="w-5 h-5 text-primary" /> Novo Pacote Mensal VIP</>
-                    )}
-                  </h3>
-                  <button
-                    onClick={handleCloseWalkInModal}
-                    className="text-muted-foreground hover:text-foreground p-1.5 hover:bg-secondary rounded-lg transition-colors cursor-pointer"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-
-                {/* Segmented Tab Selector */}
-                <div className="flex items-center gap-1.5 bg-secondary/60 p-1 rounded-xl border border-border/60">
-                  <button
-                    type="button"
-                    onClick={() => setModalTab('avulso')}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                      modalTab === 'avulso'
-                        ? 'bg-primary text-primary-foreground shadow-sm'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    <Clock className="w-3.5 h-3.5" />
-                    <span>Horário Avulso</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setModalTab('pacote')}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                      modalTab === 'pacote'
-                        ? 'bg-primary text-primary-foreground shadow-sm'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    <Crown className="w-3.5 h-3.5" />
-                    <span>Pacote Mensal</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Tab 1: Horário Avulso (Single Walk-in Appointment) */}
-              {modalTab === 'avulso' && (
-                <form onSubmit={handleCreateWalkIn} className="space-y-4">
-                  {/* Customer Selector with Segmented Tabs */}
-                  <div className="space-y-2.5 bg-secondary/30 p-3.5 rounded-xl border border-border/60">
-                    <div className="flex items-center justify-between border-b border-border/40 pb-2">
-                      <span className="text-[11px] uppercase font-bold text-primary tracking-wider flex items-center gap-1.5">
-                        <User className="w-3.5 h-3.5" /> Cliente
-                      </span>
-                      <div className="flex items-center gap-1 bg-background p-0.5 rounded-lg border border-border/60">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setWalkInIsRegistered(true)
-                            setClientName('')
-                          }}
-                          className={`px-2.5 py-1 text-[10px] font-bold rounded-md transition-all cursor-pointer ${
-                            walkInIsRegistered
-                              ? 'bg-primary text-primary-foreground shadow-sm'
-                              : 'text-muted-foreground hover:text-foreground'
-                          }`}
-                        >
-                          Cliente Cadastrado
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setWalkInIsRegistered(false)
-                            setWalkInCustomerId('')
-                          }}
-                          className={`px-2.5 py-1 text-[10px] font-bold rounded-md transition-all cursor-pointer ${
-                            !walkInIsRegistered
-                              ? 'bg-primary text-primary-foreground shadow-sm'
-                              : 'text-muted-foreground hover:text-foreground'
-                          }`}
-                        >
-                          Sem Cadastro / Presencial
-                        </button>
-                      </div>
-                    </div>
-
-                    {walkInIsRegistered ? (
-                      <CustomCustomerSelect
-                        customers={customers}
-                        selectedId={walkInCustomerId}
-                        onSelect={(id, name) => {
-                          setWalkInCustomerId(id)
-                          setClientName(name)
-                        }}
-                        disabled={isPending}
-                      />
-                    ) : (
-                      <div className="space-y-1">
-                        <div className="relative">
-                          <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                          <input
-                            type="text"
-                            placeholder="Nome completo do cliente ou apelido (ex: Seu Zé, Beiço)..."
-                            value={clientName}
-                            onChange={(e) => setClientName(e.target.value)}
-                            disabled={isPending}
-                            className="w-full pl-10 pr-4 py-2.5 bg-secondary/60 border border-border focus:border-primary rounded-xl text-sm outline-none text-foreground placeholder:text-muted-foreground"
-                            required={!walkInIsRegistered}
-                          />
-                        </div>
-                        <p className="text-[10px] text-muted-foreground italic pl-1">
-                          Digite o nome ou apelido para agendamentos rápidos sem cadastro prévio.
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">Barbeiro</label>
-                    <CustomBarberSelect
-                      barbers={barbers}
-                      selectedId={selectedBarberId}
-                      onSelect={setSelectedBarberId}
-                      disabled={isPending || userRole === 'barber'}
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">Serviço</label>
-                    <CustomServiceSelect
-                      services={services}
-                      selectedId={selectedServiceId}
-                      onSelect={setSelectedServiceId}
-                      disabled={isPending}
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label htmlFor="wDate" className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">Data</label>
-                    <input
-                      id="wDate"
-                      type="date"
-                      value={walkInDate}
-                      onChange={(e) => setWalkInDate(e.target.value)}
-                      disabled={isPending}
-                      className="w-full px-4 py-3 bg-secondary/60 border border-border focus:border-primary rounded-xl text-base text-foreground outline-none cursor-pointer"
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">Horários Disponíveis</label>
-                    {loadingSlots ? (
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground py-3 bg-secondary/30 rounded-xl px-4 border border-border/40">
-                        <Loader2 className="w-4 h-4 animate-spin text-primary" /> Carregando horários livres...
-                      </div>
-                    ) : availableSlots.length > 0 ? (
-                      <div className="grid grid-cols-4 gap-2 max-h-44 overflow-y-auto p-1 bg-secondary/20 rounded-xl border border-border/50">
-                        {availableSlots.map(t => {
-                          const isSelected = walkInTime === t
-                          return (
-                            <button
-                              key={t}
-                              type="button"
-                              onClick={() => setWalkInTime(t)}
-                              disabled={isPending}
-                              className={`py-2 px-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer border ${
-                                isSelected
-                                  ? 'bg-primary text-primary-foreground border-primary shadow-md shadow-amber-500/20 scale-105'
-                                  : 'bg-secondary/60 hover:bg-secondary/90 border-border text-foreground'
-                              }`}
-                            >
-                              <Clock className="w-3 h-3 shrink-0" />
-                              <span>{t}</span>
-                            </button>
-                          )
-                        })}
-                      </div>
-                    ) : (
-                      <p className="text-xs text-muted-foreground italic bg-secondary/40 p-3 rounded-xl border border-border/60">
-                        Selecione barbeiro, serviço e data para carregar horários disponíveis.
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">Forma de Pagamento (Presencial)</label>
-                    <CustomGenericSelect
-                      options={[
-                        { value: 'cash', label: 'Dinheiro', icon: <DollarSign className="w-4 h-4 text-emerald-400" /> },
-                        { value: 'card', label: 'Cartão (Débito / Crédito)', icon: <Wallet className="w-4 h-4 text-sky-400" /> },
-                        { value: 'pix', label: 'Pix (No local)', icon: <Sparkles className="w-4 h-4 text-amber-400" /> },
-                        { value: 'other', label: 'Outro', icon: <Scissors className="w-4 h-4 text-purple-400" /> }
-                      ]}
-                      selectedValue={walkInPaymentMethod}
-                      onSelect={setWalkInPaymentMethod}
-                      disabled={isPending}
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label htmlFor="wNotes" className="text-xs font-semibold text-muted-foreground uppercase">Observações Extras</label>
-                    <textarea
-                      id="wNotes"
-                      placeholder="Ex: Prefere corte tesoura, cliente novo..."
-                      value={walkInNotes}
-                      onChange={(e) => setWalkInNotes(e.target.value)}
-                      disabled={isPending}
-                      rows={2}
-                      className="w-full p-3 bg-secondary/50 border border-border focus:border-primary rounded-xl text-xs text-foreground placeholder:text-muted-foreground/60 outline-none resize-none"
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={isPending || (availableSlots.length > 0 && !walkInTime)}
-                    className="w-full py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md disabled:opacity-50"
-                  >
-                    {isPending ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Registrando...
-                      </>
-                    ) : (
-                      <>
-                        Confirmar Agendamento Presencial
-                        <Check className="w-4 h-4" />
-                      </>
-                    )}
-                  </button>
-                </form>
-              )}
-
-              {/* Tab 2: Pacote Mensal VIP */}
-              {modalTab === 'pacote' && (
-                <CreatePackageForm
-                  initialBarberId={selectedBarberId}
-                  initialStartDate={walkInDate}
-                  initialTimeSlot={walkInTime}
-                  onSuccess={(msg) => {
-                    setSuccessMsg(msg || 'Pacote mensal criado com sucesso!')
-                    setShowWalkInModal(false)
-                    setModalTab('avulso')
-                    loadData()
-                  }}
-                  onCancel={handleCloseWalkInModal}
-                />
-              )}
-            </div>
-          </div>
-        )}
+        {/* Walk-in / Encaixe Presencial Modal */}
+        <WalkInModal
+          isOpen={showWalkInModal}
+          onClose={() => setShowWalkInModal(false)}
+          onSuccess={(msg) => {
+            setSuccessMsg(msg)
+            loadData()
+          }}
+          barbers={barbers}
+          services={services}
+          customers={customers}
+          defaultDate={selectedAgendaDate || todayLocalStr}
+          defaultBarberId={walkInModalBarberId}
+          defaultTime={walkInModalTime}
+          userRole={userRole}
+          currentUser={currentUser}
+        />
 
         {/* Atendimento Extra Modal */}
-        {showExtraModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="bg-card border-2 border-dashed border-amber-500/40 rounded-2xl p-6 sm:p-8 w-full max-w-md space-y-5 relative shadow-2xl max-h-[90vh] overflow-y-auto">
-              
-              {/* Header */}
-              <div className="flex justify-between items-center pb-3 border-b border-amber-500/20">
-                <h3 className="font-serif font-bold text-lg text-foreground flex items-center gap-2">
-                  <Zap className="w-5 h-5 text-amber-400" />
-                  Atendimento Extra
-                </h3>
-                <button
-                  onClick={handleCloseExtraModal}
-                  className="text-muted-foreground hover:text-foreground p-1.5 hover:bg-secondary rounded-lg transition-colors cursor-pointer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <p className="text-[11px] text-amber-400/80 bg-amber-500/5 border border-amber-500/20 rounded-lg p-2.5 flex items-start gap-2">
-                <Zap className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
-                <span>Este atendimento <strong>ignora validações de horário e data (incluindo datas/horários passados)</strong> — ideal para encaixes fora do expediente, almoço ou <strong>registro retroativo de atendimentos esquecidos</strong>.</span>
-              </p>
-
-              <form onSubmit={handleCreateExtra} className="space-y-4">
-                {/* Customer Selector */}
-                <div className="space-y-2.5 bg-secondary/30 p-3.5 rounded-xl border border-border/60">
-                  <div className="flex items-center justify-between border-b border-border/40 pb-2">
-                    <span className="text-[11px] uppercase font-bold text-amber-400 tracking-wider flex items-center gap-1.5">
-                      <User className="w-3.5 h-3.5" /> Cliente
-                    </span>
-                    <div className="flex items-center gap-1 bg-background p-0.5 rounded-lg border border-border/60">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setExtraIsRegistered(true)
-                          setExtraClientName('')
-                        }}
-                        className={`px-2.5 py-1 text-[10px] font-bold rounded-md transition-all cursor-pointer ${
-                          extraIsRegistered
-                            ? 'bg-amber-500/20 text-amber-400 shadow-sm'
-                            : 'text-muted-foreground hover:text-foreground'
-                        }`}
-                      >
-                        Cadastrado
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setExtraIsRegistered(false)
-                          setExtraCustomerId('')
-                        }}
-                        className={`px-2.5 py-1 text-[10px] font-bold rounded-md transition-all cursor-pointer ${
-                          !extraIsRegistered
-                            ? 'bg-amber-500/20 text-amber-400 shadow-sm'
-                            : 'text-muted-foreground hover:text-foreground'
-                        }`}
-                      >
-                        Sem Cadastro
-                      </button>
-                    </div>
-                  </div>
-
-                  {extraIsRegistered ? (
-                    <CustomCustomerSelect
-                      customers={customers}
-                      selectedId={extraCustomerId}
-                      onSelect={(id, name) => {
-                        setExtraCustomerId(id)
-                        setExtraClientName(name)
-                      }}
-                      disabled={isPending}
-                    />
-                  ) : (
-                    <div className="relative">
-                      <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <input
-                        type="text"
-                        placeholder="Nome do cliente (ex: Seu Zé)..."
-                        value={extraClientName}
-                        onChange={(e) => setExtraClientName(e.target.value)}
-                        disabled={isPending}
-                        className="w-full pl-10 pr-4 py-2.5 bg-secondary/60 border border-border focus:border-amber-500 rounded-xl text-sm outline-none text-foreground placeholder:text-muted-foreground"
-                        required={!extraIsRegistered}
-                      />
-                    </div>
-                  )}
-                </div>
-
-                {/* Barber */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">Barbeiro</label>
-                  <CustomBarberSelect
-                    barbers={barbers}
-                    selectedId={extraBarberId}
-                    onSelect={setExtraBarberId}
-                    disabled={isPending || userRole === 'barber'}
-                  />
-                </div>
-
-                {/* Service */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">Serviço</label>
-                  <CustomServiceSelect
-                    services={services}
-                    selectedId={extraServiceId}
-                    onSelect={(id) => {
-                      setExtraServiceId(id)
-                      const svc = services.find(s => s.id === id)
-                      if (svc) setExtraPrice(String(svc.price))
-                    }}
-                    disabled={isPending}
-                  />
-                </div>
-
-                {/* Editable Price */}
-                {extraServiceId && (
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">Valor (R$)</label>
-                    <div className="relative">
-                      <DollarSign className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-400" />
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={extraPrice}
-                        onChange={(e) => setExtraPrice(e.target.value)}
-                        disabled={isPending}
-                        className="w-full pl-10 pr-4 py-2.5 bg-secondary/60 border border-border focus:border-amber-500 rounded-xl text-sm outline-none text-foreground font-bold"
-                        placeholder="Preço do serviço"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* Date & Time (side by side) */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">Data</label>
-                    <input
-                      type="date"
-                      value={extraDate}
-                      onChange={(e) => setExtraDate(e.target.value)}
-                      disabled={isPending}
-                      className="w-full px-3 py-2.5 bg-secondary/60 border border-border focus:border-amber-500 rounded-xl text-sm text-foreground outline-none cursor-pointer"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">Hora</label>
-                    <input
-                      type="time"
-                      value={extraTime}
-                      onChange={(e) => setExtraTime(e.target.value)}
-                      disabled={isPending}
-                      className="w-full px-3 py-2.5 bg-secondary/60 border border-border focus:border-amber-500 rounded-xl text-sm text-foreground outline-none cursor-pointer"
-                      required
-                    />
-                  </div>
-                </div>
-
-                {/* Notes */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">Observação (opcional)</label>
-                  <textarea
-                    placeholder="Ex: atendido durante o almoço, cliente chegou sem marcar..."
-                    value={extraNotes}
-                    onChange={(e) => setExtraNotes(e.target.value)}
-                    disabled={isPending}
-                    rows={2}
-                    className="w-full p-3 bg-secondary/50 border border-border focus:border-amber-500 rounded-xl text-xs text-foreground placeholder:text-muted-foreground/60 outline-none resize-none"
-                  />
-                </div>
-
-                {/* Paid Toggle */}
-                <div className="space-y-3 bg-secondary/30 p-3.5 rounded-xl border border-border/60">
-                  <label className="flex items-center justify-between cursor-pointer">
-                    <span className="text-xs font-bold text-foreground flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                      Já foi pago
-                    </span>
-                    <div className="relative">
-                      <input
-                        type="checkbox"
-                        checked={extraIsPaid}
-                        onChange={(e) => setExtraIsPaid(e.target.checked)}
-                        disabled={isPending}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-secondary rounded-full peer peer-checked:bg-emerald-600 transition-colors border border-border peer-checked:border-emerald-500 cursor-pointer" />
-                      <div className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5" />
-                    </div>
-                  </label>
-
-                  {extraIsPaid && (
-                    <div className="space-y-1.5 pt-1 border-t border-border/40">
-                      <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Forma de Pagamento</label>
-                      <CustomGenericSelect
-                        options={[
-                          { value: 'cash', label: 'Dinheiro', icon: <DollarSign className="w-4 h-4 text-emerald-400" /> },
-                          { value: 'card', label: 'Cartão', icon: <Wallet className="w-4 h-4 text-sky-400" /> },
-                          { value: 'pix', label: 'Pix', icon: <Sparkles className="w-4 h-4 text-amber-400" /> },
-                        ]}
-                        selectedValue={extraPaymentMethod}
-                        onSelect={setExtraPaymentMethod}
-                        disabled={isPending}
-                      />
-                    </div>
-                  )}
-
-                  {!extraIsPaid && (
-                    <p className="text-[10px] text-amber-400/70 italic flex items-center gap-1.5">
-                      <Clock className="w-3 h-3 text-amber-400" />
-                      Aparecerá no Checkout do Dia para pagamento posterior.
-                    </p>
-                  )}
-                </div>
-
-                {/* Submit */}
-                <button
-                  type="submit"
-                  disabled={isPending}
-                  className="w-full py-3 bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 hover:from-amber-500 hover:via-amber-400 hover:to-amber-500 text-black font-black rounded-xl text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg shadow-amber-500/20 disabled:opacity-50 active:scale-[0.98]"
-                >
-                  {isPending ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Registrando...
-                    </>
-                  ) : (
-                    <>
-                      <Zap className="w-4 h-4" />
-                      Registrar Atendimento Extra
-                    </>
-                  )}
-                </button>
-              </form>
-            </div>
-          </div>
-        )}
+        <ExtraAppointmentModal
+          isOpen={showExtraModal}
+          onClose={() => setShowExtraModal(false)}
+          onSuccess={(msg) => {
+            setSuccessMsg(msg)
+            loadData()
+          }}
+          barbers={barbers}
+          services={services}
+          customers={customers}
+          defaultDate={selectedAgendaDate || todayLocalStr}
+          defaultBarberId={extraModalBarberId}
+          userRole={userRole}
+        />
 
         {/* Checkout do Dia Modal */}
-        {showCheckoutModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
-            <div className="bg-card border border-border/80 rounded-2xl max-w-2xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
-              
-              {/* Modal Header */}
-              <div className="p-4 sm:p-5 border-b border-border/60 bg-gradient-to-r from-[#1a150a] to-[#0e0e10] shrink-0">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center">
-                      <DollarSign className="w-5 h-5 text-amber-400" />
-                    </div>
-                    <div>
-                      <h3 className="font-serif font-bold text-base sm:text-lg text-foreground">Checkout do Dia</h3>
-                      <p className="text-[11px] text-muted-foreground">
-                        {formatAgendaHeaderDate(selectedAgendaDate)} • {checkoutItems.filter(i => i.selected).length} selecionado(s)
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => { setShowCheckoutModal(false); setCheckoutItems([]) }}
-                    className="p-2 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-xl transition-all cursor-pointer"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Modal Body — Scrollable */}
-              <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3">
-                {checkoutItems.length === 0 ? (
-                  <div className="py-12 text-center text-muted-foreground">
-                    <DollarSign className="w-10 h-10 mx-auto mb-2 opacity-30" />
-                    <p className="text-sm font-semibold">Nenhum agendamento pendente para checkout.</p>
-                  </div>
-                ) : (
-                  checkoutItems.map((item, idx) => (
-                    <div
-                      key={item.apptId}
-                      className={`rounded-xl border p-3.5 sm:p-4 transition-all space-y-3 ${
-                        item.status === 'success'
-                          ? 'bg-emerald-500/5 border-emerald-500/30'
-                          : item.status === 'error'
-                          ? 'bg-destructive/5 border-destructive/30'
-                          : item.selected
-                          ? 'bg-secondary/30 border-border/60 hover:border-amber-500/30'
-                          : 'bg-secondary/10 border-border/30 opacity-50'
-                      }`}
-                    >
-                      {/* Row top: checkbox, time, customer, price */}
-                      <div className="flex items-center gap-3">
-                        {/* Checkbox — disabled after processing */}
-                        <label className="flex items-center shrink-0 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={item.selected}
-                            disabled={checkoutProcessing || checkoutDone}
-                            onChange={() => {
-                              setCheckoutItems(prev => prev.map((ci, i) =>
-                                i === idx ? { ...ci, selected: !ci.selected } : ci
-                              ))
-                            }}
-                            className="w-4.5 h-4.5 rounded border-border accent-amber-500 cursor-pointer"
-                          />
-                        </label>
-
-                        {/* Time */}
-                        <span className="text-lg font-bold font-mono text-foreground w-14 shrink-0">
-                          {item.time}
-                        </span>
-
-                        {/* Customer + Service */}
-                        <div className="flex-1 min-w-0">
-                          <h5 className="font-bold text-sm text-foreground truncate flex items-center gap-1.5 flex-wrap">
-                            {item.customerName}
-                            {item.isPackage && (
-                              <span className="text-[9px] uppercase font-extrabold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/30 shrink-0">
-                                Pacote
-                              </span>
-                            )}
-                            {item.isExtra && (
-                              <span className="text-[9px] uppercase font-extrabold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-dashed border-amber-500/40 shrink-0 flex items-center gap-0.5">
-                                <Zap className="w-2.5 h-2.5 text-amber-400" />
-                                Extra
-                              </span>
-                            )}
-                            <span className="text-[9px] uppercase font-extrabold px-1.5 py-0.5 rounded bg-secondary/80 text-foreground border border-border/60 shrink-0 flex items-center gap-1">
-                              <Scissors className="w-2.5 h-2.5 text-primary" />
-                              {item.barberName?.split(' ')[0]}
-                            </span>
-                          </h5>
-                          <p className="text-xs text-muted-foreground truncate">{item.serviceName}</p>
-                        </div>
-
-                        {/* Price */}
-                        <span className="font-serif font-bold text-amber-400 text-sm shrink-0">
-                          R$ {item.price.toFixed(2)}
-                        </span>
-                      </div>
-
-                      {/* Row bottom: payment method selector + status */}
-                      <div className="flex items-center gap-2 pl-7.5">
-                        <Wallet className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                        <select
-                          value={item.selectedMethod}
-                          disabled={checkoutProcessing || checkoutDone || !item.selected}
-                          onChange={(e) => {
-                            setCheckoutItems(prev => prev.map((ci, i) =>
-                              i === idx ? { ...ci, selectedMethod: e.target.value } : ci
-                            ))
-                          }}
-                          className="flex-1 px-2.5 py-1.5 bg-background border border-border rounded-lg text-xs font-semibold text-foreground outline-none cursor-pointer focus:border-amber-500/50"
-                        >
-                          <option value="cash">💵 Dinheiro</option>
-                          <option value="pix">📱 Pix</option>
-                          <option value="card">💳 Cartão</option>
-                          <option value="other">📝 Outro</option>
-                        </select>
-
-                        {item.selectedMethod !== item.originalMethod && item.selected && item.status === 'idle' && (
-                          <span className="text-[9px] uppercase font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/30 whitespace-nowrap shrink-0">
-                            Alterado
-                          </span>
-                        )}
-
-                        {/* Per-row status indicator */}
-                        {item.status === 'success' && (
-                          <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-400 shrink-0">
-                            <CheckCircle2 className="w-3.5 h-3.5" /> Pago
-                          </span>
-                        )}
-                        {item.status === 'error' && (
-                          <span className="flex items-center gap-1 text-[10px] font-bold text-destructive shrink-0" title={item.errorMsg}>
-                            <AlertCircle className="w-3.5 h-3.5" /> Erro
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Error message detail */}
-                      {item.status === 'error' && item.errorMsg && (
-                        <div className="ml-7.5 p-2 bg-destructive/10 border border-destructive/20 rounded-lg text-[11px] text-destructive">
-                          {item.errorMsg}
-                        </div>
-                      )}
-
-                      {/* Post-checkout receipt button */}
-                      {item.status === 'success' && (
-                        <div className="ml-7.5">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSelectedReceiptApptId(item.apptId)
-                            }}
-                            className="px-3 py-1.5 bg-primary/10 hover:bg-primary/20 border border-primary/30 text-primary font-bold text-[11px] rounded-lg flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
-                          >
-                            <FileText className="w-3.5 h-3.5" /> Emitir Recibo
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  ))
-                )}
-              </div>
-
-              {/* Modal Footer */}
-              <div className="p-4 sm:p-5 border-t border-border/60 bg-secondary/20 shrink-0 space-y-3">
-                {/* Summary */}
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">
-                    {checkoutItems.filter(i => i.selected).length} de {checkoutItems.length} selecionado(s)
-                  </span>
-                  <span className="font-serif font-bold text-amber-400 text-sm">
-                    Total: R$ {checkoutItems.filter(i => i.selected).reduce((sum, i) => sum + i.price, 0).toFixed(2)}
-                  </span>
-                </div>
-
-                {/* Action buttons */}
-                {!checkoutDone ? (
-                  <div className="flex items-center gap-2.5">
-                    <button
-                      type="button"
-                      onClick={() => { setShowCheckoutModal(false); setCheckoutItems([]) }}
-                      disabled={checkoutProcessing}
-                      className="flex-1 py-3 px-4 bg-secondary hover:bg-muted border border-border text-foreground font-semibold text-xs rounded-xl transition-all cursor-pointer disabled:opacity-50"
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      type="button"
-                      disabled={checkoutProcessing || checkoutItems.filter(i => i.selected).length === 0}
-                      onClick={async () => {
-                        setCheckoutProcessing(true)
-                        const selectedItems = checkoutItems
-                          .filter(i => i.selected)
-                          .map(i => ({ appointmentId: i.apptId, paymentMethod: i.selectedMethod }))
-
-                        try {
-                          const res = await bulkCheckoutAction(selectedItems)
-
-                          // Map results back to checkout items
-                          setCheckoutItems(prev => prev.map(ci => {
-                            if (!ci.selected) return ci
-                            const result = res.results.find(r => r.appointmentId === ci.apptId)
-                            if (!result) return ci
-                            return {
-                              ...ci,
-                              status: result.success ? 'success' as const : 'error' as const,
-                              errorMsg: result.success ? undefined : result.message
-                            }
-                          }))
-
-                          setCheckoutDone(true)
-
-                          // Show global success/error message
-                          if (res.success) {
-                            setSuccessMsg(res.message)
-                          } else {
-                            setErrorMsg(res.message)
-                          }
-
-                          // Reload data to reflect updated statuses
-                          loadData()
-                        } catch (err) {
-                          console.error('Bulk checkout error:', err)
-                          setErrorMsg('Erro inesperado ao processar checkout.')
-                        } finally {
-                          setCheckoutProcessing(false)
-                        }
-                      }}
-                      className="flex-[2] py-3 px-4 bg-gradient-to-r from-[#6b4f1d] via-[#947629] to-[#6b4f1d] hover:from-[#7a5b22] hover:via-[#a8862f] hover:to-[#7a5b22] text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {checkoutProcessing ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          Processando...
-                        </>
-                      ) : (
-                        <>
-                          <CheckCircle2 className="w-4 h-4 text-amber-300" />
-                          Confirmar Todos ({checkoutItems.filter(i => i.selected).length})
-                        </>
-                      )}
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowCheckoutModal(false)
-                      setCheckoutItems([])
-                      setCheckoutDone(false)
-                    }}
-                    className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-95 shadow-md"
-                  >
-                    <CheckCircle2 className="w-4 h-4" />
-                    Checkout Concluído — Fechar
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
+        <CheckoutModal
+          isOpen={showCheckoutModal}
+          onClose={() => setShowCheckoutModal(false)}
+          onSuccess={(msg) => setSuccessMsg(msg)}
+          onError={(msg) => setErrorMsg(msg)}
+          onRefreshData={loadData}
+          unpaidAppointments={unpaidApptsForCheckout}
+          selectedAgendaDate={selectedAgendaDate}
+          formatAgendaHeaderDate={formatAgendaHeaderDate}
+          getAppointmentPrice={getAppointmentPrice}
+          formatTime={formatTime}
+          onSelectReceiptAppt={(id) => setSelectedReceiptApptId(id)}
+        />
 
         {/* Receipt Modal */}
         {selectedReceiptApptId && (
