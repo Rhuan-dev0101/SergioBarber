@@ -134,11 +134,21 @@ export default function PainelAgendamentos() {
       // Fetch active barbers and services
       const { data: dbBarbers } = await supabase
         .from('barbers')
-        .select('id, full_name, is_active, photo_url')
+        .select('id, is_active, photo_url, profiles(id, full_name)')
         .eq('is_active', true)
-        .order('full_name')
 
-      if (dbBarbers) setBarbers(dbBarbers)
+      if (dbBarbers) {
+        const formattedBarbers = dbBarbers
+          .filter((b: any) => b.profiles)
+          .map((b: any) => ({
+            id: b.id,
+            full_name: b.profiles.full_name,
+            name: b.profiles.full_name,
+            is_active: b.is_active,
+            photo_url: b.photo_url || (b.profiles.full_name?.toLowerCase()?.includes('sergio') ? '/barbers/sergio.jpg' : null)
+          }))
+        setBarbers(formattedBarbers)
+      }
 
       const { data: dbServices } = await supabase
         .from('services')
