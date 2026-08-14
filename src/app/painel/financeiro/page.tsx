@@ -214,11 +214,20 @@ export default function PainelFinanceiro() {
     return payments.filter(p => p.barberId === filterBarberId)
   }, [payments, filterBarberId, userRole, adminBarberId])
 
-  // Filter payments by search query
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('')
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [searchQuery])
+
+  // Filter payments by search query (debounced)
   const searchFilteredPayments = useMemo(() => {
     let result = barberFilteredPayments
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase()
+    if (debouncedSearchQuery) {
+      const q = debouncedSearchQuery.toLowerCase()
       result = result.filter(p => 
         p.customerName.toLowerCase().includes(q) ||
         p.serviceName.toLowerCase().includes(q) ||
@@ -227,7 +236,7 @@ export default function PainelFinanceiro() {
       )
     }
     return result
-  }, [barberFilteredPayments, searchQuery])
+  }, [barberFilteredPayments, debouncedSearchQuery])
 
   // Per-barber summary stats for "Todos" view & admin breakdown
   const perBarberStats = useMemo(() => {

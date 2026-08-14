@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
+import { AddBarberModal } from '@/components/funcionarios/AddBarberModal'
 import { 
   updateBarberStatusAction, 
   updateBarberWorkingHoursAction, 
@@ -68,8 +69,6 @@ export default function PainelFuncionarios() {
 
   // Add Barber Modal Form states
   const [showAddModal, setShowAddModal] = useState(false)
-  const [addName, setAddName] = useState('')
-  const [addEmail, setAddEmail] = useState('')
 
   const supabase = createClient()
 
@@ -212,34 +211,6 @@ export default function PainelFuncionarios() {
       setHasLunchBreak(false)
       setLunchBreakStart('12:00')
     }
-  }
-
-  const handleAddBarberSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    setErrorMsg('')
-    setSuccessMsg('')
-
-    if (!addName || !addEmail) {
-      setErrorMsg('Todos os campos do formulário são obrigatórios.')
-      return
-    }
-
-    startTransition(async () => {
-      const res = await createBarberAction(addName, addEmail)
-      if (!res.success) {
-        setErrorMsg(res.message)
-      } else {
-        setSuccessMsg(res.message)
-        setShowAddModal(false)
-        
-        // Reset states
-        setAddName('')
-        setAddEmail('')
-
-        // Refresh list
-        loadData()
-      }
-    })
   }
 
   const handleDeleteBarber = () => {
@@ -1148,77 +1119,14 @@ export default function PainelFuncionarios() {
         </div>
 
         {/* ADD BARBER MODAL */}
-        {showAddModal && (
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="glass max-w-md w-full rounded-lg border border-border shadow-2xl p-6 relative flex flex-col space-y-6">
-              
-              <button
-                onClick={() => setShowAddModal(false)}
-                className="absolute top-4 right-4 text-muted-foreground hover:text-foreground cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-
-              <div className="space-y-1">
-                <h3 className="text-lg font-serif font-bold text-foreground">Cadastrar Novo Profissional</h3>
-                <p className="text-xs text-muted-foreground">Insira os dados para criar a credencial de login e perfil do novo barbeiro</p>
-              </div>
-
-              <form onSubmit={handleAddBarberSubmit} className="space-y-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Nome Completo</label>
-                  <div className="relative flex items-center">
-                    <User className="w-3.5 h-3.5 text-muted-foreground absolute left-3" />
-                    <input
-                      type="text"
-                      value={addName}
-                      onChange={(e) => setAddName(e.target.value)}
-                      placeholder="Ex: João Silva"
-                      className="w-full bg-secondary border border-border text-foreground pl-8 pr-3 py-2 rounded text-base focus:ring-1 focus:ring-primary focus:outline-none"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">E-mail de Login</label>
-                  <div className="relative flex items-center">
-                    <User className="w-3.5 h-3.5 text-muted-foreground absolute left-3" />
-                    <input
-                      type="email"
-                      value={addEmail}
-                      onChange={(e) => setAddEmail(e.target.value)}
-                      placeholder="Ex: joao@barbearia.com"
-                      className="w-full bg-secondary border border-border text-foreground pl-8 pr-3 py-2 rounded text-base focus:ring-1 focus:ring-primary focus:outline-none"
-                      required
-                    />
-                  </div>
-                  <p className="text-[10px] text-muted-foreground leading-normal mt-1">
-                    Use o mesmo e-mail que a pessoa utiliza no Google ou Facebook, para que ela consiga entrar automaticamente depois usando login social.
-                  </p>
-                </div>
-
-                <div className="flex gap-3 justify-end pt-4 border-t border-border/40">
-                  <button
-                    type="button"
-                    onClick={() => setShowAddModal(false)}
-                    className="px-4 py-2 bg-secondary hover:bg-muted text-foreground border border-border font-bold rounded text-xs transition-all cursor-pointer"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isPending}
-                    className="px-4 py-2 bg-primary hover:bg-primary-hover text-primary-foreground font-bold rounded text-xs transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
-                  >
-                    {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                    Confirmar Cadastro
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
+        <AddBarberModal
+          isOpen={showAddModal}
+          onClose={() => setShowAddModal(false)}
+          onSuccess={(msg) => {
+            setSuccessMsg(msg)
+            loadData()
+          }}
+        />
 
         {/* CONFIRM DELETE MODAL */}
         {showConfirmDelete && (

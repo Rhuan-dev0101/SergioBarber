@@ -8,6 +8,8 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
+import { AddServiceModal } from '@/components/meus-servicos/AddServiceModal'
+import { EditServiceModal } from '@/components/meus-servicos/EditServiceModal'
 import { 
   addBarberServiceAction, 
   createAndAddBarberServiceAction, 
@@ -419,257 +421,32 @@ export default function MeusServicos() {
           )}
         </div>
 
-        {/* ADD SERVICE MODAL (TELA DE ADICIONAR SERVIÇO) */}
-        {showAddModal && (
-          <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
-            <div className="glass max-w-lg w-full rounded-2xl border border-primary/40 shadow-2xl p-6 sm:p-8 relative flex flex-col space-y-6">
-              
-              <button
-                onClick={() => setShowAddModal(false)}
-                className="absolute top-4 right-4 text-muted-foreground hover:text-foreground cursor-pointer p-1.5 hover:bg-secondary rounded-lg transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-
-              <div className="space-y-1 border-b border-border/40 pb-3">
-                <h3 className="text-xl font-serif font-bold text-foreground flex items-center gap-2">
-                  <Plus className="w-5 h-5 text-primary" /> Adicionar Serviço de Atendimento
-                </h3>
-                <p className="text-xs text-muted-foreground">Configure um novo serviço no seu menu de opções para clientes</p>
-              </div>
-
-              {/* Tabs selector */}
-              <div className="grid grid-cols-2 bg-secondary/50 p-1.5 rounded-xl border border-border">
-                <button
-                  type="button"
-                  onClick={() => { setAddTab('existing'); setErrorMsg('') }}
-                  className={`py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                    addTab === 'existing' 
-                      ? 'bg-primary text-primary-foreground shadow-md' 
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  Selecionar do Catálogo
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setAddTab('new'); setErrorMsg('') }}
-                  className={`py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                    addTab === 'new' 
-                      ? 'bg-primary text-primary-foreground shadow-md' 
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  Cadastrar Novo
-                </button>
-              </div>
-
-              <form onSubmit={handleAddSubmit} className="space-y-4">
-                {addTab === 'existing' ? (
-                  <div className="space-y-4">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-foreground uppercase tracking-wider">Escolha o Serviço</label>
-                      {availableCatalogServices.length > 0 ? (
-                        <select
-                          value={selectedCatalogServiceId}
-                          onChange={handleCatalogServiceChange}
-                          className="w-full bg-background border border-border text-foreground px-4 py-2.5 rounded-lg text-base font-medium focus:ring-1 focus:ring-primary focus:outline-none cursor-pointer"
-                          required
-                        >
-                          <option value="">Selecione um serviço...</option>
-                          {availableCatalogServices.map((cs) => (
-                            <option key={cs.id} value={cs.id}>
-                              {cs.name} (Catálogo: R$ {Number(cs.price).toFixed(2)})
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        <p className="text-xs text-amber-500 bg-amber-500/10 p-3 rounded-lg border border-amber-500/20">
-                          Todos os serviços do catálogo da barbearia já estão vinculados ao seu perfil. Se quiser adicionar outro, use a aba &quot;Cadastrar Novo&quot;.
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-foreground uppercase tracking-wider">Nome do Serviço</label>
-                      <input
-                        type="text"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        placeholder="Ex: Barba Terapia Imperial com Toalha Quente"
-                        className="w-full bg-background border border-border text-foreground px-4 py-2.5 rounded-lg text-base focus:ring-1 focus:ring-primary focus:outline-none font-medium"
-                        required={addTab === 'new'}
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-foreground uppercase tracking-wider">Descrição do Serviço</label>
-                      <textarea
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
-                        placeholder="Explique o serviço e o capricho envolvido..."
-                        className="w-full bg-background border border-border text-foreground p-3 rounded-lg text-base focus:ring-1 focus:ring-primary focus:outline-none h-20 resize-none"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* Custom price/duration inputs */}
-                {(addTab === 'new' || (addTab === 'existing' && availableCatalogServices.length > 0)) && (
-                  <div className="grid grid-cols-2 gap-4 pt-2">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-foreground uppercase tracking-wider">Seu Preço (R$)</label>
-                      <div className="relative flex items-center">
-                        <DollarSign className="w-4 h-4 text-primary absolute left-3" />
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={price}
-                          onChange={(e) => setPrice(e.target.value)}
-                          className="w-full bg-background border border-border text-foreground pl-9 pr-3 py-2.5 rounded-lg text-base focus:ring-1 focus:ring-primary focus:outline-none font-mono font-bold"
-                          required
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-foreground uppercase tracking-wider">Duração (Minutos)</label>
-                      <div className="relative flex items-center">
-                        <Clock className="w-4 h-4 text-primary absolute left-3" />
-                        <input
-                          type="number"
-                          value={duration}
-                          onChange={(e) => setDuration(e.target.value)}
-                          className="w-full bg-background border border-border text-foreground pl-9 pr-3 py-2.5 rounded-lg text-base focus:ring-1 focus:ring-primary focus:outline-none font-mono font-bold"
-                          required
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex gap-3 justify-end pt-4 border-t border-border/40">
-                  <button
-                    type="button"
-                    onClick={() => setShowAddModal(false)}
-                    className="px-4 py-2.5 bg-secondary hover:bg-muted text-foreground border border-border font-semibold rounded-lg text-xs transition-all cursor-pointer"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isPending || actionLoading || (addTab === 'existing' && availableCatalogServices.length === 0)}
-                    className="px-5 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-lg text-xs transition-all cursor-pointer flex items-center gap-1.5 shadow-md disabled:opacity-50"
-                  >
-                    {(isPending || actionLoading) ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                    Confirmar Serviço
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
+        {/* ADD SERVICE MODAL */}
+        <AddServiceModal
+          isOpen={showAddModal}
+          onClose={() => setShowAddModal(false)}
+          onSuccess={(msg) => {
+            setSuccessMsg(msg)
+            if (selectedBarberId) loadData(selectedBarberId)
+          }}
+          barberId={selectedBarberId}
+          allCatalogServices={allCatalogServices}
+        />
 
         {/* EDIT SERVICE MODAL */}
-        {showEditModal && (
-          <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
-            <div className="glass max-w-lg w-full rounded-2xl border border-primary/40 shadow-2xl p-6 sm:p-8 relative flex flex-col space-y-6">
-              
-              <button
-                onClick={() => setShowEditModal(false)}
-                className="absolute top-4 right-4 text-muted-foreground hover:text-foreground cursor-pointer p-1.5 hover:bg-secondary rounded-lg transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-
-              <div className="space-y-1 border-b border-border/40 pb-3">
-                <h3 className="text-xl font-serif font-bold text-foreground">Editar Configurações do Serviço</h3>
-                <p className="text-xs text-muted-foreground">Modifique preço, duração, descrição personalizada e visibilidade</p>
-              </div>
-
-              <form onSubmit={handleEditSubmit} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-foreground uppercase tracking-wider">Seu Preço (R$)</label>
-                    <div className="relative flex items-center">
-                      <DollarSign className="w-4 h-4 text-primary absolute left-3" />
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={editPrice}
-                        onChange={(e) => setEditPrice(e.target.value)}
-                        className="w-full bg-background border border-border text-foreground pl-9 pr-3 py-2.5 rounded-lg text-base focus:ring-1 focus:ring-primary focus:outline-none font-mono font-bold"
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-foreground uppercase tracking-wider">Duração (Min)</label>
-                    <div className="relative flex items-center">
-                      <Clock className="w-4 h-4 text-primary absolute left-3" />
-                      <input
-                        type="number"
-                        value={editDuration}
-                        onChange={(e) => setEditDuration(e.target.value)}
-                        className="w-full bg-background border border-border text-foreground pl-9 pr-3 py-2.5 rounded-lg text-base focus:ring-1 focus:ring-primary focus:outline-none font-mono font-bold"
-                        required
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-foreground uppercase tracking-wider">
-                    Descrição Personalizada
-                  </label>
-                  <textarea
-                    value={editDescription}
-                    onChange={(e) => setEditDescription(e.target.value)}
-                    placeholder="Ex: A partir de R$50 — valor pode variar conforme o tipo de corte ou barba"
-                    className="w-full bg-background border border-border text-foreground p-3 rounded-lg text-base focus:ring-1 focus:ring-primary focus:outline-none h-20 resize-none"
-                  />
-                  <p className="text-[10px] text-muted-foreground">
-                    Se deixado em branco, será exibida a descrição padrão do catálogo.
-                  </p>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-foreground uppercase tracking-wider">Visibilidade para Clientes</label>
-                  <div className="flex items-center gap-3 bg-secondary/40 p-3.5 rounded-xl border border-border">
-                    <input
-                      type="checkbox"
-                      id="editIsActive"
-                      checked={editIsActive}
-                      onChange={(e) => setEditIsActive(e.target.checked)}
-                      className="accent-primary w-4 h-4 cursor-pointer"
-                    />
-                    <label htmlFor="editIsActive" className="text-xs font-bold text-foreground cursor-pointer select-none">
-                      Serviço Ativo e Agendável no Perfil
-                    </label>
-                  </div>
-                </div>
-
-                <div className="flex gap-3 justify-end pt-4 border-t border-border/40">
-                  <button
-                    type="button"
-                    onClick={() => setShowEditModal(false)}
-                    className="px-4 py-2.5 bg-secondary hover:bg-muted text-foreground border border-border font-semibold rounded-lg text-xs transition-all cursor-pointer"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isPending || actionLoading}
-                    className="px-5 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-lg text-xs transition-all cursor-pointer flex items-center gap-1.5 shadow-md disabled:opacity-50"
-                  >
-                    {(isPending || actionLoading) ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                    Salvar Alterações
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
+        <EditServiceModal
+          isOpen={showEditModal}
+          onClose={() => {
+            setShowEditModal(false)
+            setEditingId(null)
+          }}
+          onSuccess={(msg) => {
+            setSuccessMsg(msg)
+            if (selectedBarberId) loadData(selectedBarberId)
+          }}
+          barberId={selectedBarberId}
+          editingService={barberServices.find(bs => bs.id === editingId)}
+        />
 
       </main>
     </div>

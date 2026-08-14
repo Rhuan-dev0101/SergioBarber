@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState, useTransition } from 'react'
+import React, { useEffect, useState, useTransition, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { 
   Scissors, Search, User, Mail, Phone, Edit, Calendar, Clock, 
@@ -10,6 +10,7 @@ import {
 import { apptShortCode } from '@/lib/utils'
 import { createClient } from '@/lib/supabase'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
+import { RegisterCustomerModal } from '@/components/clientes/RegisterCustomerModal'
 import { 
   updateCustomerPrivateNotesAction, 
   deleteCustomerAction,
@@ -28,7 +29,6 @@ function getAppointmentPrice(appt: any): number {
 export default function PainelClientes() {
   const router = useRouter()
   const [customers, setCustomers] = useState<any[]>([])
-  const [filteredCustomers, setFilteredCustomers] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(true)
 
@@ -45,66 +45,10 @@ export default function PainelClientes() {
   const [successMsg, setSuccessMsg] = useState('')
   const [isPending, startTransition] = useTransition()
 
-  // Manual Registration State
+  // Manual Registration Modal State
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false)
-  const [regFullName, setRegFullName] = useState('')
-  const [regEmail, setRegEmail] = useState('')
-  const [regPhone, setRegPhone] = useState('')
-  const [regAcceptTerms, setRegAcceptTerms] = useState(false)
-  const [regErrorMsg, setRegErrorMsg] = useState('')
-  const [regSuccessData, setRegSuccessData] = useState<any>(null)
-  const [regPending, setRegPending] = useState(false)
 
   const supabase = createClient()
-
-  const closeRegisterModal = () => {
-    setIsRegisterModalOpen(false)
-    setRegFullName('')
-    setRegEmail('')
-    setRegPhone('')
-    setRegAcceptTerms(false)
-    setRegErrorMsg('')
-    setRegSuccessData(null)
-  }
-
-  const handleManualRegister = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setRegErrorMsg('')
-
-    if (!regFullName || !regEmail || !regPhone) {
-      setRegErrorMsg('Por favor, preencha todos os campos obrigatórios.')
-      return
-    }
-
-    if (!regAcceptTerms) {
-      setRegErrorMsg('Você deve confirmar que explicou os termos ao cliente.')
-      return
-    }
-
-    setRegPending(true)
-    try {
-      const res = await registerCustomerManuallyAction({
-        fullName: regFullName,
-        email: regEmail,
-        phone: regPhone
-      })
-
-      if (!res.success) {
-        setRegErrorMsg(res.message)
-      } else {
-        setRegSuccessData({
-          email: regEmail,
-          fullName: regFullName
-        })
-        await loadCustomers()
-      }
-    } catch (err) {
-      console.error('Error manually registering customer:', err)
-      setRegErrorMsg('Ocorreu um erro no servidor ao cadastrar o cliente.')
-    } finally {
-      setRegPending(false)
-    }
-  }
 
   const loadCustomers = async () => {
     try {
@@ -149,19 +93,28 @@ export default function PainelClientes() {
     loadCustomers()
   }, [])
 
-  // Filter customers by search query
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('')
+
   useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [searchQuery])
+
+  // Filter customers by search query (memoized)
+  const filteredCustomers = useMemo(() => {
     let result = customers
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase()
+    if (debouncedSearchQuery) {
+      const q = debouncedSearchQuery.toLowerCase()
       result = result.filter(c => 
         (c.full_name && c.full_name.toLowerCase().includes(q)) ||
         (c.email && c.email.toLowerCase().includes(q)) ||
         (c.phone && c.phone.includes(q))
       )
     }
-    setFilteredCustomers(result)
-  }, [customers, searchQuery])
+    return result
+  }, [customers, debouncedSearchQuery])
 
   // Load customer details and history
   const handleSelectCustomer = async (customer: any) => {
@@ -614,174 +567,13 @@ export default function PainelClientes() {
         )}
 
         {/* MANUAL REGISTRATION MODAL */}
-        {isRegisterModalOpen && (
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="glass max-w-lg w-full rounded-lg border border-border shadow-2xl p-6 sm:p-8 relative flex flex-col space-y-6 max-h-[90vh] overflow-y-auto">
-              <button
-                onClick={closeRegisterModal}
-                className="absolute top-4 right-4 text-muted-foreground hover:text-foreground cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-
-              {!regSuccessData ? (
-                // State 1: Form input
-                <form onSubmit={handleManualRegister} className="space-y-4 text-left">
-                  <div className="border-b border-border/40 pb-2">
-                    <h3 className="text-lg font-serif font-bold text-foreground flex items-center gap-2">
-                      <User className="w-5 h-5 text-primary" />
-                      Cadastrar Cliente Manualmente
-                    </h3>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Use este formulário para cadastrar um cliente no estabelecimento.
-                    </p>
-                  </div>
-
-                  {regErrorMsg && (
-                    <div className="p-3 bg-destructive/10 border border-destructive/20 rounded flex items-start gap-2.5 text-xs text-destructive">
-                      <AlertCircle className="w-4.5 h-4.5 shrink-0" />
-                      <span>{regErrorMsg}</span>
-                    </div>
-                  )}
-
-                  {/* Nome Completo */}
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-muted-foreground uppercase" htmlFor="regFullName">
-                      Nome Completo *
-                    </label>
-                    <input
-                      type="text"
-                      id="regFullName"
-                      value={regFullName}
-                      onChange={(e) => setRegFullName(e.target.value)}
-                      required
-                      placeholder="Ex: João da Silva"
-                      disabled={regPending}
-                      className="w-full p-2.5 bg-secondary border border-border focus:border-primary rounded text-base outline-none text-foreground"
-                    />
-                  </div>
-
-                  {/* Email */}
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-muted-foreground uppercase" htmlFor="regEmail">
-                      E-mail *
-                    </label>
-                    <input
-                      type="email"
-                      id="regEmail"
-                      value={regEmail}
-                      onChange={(e) => setRegEmail(e.target.value)}
-                      required
-                      placeholder="Ex: cliente@email.com"
-                      disabled={regPending}
-                      className="w-full p-2.5 bg-secondary border border-border focus:border-primary rounded text-base outline-none text-foreground"
-                    />
-                    <p className="text-[10px] text-muted-foreground leading-normal mt-1">
-                      Use o mesmo e-mail que a pessoa utiliza no Google ou Facebook, para que ela consiga entrar automaticamente depois usando login social.
-                    </p>
-                  </div>
-
-                  {/* Telefone */}
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-muted-foreground uppercase" htmlFor="regPhone">
-                      Telefone (WhatsApp) *
-                    </label>
-                    <input
-                      type="tel"
-                      id="regPhone"
-                      value={regPhone}
-                      onChange={(e) => setRegPhone(e.target.value)}
-                      required
-                      placeholder="Ex: (11) 99999-9999"
-                      disabled={regPending}
-                      className="w-full p-2.5 bg-secondary border border-border focus:border-primary rounded text-base outline-none text-foreground"
-                    />
-                  </div>
-
-                  {/* Legal acceptances area */}
-                  <div className="p-3.5 bg-secondary/40 border border-border/60 rounded-lg space-y-3">
-                    <div className="text-[11px] text-muted-foreground leading-relaxed">
-                      Este cliente terá uma conta criada. Para prosseguir, o funcionário deve explicar e obter consentimento para os termos vigentes:
-                      <div className="flex gap-3 mt-1.5 font-semibold">
-                        <a href="/termos-de-uso" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-0.5">
-                          Termos de Uso ↗
-                        </a>
-                        <a href="/politica-de-privacidade" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-0.5">
-                          Política de Privacidade ↗
-                        </a>
-                      </div>
-                    </div>
-
-                    <label className="flex items-start gap-2.5 text-xs text-foreground cursor-pointer select-none font-medium pt-1">
-                      <input
-                        type="checkbox"
-                        checked={regAcceptTerms}
-                        onChange={(e) => setRegAcceptTerms(e.target.checked)}
-                        disabled={regPending}
-                        className="mt-0.5 rounded accent-primary w-4 h-4 cursor-pointer"
-                        required
-                      />
-                      <span>
-                        Confirmo que expliquei os termos ao cliente e ele aceita.
-                      </span>
-                    </label>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex gap-3 justify-end pt-3">
-                    <button
-                      type="button"
-                      onClick={closeRegisterModal}
-                      disabled={regPending}
-                      className="px-4 py-2 bg-secondary hover:bg-muted text-foreground border border-border font-bold rounded text-xs transition-all cursor-pointer"
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={regPending}
-                      className="px-4 py-2 bg-primary hover:bg-primary-hover text-primary-foreground font-bold rounded text-xs transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
-                    >
-                      {regPending && <Loader2 className="w-3.5 h-3.5 animate-spin text-primary-foreground" />}
-                      Cadastrar Cliente
-                    </button>
-                  </div>
-                </form>
-              ) : (
-                // State 2: Confirmation screen
-                <div className="text-left space-y-5 py-2">
-                  <div className="text-center space-y-1.5">
-                    <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto text-emerald-500">
-                      <CheckCircle2 className="w-6 h-6" />
-                    </div>
-                    <h3 className="text-lg font-serif font-bold text-foreground">
-                      Cliente Cadastrado!
-                    </h3>
-                  </div>
-
-                  <div className="p-4 bg-secondary/80 border border-border rounded-lg space-y-2.5 leading-relaxed">
-                    <p className="text-xs sm:text-sm text-foreground">
-                      Conta criada! Peça para <strong>{regSuccessData.fullName || regFullName}</strong> entrar usando <strong>'Continuar com Google'</strong> ou <strong>'Continuar com Facebook'</strong> com o e-mail:
-                    </p>
-                    <div className="p-2.5 bg-background border border-border rounded text-xs font-mono font-bold text-primary select-all break-all">
-                      {regSuccessData.email}
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end pt-2">
-                    <button
-                      type="button"
-                      onClick={closeRegisterModal}
-                      className="w-full py-2.5 bg-primary hover:bg-primary-hover text-primary-foreground font-bold rounded text-xs transition-all cursor-pointer shadow-md"
-                    >
-                      Concluído
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+        <RegisterCustomerModal
+          isOpen={isRegisterModalOpen}
+          onClose={() => setIsRegisterModalOpen(false)}
+          onSuccess={() => {
+            loadCustomers()
+          }}
+        />
 
       </main>
     </div>

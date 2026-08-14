@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useTransition, Suspense } from 'react'
+import React, { useState, useEffect, useTransition, Suspense, useMemo, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { 
@@ -448,8 +448,8 @@ function AgendarWizardInner() {
     }
   }
 
-  // Helper to generate calendar days for month grid
-  const getCalendarDays = () => {
+  // Helper to generate calendar days for month grid (memoized to prevent re-computation)
+  const calendarDays = useMemo(() => {
     const year = currentMonth.getFullYear()
     const month = currentMonth.getMonth() // 0-indexed
     
@@ -471,14 +471,14 @@ function AgendarWizardInner() {
     }
 
     return days
-  }
+  }, [currentMonth])
 
   const monthNames = [
     'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
     'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
   ]
 
-  const handlePrevMonth = () => {
+  const handlePrevMonth = useCallback(() => {
     const today = new Date()
     const firstOfCurrentView = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1)
     const firstOfToday = new Date(today.getFullYear(), today.getMonth(), 1)
@@ -488,25 +488,27 @@ function AgendarWizardInner() {
     }
     
     setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))
-  }
+  }, [currentMonth])
 
-  const handleNextMonth = () => {
+  const handleNextMonth = useCallback(() => {
     setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))
-  }
+  }, [])
 
-  const isPrevMonthDisabled = () => {
+  const isPrevMonthDisabled = useCallback(() => {
     const today = new Date()
     return currentMonth.getFullYear() <= today.getFullYear() && currentMonth.getMonth() <= today.getMonth()
-  }
+  }, [currentMonth])
 
   // São Paulo local today string to check past dates and today styling
-  const now = new Date()
-  const todayLocalStr = now.toLocaleDateString('pt-BR', {
-    timeZone: 'America/Sao_Paulo',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
-  }).split('/').reverse().join('-')
+  const todayLocalStr = useMemo(() => {
+    const now = new Date()
+    return now.toLocaleDateString('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).split('/').reverse().join('-')
+  }, [])
 
   const handleConfirmBooking = () => {
     setErrorMsg('')
@@ -1140,7 +1142,7 @@ function AgendarWizardInner() {
 
                     {/* Days Grid */}
                     <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
-                      {getCalendarDays().map((day, idx) => {
+                      {calendarDays.map((day, idx) => {
                         if (day.blank) {
                           return <div key={`blank-${idx}`} className="aspect-square" />
                         }

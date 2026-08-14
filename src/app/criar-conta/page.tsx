@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase'
 import { useTheme } from '@/components/ThemeProvider'
 import { formatWhatsAppLink } from '@/lib/settings'
 
-function ParticlesBackground() {
+const ParticlesBackground = React.memo(function ParticlesBackground() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const { theme } = useTheme()
 
@@ -100,10 +100,10 @@ function ParticlesBackground() {
   return (
     <canvas
       ref={canvasRef}
-      className="absolute inset-0 w-full h-full pointer-events-none z-0"
+      className="fixed inset-0 pointer-events-none z-0 transition-opacity duration-500"
     />
   )
-}
+})
 
 function SignUpForm() {
   const [acceptTerms, setAcceptTerms] = useState(false)

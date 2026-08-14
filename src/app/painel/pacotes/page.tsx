@@ -234,16 +234,35 @@ export default function PainelPacotes() {
 
   useEffect(() => { loadData() }, [])
 
-  // Filtered packages based on selected barber avatar (for Admin) or locked to own barber (for Barber)
+  const [debouncedCustomerSearch, setDebouncedCustomerSearch] = useState('')
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedCustomerSearch(customerSearch)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [customerSearch])
+
+  // Filtered packages based on selected barber avatar + debounced customer search
   const filteredPackages = useMemo(() => {
+    let result = packages
     if (userRole === 'barber' && adminBarberId) {
-      return packages.filter(p => p.barber_id === adminBarberId)
+      result = result.filter(p => p.barber_id === adminBarberId)
+    } else if (filterBarberId && filterBarberId !== 'all') {
+      result = result.filter(p => p.barber_id === filterBarberId)
     }
-    if (!filterBarberId || filterBarberId === 'all') {
-      return packages
+
+    if (debouncedCustomerSearch) {
+      const q = debouncedCustomerSearch.toLowerCase()
+      result = result.filter(p =>
+        p.customerName?.toLowerCase().includes(q) ||
+        p.serviceName?.toLowerCase().includes(q) ||
+        p.barberName?.toLowerCase().includes(q)
+      )
     }
-    return packages.filter(p => p.barber_id === filterBarberId)
-  }, [packages, filterBarberId, userRole, adminBarberId])
+
+    return result
+  }, [packages, filterBarberId, userRole, adminBarberId, debouncedCustomerSearch])
 
   // ──── Auto-compute start date when dayOfWeek changes ────
   useEffect(() => {
