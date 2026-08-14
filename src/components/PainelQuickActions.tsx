@@ -666,7 +666,7 @@ export function PainelQuickActions() {
 
             <p className="text-[11px] text-amber-400/80 bg-amber-500/5 border border-amber-500/20 rounded-lg p-2.5 flex items-start gap-2">
               <Zap className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
-              <span>Este atendimento <strong>ignora validação de horário</strong> — ideal para encaixes durante almoço, folga ou fora do expediente.</span>
+              <span>Este atendimento <strong>ignora validações de horário e data (incluindo datas/horários passados)</strong> — ideal para encaixes fora do expediente, almoço ou <strong>registro retroativo de atendimentos esquecidos</strong>.</span>
             </p>
 
             <form onSubmit={handleCreateExtra} className="space-y-4">

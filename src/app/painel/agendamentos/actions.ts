@@ -275,8 +275,8 @@ export async function createWalkInAppointmentAction(
 
 /**
  * Create an "Atendimento Extra" (off-schedule / exception appointment).
- * This flow COMPLETELY SKIPS availability validation (working hours, lunch break, days off).
- * It is intended for walk-ins the barber decides to accept outside normal hours.
+ * This flow COMPLETELY SKIPS availability validation (working hours, lunch break, days off, and past date checks).
+ * It is intended for walk-ins accepted outside normal hours OR retroactively logging forgotten past appointments.
  */
 export async function createExtraAppointmentAction(
   clientName: string,
