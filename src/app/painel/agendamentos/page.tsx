@@ -1224,31 +1224,85 @@ export default function PainelAgendamentos() {
                 )}
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2">
-                {selectedAgendaAppt.status !== 'completed' && selectedAgendaAppt.status !== 'cancelled' && (
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-border/40">
+                {/* Admin Delete Action */}
+                {userRole === 'admin' && (
                   <button
+                    type="button"
                     onClick={() => {
-                      const id = selectedAgendaAppt.id
+                      const appt = selectedAgendaAppt
                       setSelectedAgendaAppt(null)
-                      handleStatusUpdate(id, 'completed')
+                      handleDelete(appt)
                     }}
-                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-sm"
+                    className="p-2.5 bg-destructive/10 hover:bg-destructive text-destructive hover:text-destructive-foreground border border-destructive/20 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                    title="Excluir agendamento permanentemente"
                   >
-                    <CheckCircle2 className="w-3.5 h-3.5" /> Concluir Atendimento
+                    <Trash2 className="w-4 h-4" />
+                    <span className="hidden sm:inline">Excluir</span>
                   </button>
                 )}
-                {selectedAgendaAppt.status === 'completed' && (
-                  <button
-                    onClick={() => {
-                      const id = selectedAgendaAppt.id
-                      setSelectedAgendaAppt(null)
-                      setSelectedReceiptApptId(id)
-                    }}
-                    className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-sm"
-                  >
-                    <FileText className="w-3.5 h-3.5" /> Emitir Recibo
-                  </button>
-                )}
+
+                <div className="flex flex-wrap items-center gap-2 ml-auto">
+                  {selectedAgendaAppt.status !== 'completed' && selectedAgendaAppt.status !== 'cancelled' && selectedAgendaAppt.status !== 'no_show' && (
+                    <>
+                      {/* Cancel button */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const id = selectedAgendaAppt.id
+                          setSelectedAgendaAppt(null)
+                          handleStatusUpdate(id, 'cancelled')
+                        }}
+                        className="px-3 py-2 bg-destructive/10 hover:bg-destructive text-destructive hover:text-white border border-destructive/20 font-semibold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                        title="Cancelar Agendamento"
+                      >
+                        <X className="w-3.5 h-3.5" /> Cancelar
+                      </button>
+
+                      {/* No-show button */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const appt = selectedAgendaAppt
+                          setSelectedAgendaAppt(null)
+                          setNoShowTarget(appt)
+                        }}
+                        className="px-3 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 font-semibold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                        title="Marcar como Não Compareceu (Gera cobrança 50%)"
+                      >
+                        <UserX className="w-3.5 h-3.5" /> Faltou
+                      </button>
+
+                      {/* Complete button */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const id = selectedAgendaAppt.id
+                          setSelectedAgendaAppt(null)
+                          handleStatusUpdate(id, 'completed')
+                        }}
+                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-md cursor-pointer"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Concluir Atendimento
+                      </button>
+                    </>
+                  )}
+
+                  {/* Receipt button for completed */}
+                  {selectedAgendaAppt.status === 'completed' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const id = selectedAgendaAppt.id
+                        setSelectedAgendaAppt(null)
+                        setSelectedReceiptApptId(id)
+                      }}
+                      className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-md cursor-pointer"
+                    >
+                      <FileText className="w-3.5 h-3.5" /> Emitir Recibo
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
