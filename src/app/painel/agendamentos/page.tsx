@@ -394,14 +394,17 @@ export default function PainelAgendamentos() {
 
     async function loadSlots() {
       setLoadingSlots(true)
-      setWalkInTime('')
       const service = services.find(s => s.id === selectedServiceId)
-      if (!service) return
+      if (!service) {
+        setLoadingSlots(false)
+        return
+      }
 
       try {
-        const res = await fetch(`/api/booking/slots?barberId=${selectedBarberId}&dateStr=${walkInDate}&duration=${service.duration}`)
+        const res = await fetch(`/api/booking/slots?barberId=${selectedBarberId}&dateStr=${walkInDate}&duration=${service.duration}&allowPast=true`)
         const data = await res.json()
-        setAvailableSlots(data.slots || [])
+        const fetchedSlots: string[] = data.slots || []
+        setAvailableSlots(fetchedSlots)
       } catch (error) {
         console.error('Error fetching slots:', error)
       } finally {
@@ -440,7 +443,7 @@ export default function PainelAgendamentos() {
     })
   }
 
-  const handleOpenWalkInModal = (defaultBarberId?: string) => {
+  const handleOpenWalkInModal = (defaultBarberId?: string, defaultTime?: string) => {
     let targetBarberId = defaultBarberId || ''
     if (!targetBarberId) {
       if (userRole === 'barber' && currentUser?.id) {
@@ -451,7 +454,7 @@ export default function PainelAgendamentos() {
     }
     setSelectedBarberId(targetBarberId)
     setWalkInDate(selectedAgendaDate || todayLocalStr)
-    setWalkInTime('')
+    setWalkInTime(defaultTime || '')
     setShowWalkInModal(true)
   }
 
@@ -1222,8 +1225,7 @@ export default function PainelAgendamentos() {
                                 <div
                                   key={slotStr}
                                   onClick={() => {
-                                    handleOpenWalkInModal(barber.id)
-                                    setWalkInTime(slotStr)
+                                    handleOpenWalkInModal(barber.id, slotStr)
                                   }}
                                   className="bg-[#121212] hover:bg-[#161616] border border-white/10 hover:border-amber-500/40 rounded-2xl p-4 transition-all duration-200 flex items-center justify-between shadow-md cursor-pointer group"
                                 >

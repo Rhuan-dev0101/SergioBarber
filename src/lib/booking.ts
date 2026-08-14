@@ -27,7 +27,7 @@ function isRecurringReservationActiveOnDate(
 
 export { isRecurringReservationActiveOnDate }
 
-export async function getAvailableSlots(barberId: string, dateStr: string, serviceDuration: number) {
+export async function getAvailableSlots(barberId: string, dateStr: string, serviceDuration: number, allowPast: boolean = false) {
   const supabase = await createServerSupabaseClient()
   
   // Get day of week (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
@@ -171,8 +171,8 @@ export async function getAvailableSlots(barberId: string, dateStr: string, servi
       })
 
       if (!overlaps) {
-        // Filter out past times if today
-        if (dateStr !== todayLocalStr || slotStart > currentMinutes) {
+        // Filter out past times if today (unless allowPast is true)
+        if (allowPast || dateStr !== todayLocalStr || slotStart > currentMinutes) {
           const hours = Math.floor(slotStart / 60)
           const mins = slotStart % 60
           const timeFormatted = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`

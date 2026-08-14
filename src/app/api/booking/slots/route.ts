@@ -7,6 +7,8 @@ export async function GET(request: NextRequest) {
   const dateStr = searchParams.get('dateStr')
   const durationStr = searchParams.get('duration')
 
+  const allowPast = searchParams.get('allowPast') === 'true'
+
   if (!barberId || !dateStr || !durationStr) {
     return NextResponse.json({ error: 'Parâmetros ausentes.' }, { status: 400 })
   }
@@ -17,7 +19,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const slots = await getAvailableSlots(barberId, dateStr, duration)
+    const slots = await getAvailableSlots(barberId, dateStr, duration, allowPast)
     return NextResponse.json({ slots })
   } catch (error) {
     console.error('Error fetching slots inside API route:', error)

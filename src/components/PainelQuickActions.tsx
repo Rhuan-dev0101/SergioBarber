@@ -217,14 +217,17 @@ export function PainelQuickActions() {
 
     async function loadSlots() {
       setLoadingSlots(true)
-      setWalkInTime('')
       const service = services.find(s => s.id === selectedServiceId)
-      if (!service) return
+      if (!service) {
+        setLoadingSlots(false)
+        return
+      }
 
       try {
-        const res = await fetch(`/api/booking/slots?barberId=${selectedBarberId}&dateStr=${walkInDate}&duration=${service.duration}`)
+        const res = await fetch(`/api/booking/slots?barberId=${selectedBarberId}&dateStr=${walkInDate}&duration=${service.duration}&allowPast=true`)
         const data = await res.json()
-        setAvailableSlots(data.slots || [])
+        const fetchedSlots: string[] = data.slots || []
+        setAvailableSlots(fetchedSlots)
       } catch (error) {
         console.error('Error fetching slots:', error)
       } finally {

@@ -221,9 +221,9 @@ export async function createWalkInAppointmentAction(
       return { success: false, message: 'Serviço selecionado inválido.' }
     }
 
-    // 2. Check availability
+    // 2. Check availability (allow past dates/times for staff logging)
     const duration = service.duration
-    const availableSlots = await getAvailableSlots(barberId, dateStr, duration)
+    const availableSlots = await getAvailableSlots(barberId, dateStr, duration, true)
     if (!availableSlots.includes(timeStr)) {
       return { success: false, message: 'Este horário não está livre para este profissional.' }
     }
