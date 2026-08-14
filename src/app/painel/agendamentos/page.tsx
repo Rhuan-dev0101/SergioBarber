@@ -353,13 +353,17 @@ export default function PainelAgendamentos() {
   const handleStatusUpdate = (apptId: string, status: string) => {
     setErrorMsg('')
     setSuccessMsg('')
+
+    // OPTIMISTIC: Update state immediately in 0ms
+    setAppointments(prev => prev.map(a => a.id === apptId ? { ...a, status } : a))
+
     startTransition(async () => {
       const res = await updateAppointmentStatusAction(apptId, status)
       if (!res.success) {
         setErrorMsg(res.message)
+        loadData() // Revert/refresh on failure
       } else {
         setSuccessMsg(res.message)
-        loadData()
       }
     })
   }
@@ -367,14 +371,19 @@ export default function PainelAgendamentos() {
   const handleSaveNotes = (apptId: string) => {
     setErrorMsg('')
     setSuccessMsg('')
+    const newNotes = notesContent
+    setEditingNotesId(null)
+
+    // OPTIMISTIC: Update state immediately in 0ms
+    setAppointments(prev => prev.map(a => a.id === apptId ? { ...a, notes: newNotes } : a))
+
     startTransition(async () => {
-      const res = await updateAppointmentNotesAction(apptId, notesContent)
+      const res = await updateAppointmentNotesAction(apptId, newNotes)
       if (!res.success) {
         setErrorMsg(res.message)
+        loadData()
       } else {
         setSuccessMsg(res.message)
-        setEditingNotesId(null)
-        loadData()
       }
     })
   }
@@ -412,14 +421,19 @@ export default function PainelAgendamentos() {
     if (!deleteTarget) return
     setErrorMsg('')
     setSuccessMsg('')
+    const targetId = deleteTarget.id
+    setDeleteTarget(null)
+
+    // OPTIMISTIC: Remove card immediately in 0ms
+    setAppointments(prev => prev.filter(a => a.id !== targetId))
+
     startTransition(async () => {
-      const res = await deleteAppointmentAction(deleteTarget.id)
-      setDeleteTarget(null)
+      const res = await deleteAppointmentAction(targetId)
       if (!res.success) {
         setErrorMsg(res.message)
+        loadData()
       } else {
         setSuccessMsg(res.message)
-        loadData()
       }
     })
   }
@@ -428,14 +442,19 @@ export default function PainelAgendamentos() {
     if (!noShowTarget) return
     setErrorMsg('')
     setSuccessMsg('')
+    const targetId = noShowTarget.id
+    setNoShowTarget(null)
+
+    // OPTIMISTIC: Update state immediately in 0ms
+    setAppointments(prev => prev.map(a => a.id === targetId ? { ...a, status: 'no_show' } : a))
+
     startTransition(async () => {
-      const res = await markNoShowAction(noShowTarget.id)
-      setNoShowTarget(null)
+      const res = await markNoShowAction(targetId)
       if (!res.success) {
         setErrorMsg(res.message)
+        loadData()
       } else {
         setSuccessMsg(res.message)
-        loadData()
       }
     })
   }
