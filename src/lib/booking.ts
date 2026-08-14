@@ -36,59 +36,53 @@ export async function getAvailableSlots(barberId: string, dateStr: string, servi
   const dateObj = new Date(year, month - 1, day)
   const dayOfWeek = dateObj.getDay()
 
-  // 1. Fetch working hours for the selected barber and day of week
-  const { data: workingHours } = await supabase
-    .from('barber_working_hours')
-    .select('*')
-    .eq('barber_id', barberId)
-    .eq('day_of_week', dayOfWeek)
-    .single()
-
-  if (!workingHours || workingHours.is_closed) {
-    return [] // Closed
-  }
-
-  // 2. Fetch days off
-  const { data: dayOff } = await supabase
-    .from('days_off')
-    .select('*')
-    .eq('barber_id', barberId)
-    .eq('date', dateStr)
-    .single()
-
-  if (dayOff) {
-    return [] // Day off
-  }
-
-  // 3. Fetch appointments (in UTC)
-  // Fetch everything starting on this day in local timezone (UTC-3).
-  // Safe boundaries: dateStr + T00:00:00-03:00 to T23:59:59-03:00
   const startOfDay = `${dateStr}T00:00:00-03:00`
   const endOfDay = `${dateStr}T23:59:59-03:00`
 
-  const { data: appointments } = await supabase
-    .from('appointments')
-    .select('start_time, end_time')
-    .eq('barber_id', barberId)
-    .neq('status', 'cancelled')
-    .gte('start_time', startOfDay)
-    .lte('end_time', endOfDay)
+  // Fetch working hours, days off, appointments, blocked times, and recurring reservations in PARALLEL
+  const [
+    { data: workingHours },
+    { data: dayOff },
+    { data: appointments },
+    { data: blockedTimes },
+    { data: recurringReservations }
+  ] = await Promise.all([
+    supabase
+      .from('barber_working_hours')
+      .select('*')
+      .eq('barber_id', barberId)
+      .eq('day_of_week', dayOfWeek)
+      .single(),
+    supabase
+      .from('days_off')
+      .select('*')
+      .eq('barber_id', barberId)
+      .eq('date', dateStr)
+      .single(),
+    supabase
+      .from('appointments')
+      .select('start_time, end_time')
+      .eq('barber_id', barberId)
+      .neq('status', 'cancelled')
+      .gte('start_time', startOfDay)
+      .lte('end_time', endOfDay),
+    supabase
+      .from('blocked_times')
+      .select('start_time, end_time')
+      .eq('barber_id', barberId)
+      .gte('start_time', startOfDay)
+      .lte('end_time', endOfDay),
+    supabase
+      .from('recurring_reservations')
+      .select('time_slot, interval_weeks, start_date')
+      .eq('barber_id', barberId)
+      .eq('day_of_week', dayOfWeek)
+      .eq('status', 'active')
+  ])
 
-  // 4. Fetch blocked times
-  const { data: blockedTimes } = await supabase
-    .from('blocked_times')
-    .select('start_time, end_time')
-    .eq('barber_id', barberId)
-    .gte('start_time', startOfDay)
-    .lte('end_time', endOfDay)
-
-  // 5. Fetch active recurring reservations for this barber + day of week
-  const { data: recurringReservations } = await supabase
-    .from('recurring_reservations')
-    .select('time_slot, interval_weeks, start_date')
-    .eq('barber_id', barberId)
-    .eq('day_of_week', dayOfWeek)
-    .eq('status', 'active')
+  if (!workingHours || workingHours.is_closed || dayOff) {
+    return [] // Closed or day off
+  }
 
   // Map busy intervals by converting to Sao Paulo local minutes from midnight
   const parseToLocalMinutes = (isoString: string): number => {

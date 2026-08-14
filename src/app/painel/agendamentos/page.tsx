@@ -131,11 +131,38 @@ export default function PainelAgendamentos() {
       }
       setUserRole(profile.role)
 
-      // Fetch active barbers and services
-      const { data: dbBarbers } = await supabase
-        .from('barbers')
-        .select('id, is_active, photo_url, profiles(id, full_name)')
-        .eq('is_active', true)
+      let apptsQuery = supabase
+        .from('appointments')
+        .select(`
+          *,
+          services (id, name, price, duration),
+          payments (id, method, status, total_amount),
+          package_subscriptions (id, package_price, total_sessions)
+        `)
+        .order('start_time', { ascending: false })
+
+      if (profile.role === 'barber') {
+        apptsQuery = apptsQuery.eq('barber_id', session.user.id)
+      }
+
+      // Fetch all required data in PARALLEL via Promise.all
+      const [
+        { data: dbBarbers },
+        { data: dbServices },
+        { data: dbCustomers },
+        { data: dbWH },
+        { data: dbDO },
+        { data: dbRec },
+        { data: appts, error: apptsErr }
+      ] = await Promise.all([
+        supabase.from('barbers').select('id, is_active, photo_url, profiles(id, full_name)').eq('is_active', true),
+        supabase.from('services').select('id, name, duration, price, is_active').eq('is_active', true).order('name'),
+        supabase.from('profiles').select('id, full_name, phone').eq('role', 'customer').order('full_name'),
+        supabase.from('barber_working_hours').select('*'),
+        supabase.from('barber_days_off').select('*'),
+        supabase.from('recurring_reservations').select('*').eq('status', 'active'),
+        apptsQuery
+      ])
 
       if (dbBarbers) {
         const formattedBarbers = dbBarbers
@@ -150,57 +177,11 @@ export default function PainelAgendamentos() {
         setBarbers(formattedBarbers)
       }
 
-      const { data: dbServices } = await supabase
-        .from('services')
-        .select('id, name, duration, price, is_active')
-        .eq('is_active', true)
-        .order('name')
-
       if (dbServices) setServices(dbServices)
-
-      // Fetch customers for selector
-      const { data: dbCustomers } = await supabase
-        .from('profiles')
-        .select('id, full_name, phone')
-        .eq('role', 'customer')
-        .order('full_name')
-
       if (dbCustomers) setCustomers(dbCustomers)
-
-      // Fetch working hours & days off
-      const { data: dbWH } = await supabase
-        .from('barber_working_hours')
-        .select('*')
       if (dbWH) setWorkingHours(dbWH)
-
-      const { data: dbDO } = await supabase
-        .from('barber_days_off')
-        .select('*')
       if (dbDO) setDaysOff(dbDO)
-
-      // Fetch active recurring reservations
-      const { data: dbRec } = await supabase
-        .from('recurring_reservations')
-        .select('*')
-        .eq('status', 'active')
       if (dbRec) setRecurringReservations(dbRec)
-
-      // Fetch appointments
-      let query = supabase
-        .from('appointments')
-        .select(`
-          *,
-          services (id, name, price, duration),
-          payments (id, method, status, total_amount),
-          package_subscriptions (id, package_price, total_sessions)
-        `)
-        .order('start_time', { ascending: false })
-
-      if (profile.role === 'barber') {
-        query = query.eq('barber_id', session.user.id)
-      }
-
-      const { data: appts, error: apptsErr } = await query
 
       if (apptsErr) {
         console.error('Error fetching appointments:', apptsErr)

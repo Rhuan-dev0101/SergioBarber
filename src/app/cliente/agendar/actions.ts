@@ -49,20 +49,18 @@ export async function createAppointmentAction(
       return { success: false, message: 'Sessão expirada. Por favor, faça login novamente.' }
     }
 
-    // 2. Fetch service details from DB (secure, avoids client-side price/duration tampering)
-    let service: { name: string; duration: number; price: number; is_active: boolean } | null = null
-
-    if (barberId === 'sergio-uuid' || barberId === 'enzo-uuid') {
-      const mockServices = [
-        { id: '1', name: 'Corte', duration: 60, price: 50.00, is_active: true },
-        { id: '2', name: 'Cabelo + Barba', duration: 90, price: 85.00, is_active: true },
-        { id: '3', name: 'Barba', duration: 30, price: 45.00, is_active: true }
-      ]
-      const found = mockServices.find(s => s.id === serviceId)
-      if (found) {
-        service = { name: found.name, duration: found.duration, price: found.price, is_active: found.is_active }
+    // 2. Fetch service details, availability, and outstanding no-show fee in PARALLEL
+    const fetchServicePromise = (async () => {
+      if (barberId === 'sergio-uuid' || barberId === 'enzo-uuid') {
+        const mockServices = [
+          { id: '1', name: 'Corte', duration: 60, price: 50.00, is_active: true },
+          { id: '2', name: 'Cabelo + Barba', duration: 90, price: 85.00, is_active: true },
+          { id: '3', name: 'Barba', duration: 30, price: 45.00, is_active: true }
+        ]
+        const found = mockServices.find(s => s.id === serviceId)
+        return found ? { name: found.name, duration: found.duration, price: found.price, is_active: found.is_active } : null
       }
-    } else {
+
       const { data: barberService, error: serviceError } = await supabase
         .from('barber_services')
         .select('price, duration, is_active, services(name)')
@@ -71,14 +69,19 @@ export async function createAppointmentAction(
         .single()
 
       if (!serviceError && barberService && barberService.is_active) {
-        service = {
+        return {
           name: (barberService.services as any)?.name || 'Serviço',
           duration: Number(barberService.duration),
           price: Number(barberService.price),
           is_active: barberService.is_active
         }
       }
-    }
+      return null
+    })()
+
+    const noShowFeePromise = getOutstandingNoShowFee(user.id)
+
+    const [service, noShowFee] = await Promise.all([fetchServicePromise, noShowFeePromise])
 
     if (!service || !service.is_active) {
       return { success: false, message: 'Serviço selecionado inválido ou inativo para este profissional.' }
@@ -98,8 +101,6 @@ export async function createAppointmentAction(
     const endDate = addMinutes(startDate, duration)
     const endTimeStr = endDate.toISOString() // UTC format standard
 
-    // 5. Check for outstanding no-show fee
-    const noShowFee = await getOutstandingNoShowFee(user.id)
     const feeAmount = noShowFee?.fee || 0
 
     // 6. Insert appointment
