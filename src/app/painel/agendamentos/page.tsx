@@ -182,7 +182,7 @@ export default function PainelAgendamentos() {
           *,
           services (id, name, price, duration),
           payments (id, method, status, total_amount),
-          package_subscriptions (id, package_name, package_price, total_sessions, remaining_sessions)
+          package_subscriptions (id, package_price, total_sessions)
         `)
         .order('start_time', { ascending: false })
 
