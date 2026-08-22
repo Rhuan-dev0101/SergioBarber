@@ -85,7 +85,7 @@ export const AgendaTimeline = memo(function AgendaTimeline({
           }
 
           const timeSlots: string[] = []
-          for (let h = startHour; h <= endHour; h++) {
+          for (let h = startHour; h < endHour; h++) {
             timeSlots.push(`${String(h).padStart(2, '0')}:00`)
           }
 

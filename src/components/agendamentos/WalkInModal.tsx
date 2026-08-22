@@ -80,8 +80,20 @@ export function WalkInModal({
       try {
         const res = await fetch(`/api/booking/slots?barberId=${selectedBarberId}&dateStr=${walkInDate}&duration=${service.duration}&allowPast=true`)
         const data = await res.json()
-        const fetchedSlots: string[] = data.slots || []
+        let fetchedSlots: string[] = data.slots || []
+
+        if (defaultTime && !fetchedSlots.includes(defaultTime)) {
+          fetchedSlots.push(defaultTime)
+          fetchedSlots.sort()
+        }
+
         setAvailableSlots(fetchedSlots)
+
+        if (defaultTime && fetchedSlots.includes(defaultTime)) {
+          setWalkInTime(defaultTime)
+        } else if (fetchedSlots.length > 0 && !fetchedSlots.includes(walkInTime)) {
+          setWalkInTime(fetchedSlots[0])
+        }
       } catch (error) {
         console.error('Error fetching slots:', error)
       } finally {

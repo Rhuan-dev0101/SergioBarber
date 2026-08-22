@@ -236,7 +236,13 @@ export function CreatePackageForm({
       try {
         const res = await fetch(`/api/booking/slots?barberId=${barberId}&dateStr=${startDate}&duration=${duration}`)
         const data = await res.json()
-        const slots = data.slots || []
+        let slots: string[] = data.slots || []
+
+        if (initialTimeSlot && !slots.includes(initialTimeSlot)) {
+          slots.push(initialTimeSlot)
+          slots.sort()
+        }
+
         setAvailableSlots(slots)
 
         if (initialTimeSlot && slots.includes(initialTimeSlot)) {
