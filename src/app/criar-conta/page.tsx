@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, Suspense } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Scissors, AlertCircle, Sun, Moon, Check, MessageCircle, Loader2, Crown } from 'lucide-react'
+import { Scissors, AlertCircle, Sun, Moon, Check, MessageCircle, Loader2, Crown, CreditCard } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { useTheme } from '@/components/ThemeProvider'
 import { formatWhatsAppLink } from '@/lib/settings'
@@ -326,6 +326,10 @@ function PacoteMensalCard() {
 
         {/* Benefit bullets */}
         <ul className="space-y-1.5 pt-1">
+          <li className="flex items-start gap-2 text-xs font-bold text-primary">
+            <CreditCard className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
+            <span>Pagamento efetuado SOMENTE no 1º atendimento</span>
+          </li>
           {[
             'Mesmo dia e horário garantidos pelas 4 semanas',
             'Sem precisar agendar toda semana — vaga reservada',

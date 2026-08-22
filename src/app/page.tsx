@@ -271,7 +271,16 @@ export default async function Home() {
                     </div>
                   </div>
 
+                  <div className="flex items-center gap-2 bg-primary/15 border border-primary/30 p-2.5 rounded-xl text-primary text-[11px] font-extrabold uppercase tracking-wider">
+                    <CreditCard className="w-4 h-4 shrink-0 text-primary" />
+                    <span>Pagamento realizado SOMENTE no 1º corte</span>
+                  </div>
+
                   <ul className="space-y-2 text-xs text-muted-foreground pt-1">
+                    <li className="flex items-center gap-2 font-semibold text-foreground">
+                      <CreditCard className="w-4 h-4 text-primary shrink-0" />
+                      <span>Pagamento integral efetuado no 1º atendimento</span>
+                    </li>
                     <li className="flex items-center gap-2">
                       <Check className="w-4 h-4 text-primary shrink-0" />
                       <span>Horário fixo garantido pelas 4 semanas</span>
@@ -331,7 +340,16 @@ export default async function Home() {
                     </div>
                   </div>
 
+                  <div className="flex items-center gap-2 bg-primary/15 border border-primary/30 p-2.5 rounded-xl text-primary text-[11px] font-extrabold uppercase tracking-wider">
+                    <CreditCard className="w-4 h-4 shrink-0 text-primary" />
+                    <span>Pagamento realizado SOMENTE no 1º atendimento</span>
+                  </div>
+
                   <ul className="space-y-2 text-xs text-muted-foreground pt-1">
+                    <li className="flex items-center gap-2 font-semibold text-foreground">
+                      <CreditCard className="w-4 h-4 text-primary shrink-0" />
+                      <span>Pagamento integral efetuado no 1º atendimento</span>
+                    </li>
                     <li className="flex items-center gap-2">
                       <Check className="w-4 h-4 text-primary shrink-0" />
                       <span>Cabelo + Barba completo toda semana</span>

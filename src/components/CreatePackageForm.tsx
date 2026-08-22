@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useTransition, useMemo } from 'react'
 import {
   Crown, Plus, Loader2, Search, X, Check, AlertCircle,
-  CheckCircle2, Calendar, Clock, User, Scissors, DollarSign, Sparkles
+  CheckCircle2, Calendar, Clock, User, Scissors, DollarSign, Sparkles, CreditCard
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { getSessionDatesForDuration, getExpandedSessionDates } from '@/lib/package-utils'
@@ -516,6 +516,12 @@ export function CreatePackageForm({
             onSelect={setBarberId}
           />
         </div>
+      </div>
+
+      {/* Regra de Pagamento Alert Banner */}
+      <div className="p-3 bg-primary/15 border border-primary/30 rounded-xl flex items-center gap-2.5 text-xs text-primary font-bold shadow-sm">
+        <CreditCard className="w-4 h-4 shrink-0 text-primary" />
+        <span>Regra de Pagamento: Cobrança integral efetuada SOMENTE no 1º atendimento/corte.</span>
       </div>
 
       {/* Section 2: Serviço & Recorrência */}

@@ -1,7 +1,7 @@
 import React from 'react'
 export const dynamic = 'force-dynamic'
 import Link from 'next/link'
-import { Scissors, Clock, ChevronRight, Crown, MessageCircle, Check, Sparkles } from 'lucide-react'
+import { Scissors, Clock, ChevronRight, Crown, MessageCircle, Check, Sparkles, CreditCard } from 'lucide-react'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { createServerSupabaseClient } from '@/lib/supabase'
@@ -213,7 +213,16 @@ export default async function Servicos() {
                     </p>
                   </div>
 
+                  <div className="flex items-center gap-2 bg-primary/15 border border-primary/30 p-2.5 rounded-xl text-primary text-[11px] font-extrabold uppercase tracking-wider">
+                    <CreditCard className="w-4 h-4 shrink-0 text-primary" />
+                    <span>Pagamento efetuado SOMENTE no 1º corte</span>
+                  </div>
+
                   <ul className="space-y-2.5">
+                    <li className="flex items-start gap-2.5 text-xs sm:text-sm font-semibold text-foreground">
+                      <CreditCard className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                      <span>Pagamento realizado integralmente no 1º atendimento</span>
+                    </li>
                     {[
                       '1 corte de cabelo por semana',
                       'Horário fixo garantido pelas 4 semanas',
@@ -271,7 +280,16 @@ export default async function Servicos() {
                     </p>
                   </div>
 
+                  <div className="flex items-center gap-2 bg-primary/15 border border-primary/30 p-2.5 rounded-xl text-primary text-[11px] font-extrabold uppercase tracking-wider">
+                    <CreditCard className="w-4 h-4 shrink-0 text-primary" />
+                    <span>Pagamento efetuado SOMENTE no 1º atendimento</span>
+                  </div>
+
                   <ul className="space-y-2.5">
+                    <li className="flex items-start gap-2.5 text-xs sm:text-sm font-semibold text-foreground">
+                      <CreditCard className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                      <span>Pagamento realizado integralmente no 1º atendimento</span>
+                    </li>
                     {[
                       '1 Cabelo + Barba completo por semana',
                       'Toalha quente e barba alinhada inclusas',

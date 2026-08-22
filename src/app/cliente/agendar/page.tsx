@@ -1033,6 +1033,9 @@ function AgendarWizardInner() {
                         <span className="text-[9px] font-bold text-primary-foreground bg-primary px-2.5 py-0.5 rounded-full uppercase tracking-widest flex items-center gap-1 shadow-sm">
                           <Sparkles className="w-3 h-3 text-primary-foreground" /> Planos VIP Mensais
                         </span>
+                        <span className="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1 shadow-sm">
+                          <CreditCard className="w-3 h-3 text-emerald-400" /> Pagamento efetuado SOMENTE no 1º atendimento
+                        </span>
                       </div>
                       <p className="font-serif font-bold text-base text-foreground">Prefere praticidade e máxima economia?</p>
                       <p className="text-xs text-muted-foreground leading-relaxed">
