@@ -1,4 +1,4 @@
-import { createServerSupabaseClient } from './supabase'
+import { createServerSupabaseClient, createAdminSupabaseClient } from './supabase'
 
 function timeToMinutes(timeStr: string): number {
   const [h, m] = timeStr.split(':').map(Number)
@@ -28,8 +28,27 @@ function isRecurringReservationActiveOnDate(
 export { isRecurringReservationActiveOnDate }
 
 export async function getAvailableSlots(barberId: string, dateStr: string, serviceDuration: number, allowPast: boolean = false) {
-  const supabase = await createServerSupabaseClient()
+  // Use admin client to bypass RLS and read ALL booked appointments across all customers
+  const supabase = await createAdminSupabaseClient()
   
+  // Resolve mock barber IDs ('sergio-uuid', 'enzo-uuid') to real database UUID if needed
+  let targetBarberId = barberId
+  if (barberId === 'sergio-uuid' || barberId === 'enzo-uuid') {
+    const { data: realBarbers } = await supabase
+      .from('barbers')
+      .select('id, profiles(full_name)')
+      .limit(10)
+    const match = realBarbers?.find((b: any) =>
+      barberId === 'sergio-uuid'
+        ? b.profiles?.full_name?.toLowerCase().includes('sergio')
+        : b.profiles?.full_name?.toLowerCase().includes('enzo')
+    ) || realBarbers?.[0]
+
+    if (match?.id) {
+      targetBarberId = match.id
+    }
+  }
+
   // Get day of week (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
   // To avoid timezone shift, parse date manually
   const [year, month, day] = dateStr.split('-').map(Number)
@@ -50,32 +69,32 @@ export async function getAvailableSlots(barberId: string, dateStr: string, servi
     supabase
       .from('barber_working_hours')
       .select('*')
-      .eq('barber_id', barberId)
+      .eq('barber_id', targetBarberId)
       .eq('day_of_week', dayOfWeek)
       .single(),
     supabase
       .from('days_off')
       .select('*')
-      .eq('barber_id', barberId)
+      .eq('barber_id', targetBarberId)
       .eq('date', dateStr)
       .single(),
     supabase
       .from('appointments')
       .select('start_time, end_time')
-      .eq('barber_id', barberId)
+      .eq('barber_id', targetBarberId)
       .neq('status', 'cancelled')
-      .gte('start_time', startOfDay)
-      .lte('end_time', endOfDay),
+      .lt('start_time', endOfDay)
+      .gt('end_time', startOfDay),
     supabase
       .from('blocked_times')
       .select('start_time, end_time')
-      .eq('barber_id', barberId)
-      .gte('start_time', startOfDay)
-      .lte('end_time', endOfDay),
+      .eq('barber_id', targetBarberId)
+      .lt('start_time', endOfDay)
+      .gt('end_time', startOfDay),
     supabase
       .from('recurring_reservations')
       .select('time_slot, interval_weeks, start_date')
-      .eq('barber_id', barberId)
+      .eq('barber_id', targetBarberId)
       .eq('day_of_week', dayOfWeek)
       .eq('status', 'active')
   ])
