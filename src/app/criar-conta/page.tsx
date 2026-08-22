@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, Suspense } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Scissors, AlertCircle, Sun, Moon, Check, MessageCircle, Loader2 } from 'lucide-react'
+import { Scissors, AlertCircle, Sun, Moon, Check, MessageCircle, Loader2, Crown } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { useTheme } from '@/components/ThemeProvider'
 import { formatWhatsAppLink } from '@/lib/settings'
@@ -260,44 +260,72 @@ function PacoteMensalCard() {
       })
   }, [])
 
-  const waMessage = "Olá! Tenho interesse no Pacote Mensal (4 cortes por R$150). Gostaria de saber mais e agendar meu horário fixo!"
-  const waUrl = formatWhatsAppLink(settings?.whatsapp, waMessage)
+  const waCorteMessage = "Olá! Tenho interesse no Pacote Mensal de Corte (4 cortes por R$150/mês)."
+  const waCorteUrl = formatWhatsAppLink(settings?.whatsapp, waCorteMessage)
+
+  const waComboMessage = "Olá! Tenho interesse no Pacote Mensal Cabelo + Barba (4 combos por R$250/mês)."
+  const waComboUrl = formatWhatsAppLink(settings?.whatsapp, waComboMessage)
 
   return (
     <div className="animated-gradient-card border border-primary/25 rounded-2xl overflow-hidden shadow-2xl relative">
       <div className="absolute top-0 right-0 w-40 h-40 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl pointer-events-none" />
 
-      <div className="relative p-6 space-y-4">
+      <div className="relative p-6 space-y-5">
         {/* Header */}
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
-              <Scissors className="w-4 h-4 text-primary rotate-45" />
+              <Crown className="w-4 h-4 text-primary" />
             </div>
             <div>
-              <p className="text-[9px] text-primary uppercase font-bold tracking-widest">Plano Mensal</p>
-              <h3 className="font-serif font-bold text-base text-foreground leading-tight">Horário Fixo Toda Semana</h3>
+              <p className="text-[9px] text-primary uppercase font-bold tracking-widest">Planos Mensais VIP</p>
+              <h3 className="font-serif font-bold text-base text-foreground leading-tight">Economia & Horário Fixo</h3>
             </div>
           </div>
           <span className="shrink-0 text-[8px] font-bold text-primary-foreground bg-primary px-2.5 py-1 rounded-full uppercase tracking-widest">
-            Mais Econômico
+            Sem Burocracia
           </span>
         </div>
 
-        {/* Price anchoring */}
-        <div className="flex items-baseline gap-2.5 flex-wrap">
-          <span className="text-2xl font-serif font-bold text-primary">R$ 150<span className="text-xs font-normal text-muted-foreground">/mês</span></span>
-          <span className="text-sm text-muted-foreground line-through decoration-2">R$ 200</span>
-          <span className="text-[10px] font-bold text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full uppercase">
-            Economize R$ 50
-          </span>
+        {/* 2 Package Options List */}
+        <div className="space-y-3 pt-1">
+          {/* Option 1: Corte (R$ 150) */}
+          <div className="p-3 bg-secondary/40 border border-primary/20 rounded-xl space-y-1 text-xs">
+            <div className="flex items-center justify-between font-bold text-foreground">
+              <span>✂️ Pacote Corte (4x/mês)</span>
+              <span className="text-primary text-sm">R$ 150 <span className="text-[10px] line-through text-muted-foreground">R$200</span></span>
+            </div>
+            <p className="text-[11px] text-muted-foreground">4 cortes de cabelo por mês (Economize R$ 50/mês).</p>
+            <a
+              href={waCorteUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline pt-0.5"
+            >
+              Garantir no WhatsApp →
+            </a>
+          </div>
+
+          {/* Option 2: Cabelo + Barba (R$ 250) */}
+          <div className="p-3 bg-secondary/40 border border-primary/25 rounded-xl space-y-1 text-xs">
+            <div className="flex items-center justify-between font-bold text-foreground">
+              <span>🪒 Pacote Cabelo + Barba (4x/mês)</span>
+              <span className="text-primary text-sm">R$ 250 <span className="text-[10px] line-through text-muted-foreground">R$340</span></span>
+            </div>
+            <p className="text-[11px] text-muted-foreground">4 combos completos por mês (Economize R$ 90/mês).</p>
+            <a
+              href={waComboUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline pt-0.5"
+            >
+              Garantir no WhatsApp →
+            </a>
+          </div>
         </div>
-        <p className="text-[11px] text-muted-foreground -mt-1">
-          4 cortes avulsos custariam R$ 200 — no plano, apenas R$ 150 por mês.
-        </p>
 
         {/* Benefit bullets */}
-        <ul className="space-y-1.5">
+        <ul className="space-y-1.5 pt-1">
           {[
             'Mesmo dia e horário garantidos pelas 4 semanas',
             'Sem precisar agendar toda semana — vaga reservada',
@@ -309,17 +337,6 @@ function PacoteMensalCard() {
             </li>
           ))}
         </ul>
-
-        {/* WhatsApp CTA */}
-        <a
-          href={waUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="w-full py-3 bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-md hover:scale-[1.01] active:scale-[0.99]"
-        >
-          <MessageCircle className="w-4 h-4" />
-          Saber mais pelo WhatsApp
-        </a>
       </div>
     </div>
   )

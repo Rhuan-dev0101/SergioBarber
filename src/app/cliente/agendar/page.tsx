@@ -1031,19 +1031,17 @@ function AgendarWizardInner() {
                     <div className="flex-1 space-y-1.5">
                       <div className="flex items-center gap-2">
                         <span className="text-[9px] font-bold text-primary-foreground bg-primary px-2.5 py-0.5 rounded-full uppercase tracking-widest flex items-center gap-1 shadow-sm">
-                          <Sparkles className="w-3 h-3 text-primary-foreground" /> Plano VIP Mensal
+                          <Sparkles className="w-3 h-3 text-primary-foreground" /> Planos VIP Mensais
                         </span>
                       </div>
                       <p className="font-serif font-bold text-base text-foreground">Prefere praticidade e máxima economia?</p>
                       <p className="text-xs text-muted-foreground leading-relaxed">
-                        Com o Pacote Mensal, você garante 4 cortes por apenas{' '}
-                        <span className="font-bold text-primary">R$&nbsp;150</span>{' '}
-                        <span className="line-through text-muted-foreground/70">R$&nbsp;200</span>{' '}
-                        — economize R$&nbsp;50 por mês, garanta seu horário semanal fixo e esqueça a burocracia de agendar toda vez.
+                        • <strong className="text-foreground">Pacote Corte:</strong> 4 cortes por <span className="font-bold text-primary">R$&nbsp;150</span> <span className="line-through text-muted-foreground/70">R$&nbsp;200</span> (Economize R$&nbsp;50).<br />
+                        • <strong className="text-foreground">Pacote Cabelo + Barba:</strong> 4 combos por <span className="font-bold text-primary">R$&nbsp;250</span> <span className="line-through text-muted-foreground/70">R$&nbsp;340</span> (Economize R$&nbsp;90).
                       </p>
                     </div>
                     <a
-                      href={formatWhatsAppLink(settings?.whatsapp, 'Olá! Tenho interesse no Pacote Mensal (4 cortes por R$150). Gostaria de saber mais e agendar meu horário fixo!')}
+                      href={formatWhatsAppLink(settings?.whatsapp, 'Olá! Gostaria de mais informações sobre os Pacotes Mensais (Corte R$150 ou Cabelo+Barba R$250).')}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="shrink-0 px-5 py-3 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold rounded-lg flex items-center justify-center gap-2 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 cursor-pointer whitespace-nowrap group"

@@ -41,8 +41,11 @@ export default async function Home() {
   const formattedPhone = formatPhoneNumber(rawWhatsapp)
   const telUrl = rawWhatsapp ? `tel:+${rawWhatsapp.replace(/\D/g, '')}` : '#'
 
-  const packageWaMessage = "Olá! Tenho interesse no Pacote Mensal (4 cortes por R$150). Gostaria de saber mais e agendar meu horário fixo!"
-  const packageWaUrl = formatWhatsAppLink(rawWhatsapp, packageWaMessage)
+  const packageCorteWaMessage = "Olá! Tenho interesse no Pacote Mensal de Corte (4 cortes por R$150/mês). Gostaria de saber mais e agendar meu horário fixo!"
+  const packageCorteWaUrl = formatWhatsAppLink(rawWhatsapp, packageCorteWaMessage)
+
+  const packageComboWaMessage = "Olá! Tenho interesse no Pacote Mensal Cabelo + Barba (4 atendimentos completos por R$250/mês). Gostaria de saber mais e agendar meu horário fixo!"
+  const packageComboWaUrl = formatWhatsAppLink(rawWhatsapp, packageComboWaMessage)
 
   let services = FALLBACK_SERVICES
   let barbers = FALLBACK_BARBERS
@@ -218,43 +221,141 @@ export default async function Home() {
           </div>
         </section>
 
-        {/* ── Dedicated Pacote Mensal Banner Section ────────────────── */}
-        <section className="py-14 bg-gradient-to-r from-primary/10 via-background to-primary/5 border-y border-primary/25 relative overflow-hidden">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-            <div className="animated-gradient-card p-8 sm:p-10 rounded-2xl border border-primary/30 max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8 shadow-2xl">
-              <div className="space-y-4 flex-1 text-center md:text-left">
-                <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold uppercase tracking-wider">
-                  <Crown className="w-3.5 h-3.5" />
-                  Destaque da Barbearia
-                </div>
-                <h2 className="text-2xl sm:text-3xl font-serif font-bold text-foreground">
-                  Pacote Mensal — 4 Cortes por Mês
-                </h2>
-                <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-xl">
-                  Corte toda semana no mesmo dia e horário garantido. Sem precisar agendar toda vez — economize R$ 50 todo mês.
-                </p>
-
-                {/* Price anchoring */}
-                <div className="flex items-baseline justify-center md:justify-start gap-3 flex-wrap pt-1">
-                  <span className="text-3xl sm:text-4xl font-serif font-bold text-primary">R$ 150<span className="text-xs font-normal text-muted-foreground">/mês</span></span>
-                  <span className="text-base text-muted-foreground line-through decoration-2">R$ 200</span>
-                  <span className="text-xs font-bold text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full uppercase">
-                    Economize R$ 50 todo mês
-                  </span>
-                </div>
+        {/* ── Dedicated Pacotes Mensais VIP Section ────────────────── */}
+        <section className="py-16 bg-gradient-to-r from-primary/10 via-background to-primary/5 border-y border-primary/25 relative overflow-hidden">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative space-y-10">
+            <div className="text-center space-y-3 max-w-2xl mx-auto">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold uppercase tracking-wider">
+                <Crown className="w-3.5 h-3.5" />
+                Planos Mensais VIP — Economia Garantida
               </div>
+              <h2 className="text-3xl sm:text-4xl font-serif font-bold text-foreground">
+                Pacotes Promocionais Mensais
+              </h2>
+              <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                Garanta seu dia e horário fixo toda semana. Sem precisar agendar toda vez, com descontos exclusivos todos os meses!
+              </p>
+            </div>
 
-              <div className="shrink-0 flex flex-col items-center gap-3 w-full md:w-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+              {/* Package 1: Corte de Cabelo (R$ 150/mês) */}
+              <div className="animated-gradient-card p-6 sm:p-8 rounded-2xl border border-primary/30 flex flex-col justify-between space-y-6 shadow-2xl relative overflow-hidden group">
+                <div className="space-y-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="p-3 rounded-xl bg-primary/10 border border-primary/20">
+                        <Scissors className="w-5 h-5 text-primary rotate-45" />
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-bold text-primary uppercase tracking-widest block">Plano Mensal ✂️</span>
+                        <h3 className="font-serif font-bold text-xl text-foreground leading-tight">4 Cortes de Cabelo</h3>
+                      </div>
+                    </div>
+                    <span className="shrink-0 text-[9px] font-bold text-primary-foreground bg-primary px-3 py-1 rounded-full uppercase tracking-widest shadow-md">
+                      Economize R$ 50
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    1 corte por semana no seu dia e horário preferido. Fique com o visual impecável o mês inteiro.
+                  </p>
+
+                  <div className="bg-background/60 border border-primary/20 rounded-xl p-4 space-y-1">
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block">Preço Promocional</span>
+                    <div className="flex items-baseline gap-2.5 flex-wrap">
+                      <span className="text-3xl font-serif font-bold text-primary">R$ 150<span className="text-xs font-normal text-muted-foreground">/mês</span></span>
+                      <span className="text-sm text-muted-foreground line-through decoration-2">R$ 200</span>
+                      <span className="text-[10px] font-bold text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full uppercase">
+                        R$ 37,50 por corte
+                      </span>
+                    </div>
+                  </div>
+
+                  <ul className="space-y-2 text-xs text-muted-foreground pt-1">
+                    <li className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-primary shrink-0" />
+                      <span>Horário fixo garantido pelas 4 semanas</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-primary shrink-0" />
+                      <span>Sem necessidade de agendar toda semana</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-primary shrink-0" />
+                      <span>Prioridade de horário na agenda</span>
+                    </li>
+                  </ul>
+                </div>
+
                 <a
-                  href={packageWaUrl}
+                  href={packageCorteWaUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full md:w-auto px-6 py-4 bg-primary hover:bg-primary-hover text-primary-foreground text-sm font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] whitespace-nowrap"
+                  className="w-full px-5 py-3.5 bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-primary/20 hover:scale-[1.02] active:scale-[0.98]"
                 >
                   <MessageSquare className="w-4 h-4" />
-                  Garantir Horário no WhatsApp
+                  <span>Garantir Pacote Corte (R$ 150)</span>
                 </a>
-                <span className="text-[10px] text-muted-foreground">Sem necessidade de cadastro prévio</span>
+              </div>
+
+              {/* Package 2: Cabelo + Barba (R$ 250/mês) */}
+              <div className="animated-gradient-card p-6 sm:p-8 rounded-2xl border border-primary/40 flex flex-col justify-between space-y-6 shadow-2xl relative overflow-hidden group">
+                <div className="space-y-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="p-3 rounded-xl bg-primary/10 border border-primary/20">
+                        <Sparkles className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-bold text-primary uppercase tracking-widest block">Plano Mensal VIP 🪒</span>
+                        <h3 className="font-serif font-bold text-xl text-foreground leading-tight">4 Cabelo + Barba</h3>
+                      </div>
+                    </div>
+                    <span className="shrink-0 text-[9px] font-bold text-primary-foreground bg-primary px-3 py-1 rounded-full uppercase tracking-widest shadow-md">
+                      Economize R$ 90
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    4 atendimentos completos por mês (Cabelo + Barba com toalha quente e acabamento navalhado).
+                  </p>
+
+                  <div className="bg-background/60 border border-primary/20 rounded-xl p-4 space-y-1">
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block">Preço Promocional</span>
+                    <div className="flex items-baseline gap-2.5 flex-wrap">
+                      <span className="text-3xl font-serif font-bold text-primary">R$ 250<span className="text-xs font-normal text-muted-foreground">/mês</span></span>
+                      <span className="text-sm text-muted-foreground line-through decoration-2">R$ 340</span>
+                      <span className="text-[10px] font-bold text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full uppercase">
+                        R$ 62,50 por combo
+                      </span>
+                    </div>
+                  </div>
+
+                  <ul className="space-y-2 text-xs text-muted-foreground pt-1">
+                    <li className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-primary shrink-0" />
+                      <span>Cabelo + Barba completo toda semana</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-primary shrink-0" />
+                      <span>Toalha quente e terapias inclusas</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-primary shrink-0" />
+                      <span>Horário VIP fixo sem burocracia</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <a
+                  href={packageComboWaUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full px-5 py-3.5 bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-primary/20 hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  <span>Garantir Pacote Cabelo + Barba (R$ 250)</span>
+                </a>
               </div>
             </div>
           </div>
@@ -392,7 +493,7 @@ export default async function Home() {
       {/* ── Persistent Floating Pacote Mensal Bubble (Bottom Right) ── */}
       <div className="fixed bottom-6 right-6 z-50 animate-in fade-in slide-in-from-bottom-5 duration-500">
         <a
-          href={packageWaUrl}
+          href={packageCorteWaUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="group flex items-center gap-3 bg-card/95 hover:bg-card border border-primary/40 p-3 pr-4 rounded-full shadow-2xl backdrop-blur-md transition-all hover:scale-105 active:scale-95 hover:border-primary cursor-pointer"
