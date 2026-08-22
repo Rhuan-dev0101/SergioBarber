@@ -490,31 +490,6 @@ export default async function Home() {
         </section>
       </main>
 
-      {/* ── Persistent Floating Pacote Mensal Bubble (Bottom Right) ── */}
-      <div className="fixed bottom-6 right-6 z-50 animate-in fade-in slide-in-from-bottom-5 duration-500">
-        <a
-          href={packageCorteWaUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="group flex items-center gap-3 bg-card/95 hover:bg-card border border-primary/40 p-3 pr-4 rounded-full shadow-2xl backdrop-blur-md transition-all hover:scale-105 active:scale-95 hover:border-primary cursor-pointer"
-        >
-          <div className="w-10 h-10 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center text-primary relative shrink-0">
-            <Scissors className="w-5 h-5 rotate-45" />
-            <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full animate-ping" />
-            <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full" />
-          </div>
-          <div className="flex flex-col text-left">
-            <div className="flex items-center gap-1.5">
-              <span className="text-[9px] font-bold text-primary uppercase tracking-wider">Pacote Mensal</span>
-              <span className="text-[8px] bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-1.5 py-0.2 rounded font-bold uppercase">-R$50</span>
-            </div>
-            <span className="text-xs font-serif font-bold text-foreground group-hover:text-primary transition-colors">
-              4 cortes por R$ 150/mês
-            </span>
-          </div>
-        </a>
-      </div>
-
       <Footer initialSettings={settings || undefined} />
     </div>
   )
