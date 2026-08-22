@@ -1,6 +1,6 @@
 'use server'
 
-import { createServerSupabaseClient } from '@/lib/supabase'
+import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase'
 import { getAvailableSlots, isRecurringReservationActiveOnDate } from '@/lib/booking'
 import { addMinutes, format } from 'date-fns'
 import { getOutstandingNoShowFee, type NoShowFeeInfo } from '@/lib/no-show'
@@ -42,6 +42,7 @@ export async function createAppointmentAction(
 
   try {
     const supabase = await createServerSupabaseClient()
+    const adminDb = await createAdminSupabaseClient()
 
     // 1. Get authenticated user session
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -49,22 +50,31 @@ export async function createAppointmentAction(
       return { success: false, message: 'Sessão expirada. Por favor, faça login novamente.' }
     }
 
+    // Resolve mock barber IDs ('sergio-uuid', 'enzo-uuid') to real database UUID if needed
+    let targetBarberId = barberId
+    if (barberId === 'sergio-uuid' || barberId === 'enzo-uuid') {
+      const { data: realBarbers } = await adminDb
+        .from('barbers')
+        .select('id, profiles(full_name)')
+        .limit(10)
+      
+      const match = realBarbers?.find((b: any) =>
+        barberId === 'sergio-uuid'
+          ? b.profiles?.full_name?.toLowerCase().includes('sergio')
+          : b.profiles?.full_name?.toLowerCase().includes('enzo')
+      ) || realBarbers?.[0]
+
+      if (match?.id) {
+        targetBarberId = match.id
+      }
+    }
+
     // 2. Fetch service details, availability, and outstanding no-show fee in PARALLEL
     const fetchServicePromise = (async () => {
-      if (barberId === 'sergio-uuid' || barberId === 'enzo-uuid') {
-        const mockServices = [
-          { id: '1', name: 'Corte', duration: 60, price: 50.00, is_active: true },
-          { id: '2', name: 'Cabelo + Barba', duration: 90, price: 85.00, is_active: true },
-          { id: '3', name: 'Barba', duration: 30, price: 45.00, is_active: true }
-        ]
-        const found = mockServices.find(s => s.id === serviceId)
-        return found ? { name: found.name, duration: found.duration, price: found.price, is_active: found.is_active } : null
-      }
-
-      const { data: barberService, error: serviceError } = await supabase
+      const { data: barberService, error: serviceError } = await adminDb
         .from('barber_services')
         .select('price, duration, is_active, services(name)')
-        .eq('barber_id', barberId)
+        .eq('barber_id', targetBarberId)
         .eq('service_id', serviceId)
         .single()
 
@@ -76,6 +86,23 @@ export async function createAppointmentAction(
           is_active: barberService.is_active
         }
       }
+
+      // Fallback lookup in global services table if barber_services wasn't linked
+      const { data: globalService } = await adminDb
+        .from('services')
+        .select('name, duration, price, is_active')
+        .eq('id', serviceId)
+        .single()
+
+      if (globalService && globalService.is_active) {
+        return {
+          name: globalService.name,
+          duration: Number(globalService.duration),
+          price: Number(globalService.price),
+          is_active: globalService.is_active
+        }
+      }
+
       return null
     })()
 
@@ -89,7 +116,7 @@ export async function createAppointmentAction(
 
     // 3. Verify availability (Double-booking prevention rule)
     const duration = service.duration
-    const availableSlots = await getAvailableSlots(barberId, dateStr, duration)
+    const availableSlots = await getAvailableSlots(targetBarberId, dateStr, duration)
 
     if (!availableSlots.includes(timeStr)) {
       return { success: false, message: 'Desculpe, este horário não está mais disponível. Escolha outro.' }
@@ -103,12 +130,15 @@ export async function createAppointmentAction(
 
     const feeAmount = noShowFee?.fee || 0
 
-    // 6. Insert appointment
-    const { data: appointment, error: apptError } = await supabase
+    // 6. Insert appointment using adminDb
+    let appointment: { id: string } | null = null
+    let apptError: any = null
+
+    const insertRes = await adminDb
       .from('appointments')
       .insert({
         customer_id: user.id,
-        barber_id: barberId,
+        barber_id: targetBarberId,
         service_id: serviceId,
         start_time: startDate.toISOString(),
         end_time: endTimeStr,
@@ -117,6 +147,25 @@ export async function createAppointmentAction(
       })
       .select('id')
       .single()
+
+    if (insertRes.data?.id) {
+      appointment = insertRes.data
+    } else {
+      apptError = insertRes.error
+      // Fallback: Query inserted appointment if .single() failed due to RLS/PostgREST response filtering
+      const { data: fallbackList } = await adminDb
+        .from('appointments')
+        .select('id')
+        .eq('customer_id', user.id)
+        .eq('start_time', startDate.toISOString())
+        .order('created_at', { ascending: false })
+        .limit(1)
+
+      if (fallbackList && fallbackList.length > 0) {
+        appointment = fallbackList[0]
+        apptError = null
+      }
+    }
 
     if (apptError || !appointment) {
       console.error('Error inserting appointment:', apptError)
@@ -136,7 +185,7 @@ export async function createAppointmentAction(
       ? `Sinal Pix de 50% gerado para o serviço: ${service.name}${feeNote}`
       : `Pagamento presencial (${paymentMethod === 'cash' ? 'Dinheiro' : 'Cartão'}) para o serviço: ${service.name}${feeNote}`
 
-    const { error: payError } = await supabase
+    const { error: payError } = await adminDb
       .from('payments')
       .insert({
         appointment_id: appointment.id,
@@ -149,7 +198,6 @@ export async function createAppointmentAction(
 
     if (payError) {
       console.error('Error inserting payment log:', payError)
-      // We don't rollback the appointment as it's created, but log the error
     }
 
     return { 

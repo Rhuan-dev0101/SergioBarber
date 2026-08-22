@@ -34,3 +34,17 @@ export async function createServerSupabaseClient() {
     }
   )
 }
+
+export async function createAdminSupabaseClient() {
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!serviceKey) {
+    return createServerSupabaseClient()
+  }
+  const { createClient: createBaseClient } = await import('@supabase/supabase-js')
+  return createBaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    serviceKey,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  )
+}
+

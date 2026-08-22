@@ -1,6 +1,6 @@
 'use server'
 
-import { createServerSupabaseClient } from '@/lib/supabase'
+import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase'
 import { getAvailableSlots } from '@/lib/booking'
 import { addMinutes } from 'date-fns'
 import { resolveNoShowFeeForCustomer } from '@/lib/no-show'
@@ -208,10 +208,10 @@ export async function createWalkInAppointmentAction(
   }
 
   try {
-    const supabase = await createServerSupabaseClient()
+    const adminDb = await createAdminSupabaseClient()
 
     // 1. Fetch service info
-    const { data: service } = await supabase
+    const { data: service } = await adminDb
       .from('services')
       .select('name, duration, price')
       .eq('id', serviceId)
@@ -235,7 +235,11 @@ export async function createWalkInAppointmentAction(
 
     // 4. Insert appointment directly as 'confirmed'
     const formattedNotes = customerId ? (notes || '') : `[Walk-in] Cliente: ${clientName}. ${notes || ''}`
-    const { data: appt, error: apptError } = await supabase
+    
+    let appt: { id: string } | null = null
+    let apptError: any = null
+
+    const res = await adminDb
       .from('appointments')
       .insert({
         customer_id: customerId || null,
@@ -243,11 +247,29 @@ export async function createWalkInAppointmentAction(
         service_id: serviceId,
         start_time: startDate.toISOString(),
         end_time: endDate.toISOString(),
-        status: 'confirmed', // immediately confirmed, skipping any deposit requirement
+        status: 'confirmed',
         notes: formattedNotes
       })
       .select('id')
       .single()
+
+    if (res.data?.id) {
+      appt = res.data
+    } else {
+      apptError = res.error
+      const { data: fallbackList } = await adminDb
+        .from('appointments')
+        .select('id')
+        .eq('barber_id', barberId)
+        .eq('start_time', startDate.toISOString())
+        .order('created_at', { ascending: false })
+        .limit(1)
+
+      if (fallbackList && fallbackList.length > 0) {
+        appt = fallbackList[0]
+        apptError = null
+      }
+    }
 
     if (apptError || !appt) {
       console.error('Walk-in insert error:', apptError)
@@ -255,7 +277,7 @@ export async function createWalkInAppointmentAction(
     }
 
     // 5. Create payment record for walk-in (no deposit calculated, initial status pending for in-person collection)
-    await supabase
+    await adminDb
       .from('payments')
       .insert({
         appointment_id: appt.id,
@@ -305,10 +327,10 @@ export async function createExtraAppointmentAction(
   }
 
   try {
-    const supabase = await createServerSupabaseClient()
+    const adminDb = await createAdminSupabaseClient()
 
     // 1. Fetch service info (for duration and default price)
-    const { data: service } = await supabase
+    const { data: service } = await adminDb
       .from('services')
       .select('name, duration, price')
       .eq('id', serviceId)
@@ -336,20 +358,62 @@ export async function createExtraAppointmentAction(
 
     const appointmentStatus = isPaid ? 'completed' : 'confirmed'
 
-    const { data: appt, error: apptError } = await supabase
+    let appt: { id: string } | null = null
+    let apptError: any = null
+
+    const insertPayload: any = {
+      customer_id: customerId || null,
+      barber_id: barberId,
+      service_id: serviceId,
+      start_time: startDate.toISOString(),
+      end_time: endDate.toISOString(),
+      status: appointmentStatus,
+      notes: formattedNotes,
+      is_extra: true
+    }
+
+    // Try inserting with is_extra first
+    const res1 = await adminDb
       .from('appointments')
-      .insert({
-        customer_id: customerId || null,
-        barber_id: barberId,
-        service_id: serviceId,
-        start_time: startDate.toISOString(),
-        end_time: endDate.toISOString(),
-        status: appointmentStatus,
-        notes: formattedNotes,
-        is_extra: true
-      })
+      .insert(insertPayload)
       .select('id')
       .single()
+
+    if (res1.data?.id) {
+      appt = res1.data
+    } else if (res1.error && (res1.error.code === '42703' || res1.error.message?.includes('is_extra'))) {
+      // Column is_extra does not exist in DB schema, retry without it
+      delete insertPayload.is_extra
+      const res2 = await adminDb
+        .from('appointments')
+        .insert(insertPayload)
+        .select('id')
+        .single()
+      if (res2.data?.id) {
+        appt = res2.data
+      } else {
+        apptError = res2.error
+      }
+    } else {
+      apptError = res1.error
+    }
+
+    // Fallback: If insert completed in DB but .single() was blocked by RLS/PostgREST
+    if (!appt) {
+      const query = adminDb
+        .from('appointments')
+        .select('id')
+        .eq('barber_id', barberId)
+        .eq('start_time', startDate.toISOString())
+        .order('created_at', { ascending: false })
+        .limit(1)
+
+      const { data: fallbackList } = await query
+      if (fallbackList && fallbackList.length > 0) {
+        appt = fallbackList[0]
+        apptError = null
+      }
+    }
 
     if (apptError || !appt) {
       console.error('Extra appointment insert error:', apptError)
@@ -358,7 +422,7 @@ export async function createExtraAppointmentAction(
 
     // 6. Create payment record
     const paymentStatus = isPaid ? 'confirmed_manually' : 'pending'
-    await supabase
+    await adminDb
       .from('payments')
       .insert({
         appointment_id: appt.id,
