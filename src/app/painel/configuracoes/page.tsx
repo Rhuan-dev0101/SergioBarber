@@ -272,7 +272,7 @@ export default function PainelConfiguracoes() {
               <Video className="w-4 h-4 text-primary" /> Vídeos de Tutorial do Site 🎬
             </h3>
             <p className="text-[11px] text-muted-foreground">
-              Cole abaixo os links dos vídeos do YouTube (ex: <code className="text-primary font-mono font-bold">https://youtube.com/watch?v=...</code> ou <code className="text-primary font-mono font-bold">https://youtu.be/...</code>). Se mantido em branco, o site exibirá o botão de suporte via WhatsApp.
+              Cole abaixo os links dos vídeos do YouTube (funciona com vídeos normais <code className="text-primary font-mono font-bold">watch?v=...</code>, vídeos curtos <code className="text-primary font-mono font-bold">shorts/...</code> ou links <code className="text-primary font-mono font-bold">youtu.be/...</code>).
             </p>
 
             {/* Desktop Video URL */}
@@ -285,7 +285,7 @@ export default function PainelConfiguracoes() {
                 <input
                   id="cTutorialDesktop"
                   type="url"
-                  placeholder="https://www.youtube.com/watch?v=..."
+                  placeholder="https://www.youtube.com/watch?v=... ou https://youtu.be/..."
                   value={tutorialVideoDesktop}
                   onChange={(e) => setTutorialVideoDesktop(e.target.value)}
                   disabled={isPending}
@@ -304,7 +304,7 @@ export default function PainelConfiguracoes() {
                 <input
                   id="cTutorialMobile"
                   type="url"
-                  placeholder="https://www.youtube.com/watch?v=..."
+                  placeholder="https://youtube.com/shorts/... ou https://youtu.be/..."
                   value={tutorialVideoMobile}
                   onChange={(e) => setTutorialVideoMobile(e.target.value)}
                   disabled={isPending}

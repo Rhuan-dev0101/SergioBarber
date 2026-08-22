@@ -13,12 +13,13 @@ export function getYouTubeEmbedUrl(url: string | null | undefined): string | nul
   const trimmed = url.trim()
 
   if (trimmed.includes('youtube.com/embed/')) {
-    return trimmed
+    return trimmed.includes('?') ? trimmed : `${trimmed}?rel=0`
   }
 
-  const watchMatch = trimmed.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/)
-  if (watchMatch && watchMatch[1]) {
-    return `https://www.youtube.com/embed/${watchMatch[1]}?rel=0`
+  // Match 11-character video ID from watch, shorts, embed, youtu.be, or direct ID
+  const match = trimmed.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/|v\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/)
+  if (match && match[1]) {
+    return `https://www.youtube.com/embed/${match[1]}?rel=0`
   }
 
   if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) {
