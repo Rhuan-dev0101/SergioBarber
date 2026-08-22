@@ -9,6 +9,7 @@ import { GradientButton } from '@/components/ui/gradient-button'
 import { BarbersSection } from '@/components/BarbersSection'
 import { HeroActions } from '@/components/HeroActions'
 import { TestimonialsSection } from '@/components/TestimonialsSection'
+import { EmbeddedTutorialSection } from '@/components/EmbeddedTutorialSection'
 import { getBusinessSettings, formatPhoneNumber, formatWhatsAppLink } from '@/lib/settings'
 
 // Static fallback seed data in case database is empty or unreachable during build
@@ -208,6 +209,12 @@ export default async function Home() {
                 rawWhatsapp={rawWhatsapp}
               />
             </div>
+
+            {/* Embedded Tutorial Section directly on Home Page */}
+            <EmbeddedTutorialSection 
+              initialDesktopUrl={(settings as any)?.tutorial_video_desktop_url}
+              initialMobileUrl={(settings as any)?.tutorial_video_mobile_url}
+            />
           </div>
         </section>
 

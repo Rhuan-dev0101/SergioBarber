@@ -49,7 +49,12 @@ export function HeroActions({
         {/* 3. Tertiary CTA: Ver Tutorial */}
         <button
           type="button"
-          onClick={() => setShowTutorial(true)}
+          onClick={() => {
+            const el = document.getElementById('tutorial-section')
+            if (el) {
+              el.scrollIntoView({ behavior: 'smooth' })
+            }
+          }}
           className="w-full sm:w-auto px-5 py-3 rounded-xl bg-secondary/80 hover:bg-secondary text-foreground border border-primary/40 hover:border-primary font-bold text-xs flex items-center justify-center gap-2 transition-all duration-200 cursor-pointer shadow-md hover:shadow-lg hover:shadow-primary/10 group"
         >
           <div className="w-6 h-6 rounded-full bg-primary/15 text-primary flex items-center justify-center transition-transform group-hover:scale-110">
