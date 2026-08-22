@@ -25,8 +25,9 @@ export function getSessionDatesForDuration(startDateStr: string, durationMonths:
 }
 
 /**
- * Generate candidate dates given a start date, duration in months, and a list of excluded (deselected) dates.
- * Keeps adding weekly compensation dates until the count of selected (non-excluded) dates equals targetSessions.
+ * Generate candidate dates given a start date and duration in months (1, 4, or 6).
+ * Fixed weekly dates for the package duration (1m = 4, 4m = 16, 6m = 24).
+ * Excluded (deselected) dates are simply removed without adding extra compensation weeks at the end.
  */
 export function getExpandedSessionDates(
   startDateStr: string,
@@ -38,30 +39,12 @@ export function getExpandedSessionDates(
   }
 
   const baseDates = getSessionDatesForDuration(startDateStr, durationMonths)
-  const targetSessions = durationMonths * 4
-
   const excludedSet = new Set(excludedDates)
-  const [y, m, d] = startDateStr.split('-').map(Number)
-  let current = new Date(y, m - 1, d)
 
-  const candidateDates: string[] = []
-  const selectedDates: string[] = []
-
-  let safetyLimit = 0
-  while (selectedDates.length < targetSessions && safetyLimit < targetSessions + 52) {
-    const curY = current.getFullYear()
-    const curM = String(current.getMonth() + 1).padStart(2, '0')
-    const curD = String(current.getDate()).padStart(2, '0')
-    const dateStr = `${curY}-${curM}-${curD}`
-
-    candidateDates.push(dateStr)
-    if (!excludedSet.has(dateStr)) {
-      selectedDates.push(dateStr)
-    }
-
-    current = addWeeks(current, 1)
-    safetyLimit++
-  }
+  const candidateDates = baseDates
+  const selectedDates = baseDates.filter(d => !excludedSet.has(d))
+  const targetSessions = selectedDates.length
 
   return { baseDates, candidateDates, selectedDates, targetSessions }
 }
+

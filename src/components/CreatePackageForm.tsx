@@ -666,14 +666,12 @@ export function CreatePackageForm({
                 Seleção de Datas & Verificação de Agenda
               </p>
               <p className="text-[10px] text-muted-foreground mt-0.5">
-                {isNoDiscountPackage
-                  ? 'Desmarque datas em que o cliente não puder vir — R$ 50,00 serão abatidos automaticamente por corte desmarcado.'
-                  : 'Desmarque datas em que o cliente não puder vir — uma data de compensação será adicionada ao final.'}
+                Desmarque as datas em que o cliente não virá (ex: atendimento quinzenal / semana sim e semana não).
               </p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
-                {selectedDates.length}/{isNoDiscountPackage ? baseDates.length : targetSessions} sessões confirmadas
+                {selectedDates.length}/{baseDates.length} sessões agendadas
               </span>
             </div>
           </div>
@@ -684,7 +682,6 @@ export function CreatePackageForm({
               const isSelected = !isExcluded
               const valItem = validationResult.find(r => r.date === dateStr)
               const isAvailable = valItem ? valItem.available : true
-              const isCompensation = !baseDates.includes(dateStr)
 
               return (
                 <div
@@ -714,11 +711,6 @@ export function CreatePackageForm({
                           : 'text-foreground'
                       }`}>
                         {formatDatePt(dateStr)} ({WEEKDAY_SHORT[dayOfWeek]}) às {timeSlot}
-                        {isCompensation && (
-                          <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-400 border border-amber-500/25">
-                            Compensação +1
-                          </span>
-                        )}
                       </span>
                     </div>
                   </div>

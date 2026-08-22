@@ -407,20 +407,10 @@ export default function PainelPacotes() {
     }
   }, [durationMonths, serviceId, barberServices, excludedDates])
 
-  // Compute expanded candidate dates & selected dates
+  // Compute candidate dates & selected dates
   const { baseDates, candidateDates, selectedDates, targetSessions } = useMemo(() => {
-    if (isNoDiscountPackage) {
-      const bDates = getSessionDatesForDuration(startDate, durationMonths)
-      const sDates = bDates.filter(d => !excludedDates.includes(d))
-      return {
-        baseDates: bDates,
-        candidateDates: bDates,
-        selectedDates: sDates,
-        targetSessions: bDates.length
-      }
-    }
     return getExpandedSessionDates(startDate, durationMonths, excludedDates)
-  }, [startDate, durationMonths, excludedDates, isNoDiscountPackage])
+  }, [startDate, durationMonths, excludedDates])
 
   // ──── Reset excluded dates when primary parameters change ────
   useEffect(() => {
