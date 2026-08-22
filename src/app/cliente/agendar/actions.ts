@@ -243,13 +243,31 @@ export async function getBarberMonthAvailabilityAction(
   }
 
   try {
-    const supabase = await createServerSupabaseClient()
+    const supabase = await createAdminSupabaseClient()
+
+    // Resolve mock barber IDs ('sergio-uuid', 'enzo-uuid') to real database UUID if needed
+    let targetBarberId = barberId
+    if (barberId === 'sergio-uuid' || barberId === 'enzo-uuid') {
+      const { data: realBarbers } = await supabase
+        .from('barbers')
+        .select('id, profiles(full_name)')
+        .limit(10)
+      const match = realBarbers?.find((b: any) =>
+        barberId === 'sergio-uuid'
+          ? b.profiles?.full_name?.toLowerCase().includes('sergio')
+          : b.profiles?.full_name?.toLowerCase().includes('enzo')
+      ) || realBarbers?.[0]
+
+      if (match?.id) {
+        targetBarberId = match.id
+      }
+    }
 
     // 1. Fetch working hours for the selected barber
     const { data: workingHoursList } = await supabase
       .from('barber_working_hours')
       .select('*')
-      .eq('barber_id', barberId)
+      .eq('barber_id', targetBarberId)
 
     const workingHoursMap = new Map<number, any>()
     if (workingHoursList) {
@@ -269,7 +287,7 @@ export async function getBarberMonthAvailabilityAction(
     const { data: daysOff } = await supabase
       .from('days_off')
       .select('date')
-      .eq('barber_id', barberId)
+      .eq('barber_id', targetBarberId)
       .gte('date', `${year}-${formattedMonth}-01`)
       .lte('date', `${year}-${formattedMonth}-${String(lastDay).padStart(2, '0')}`)
 
@@ -279,24 +297,24 @@ export async function getBarberMonthAvailabilityAction(
     const { data: appointments } = await supabase
       .from('appointments')
       .select('start_time, end_time')
-      .eq('barber_id', barberId)
+      .eq('barber_id', targetBarberId)
       .neq('status', 'cancelled')
-      .gte('start_time', startOfMonthStr)
-      .lte('end_time', endOfMonthStr)
+      .lt('start_time', endOfMonthStr)
+      .gt('end_time', startOfMonthStr)
 
     // 4. Fetch blocked times for the month
     const { data: blockedTimes } = await supabase
       .from('blocked_times')
       .select('start_time, end_time')
-      .eq('barber_id', barberId)
-      .gte('start_time', startOfMonthStr)
-      .lte('end_time', endOfMonthStr)
+      .eq('barber_id', targetBarberId)
+      .lt('start_time', endOfMonthStr)
+      .gt('end_time', startOfMonthStr)
 
     // 5. Fetch active recurring reservations for this barber
     const { data: recurringReservations } = await supabase
       .from('recurring_reservations')
       .select('day_of_week, time_slot, interval_weeks, start_date')
-      .eq('barber_id', barberId)
+      .eq('barber_id', targetBarberId)
       .eq('status', 'active')
 
     // Group busy local minutes by date (YYYY-MM-DD)
