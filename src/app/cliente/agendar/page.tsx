@@ -1624,21 +1624,58 @@ function AgendarWizardInner() {
                   />
                 </div>
 
-                {/* Confirm Rules Accept */}
-                <label className="flex items-start gap-2.5 text-xs text-muted-foreground cursor-pointer select-none pt-2">
-                  <input
-                    type="checkbox"
-                    checked={acceptTerms}
-                    onChange={(e) => setAcceptTerms(e.target.checked)}
-                    disabled={isPending}
-                    className="mt-0.5 rounded accent-primary w-4 h-4 cursor-pointer"
-                    required
-                  />
-                  <span>
-                    Confirmo o agendamento e declaro-me ciente de que atrasos superiores a <strong>10 minutos</strong> configuram no-show, e de que o cancelamento do sinal integral exige aviso de{' '}
-                    <strong>1 hora</strong> de antecedência.
-                  </span>
-                </label>
+                {/* Confirm Rules Accept - Highlighted Card for High Visibility */}
+                <div 
+                  onClick={() => !isPending && setAcceptTerms(!acceptTerms)}
+                  className={`p-4 sm:p-5 rounded-xl border-2 transition-all cursor-pointer select-none ${
+                    acceptTerms 
+                      ? 'bg-emerald-950/30 border-emerald-500/80 shadow-[0_0_15px_rgba(16,185,129,0.15)]' 
+                      : 'bg-amber-500/10 border-amber-500/60 hover:border-amber-400 hover:bg-amber-500/15 shadow-[0_0_20px_rgba(245,158,11,0.15)]'
+                  }`}
+                >
+                  <div className="flex items-start gap-3.5">
+                    <div className="relative flex items-center justify-center pt-0.5">
+                      <input
+                        type="checkbox"
+                        id="acceptTermsCheckbox"
+                        checked={acceptTerms}
+                        onChange={(e) => setAcceptTerms(e.target.checked)}
+                        disabled={isPending}
+                        className="w-6 h-6 sm:w-7 sm:h-7 rounded-md accent-amber-500 cursor-pointer focus:ring-2 focus:ring-amber-400 transition-transform active:scale-95"
+                        onClick={(e) => e.stopPropagation()}
+                        required
+                      />
+                    </div>
+                    
+                    <div className="flex-1 space-y-1.5">
+                      <div className="flex items-center gap-2">
+                        {acceptTerms ? (
+                          <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-400 uppercase tracking-wider bg-emerald-500/20 px-2.5 py-0.5 rounded-full border border-emerald-500/40">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                            Regras Confirmadas
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-400 uppercase tracking-wider bg-amber-500/20 px-2.5 py-0.5 rounded-full border border-amber-500/40">
+                            <AlertCircle className="w-3.5 h-3.5 text-amber-400" />
+                            Toque aqui para aceitar e agendar
+                          </span>
+                        )}
+                      </div>
+
+                      <p className={`text-sm sm:text-base leading-relaxed ${acceptTerms ? 'text-zinc-100 font-medium' : 'text-zinc-100 font-semibold'}`}>
+                        Confirmo o agendamento e declaro-me ciente de que atrasos superiores a{' '}
+                        <strong className="text-amber-400 font-bold underline decoration-amber-400/50">10 minutos</strong> configuram no-show, e de que o cancelamento do sinal integral exige aviso de{' '}
+                        <strong className="text-amber-400 font-bold underline decoration-amber-400/50">1 hora</strong> de antecedência.
+                      </p>
+
+                      {!acceptTerms && (
+                        <p className="text-xs text-amber-300/90 font-semibold pt-1">
+                          👉 É necessário marcar a caixa acima para liberar o botão de confirmação.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
             </BookingErrorBoundary>
@@ -1680,23 +1717,34 @@ function AgendarWizardInner() {
                   <ChevronRight className="w-4 h-4 text-primary-foreground" />
                 </button>
               ) : (
-                <button
-                  onClick={handleConfirmBooking}
-                  disabled={isPending || !acceptTerms}
-                  className="px-6 py-2.5 bg-primary hover:bg-primary-hover text-primary-foreground rounded text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed ml-auto"
-                >
-                  {isPending ? (
-                    <span key="loading" className="flex items-center gap-1.5 justify-center">
-                      <Loader2 className="w-4 h-4 animate-spin text-primary-foreground" />
-                      Registrando...
-                    </span>
-                  ) : (
-                    <span key="normal" className="flex items-center gap-1.5 justify-center">
-                      Confirmar Agendamento
-                      <Check className="w-4 h-4 text-primary-foreground" />
+                <div className="flex flex-col items-end gap-1.5 ml-auto">
+                  <button
+                    onClick={handleConfirmBooking}
+                    disabled={isPending || !acceptTerms}
+                    className={`px-6 py-3 rounded-lg text-xs sm:text-sm font-bold flex items-center gap-2 cursor-pointer transition-all shadow-md ${
+                      !acceptTerms 
+                        ? 'bg-primary/40 text-primary-foreground/50 cursor-not-allowed opacity-60' 
+                        : 'bg-primary hover:bg-primary-hover text-primary-foreground shadow-primary/25 hover:scale-[1.02]'
+                    }`}
+                  >
+                    {isPending ? (
+                      <span key="loading" className="flex items-center gap-2 justify-center">
+                        <Loader2 className="w-4 h-4 animate-spin text-primary-foreground" />
+                        Registrando...
+                      </span>
+                    ) : (
+                      <span key="normal" className="flex items-center gap-2 justify-center">
+                        Confirmar Agendamento
+                        <Check className="w-4 h-4 text-primary-foreground" />
+                      </span>
+                    )}
+                  </button>
+                  {!acceptTerms && (
+                    <span className="text-[11px] text-amber-400 font-medium text-right animate-pulse">
+                      * Marque a caixinha de regras acima
                     </span>
                   )}
-                </button>
+                </div>
               )}
             </div>
 
