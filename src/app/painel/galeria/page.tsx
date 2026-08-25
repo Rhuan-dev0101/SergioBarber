@@ -290,7 +290,7 @@ export default function PainelGaleria() {
 
         // 2. Upload to Supabase Storage
         const fileExt = fileToUpload.name.split('.').pop() || 'jpg'
-        const fileName = `gallery-${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${fileExt}`
+        const fileName = `gallery-${crypto.randomUUID()}.${fileExt}`
         const filePath = `images/${fileName}`
 
         const { error: storageError } = await supabase.storage
@@ -301,7 +301,7 @@ export default function PainelGaleria() {
           })
 
         if (storageError) {
-          console.error(`Error uploading ${item.title}:`, storageError)
+          console.error('Error uploading', item.title, ':', storageError)
           handleUpdateQueueItem(item.id, 'status', 'error')
           handleUpdateQueueItem(item.id, 'errorMessage', storageError.message)
           continue
@@ -316,7 +316,7 @@ export default function PainelGaleria() {
         const dbRes = await addGalleryImageAction(publicUrl, item.title, item.category, item.description)
 
         if (!dbRes.success) {
-          console.error(`Error adding DB record for ${item.title}:`, dbRes.message)
+          console.error('Error adding DB record for', item.title, ':', dbRes.message)
           handleUpdateQueueItem(item.id, 'status', 'error')
           handleUpdateQueueItem(item.id, 'errorMessage', dbRes.message)
         } else {
@@ -395,7 +395,7 @@ export default function PainelGaleria() {
           }
 
           const fileExt = fileToUpload.name.split('.').pop() || 'jpg'
-          const fileName = `gallery-${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${fileExt}`
+          const fileName = `gallery-${crypto.randomUUID()}.${fileExt}`
           const filePath = `images/${fileName}`
 
           const { error: storageError } = await supabase.storage

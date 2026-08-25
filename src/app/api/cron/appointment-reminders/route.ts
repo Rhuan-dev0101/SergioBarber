@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { timingSafeEqual } from 'crypto'
 import { sendEmail } from '@/lib/email'
 import { formatWhatsAppLink } from '@/lib/settings'
+
+function isValidCronToken(token: string, secret: string): boolean {
+  const tokenBuf = Buffer.from(token)
+  const secretBuf = Buffer.from(secret)
+  if (tokenBuf.length !== secretBuf.length) return false
+  return timingSafeEqual(tokenBuf, secretBuf)
+}
 
 export const dynamic = 'force-dynamic'
 
@@ -22,7 +30,7 @@ export async function GET(request: NextRequest) {
   const authHeader = request.headers.get('authorization')
   const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null
 
-  if (!token || token !== cronSecret) {
+  if (!token || !isValidCronToken(token, cronSecret)) {
     console.warn('[Cron Reminders] Unauthorized request — invalid or missing Bearer token.')
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
@@ -65,7 +73,7 @@ export async function GET(request: NextRequest) {
 
   if (queryError) {
     console.error('[Cron Reminders] Query error:', queryError)
-    return NextResponse.json({ error: 'Database query failed', details: queryError.message }, { status: 500 })
+    return NextResponse.json({ error: 'Database query failed' }, { status: 500 })
   }
 
   if (!appointments || appointments.length === 0) {
@@ -175,7 +183,7 @@ export async function GET(request: NextRequest) {
       failed++
       const errorMsg = emailError?.message || 'Unknown error'
       results.push({ appointmentId: appt.id, status: 'failed', error: errorMsg })
-      console.error(`[Cron Reminders] ❌ Failed to send email for appointment ${appt.id}:`, errorMsg)
+      console.error('[Cron Reminders] ❌ Failed to send email for appointment', appt.id, ':', errorMsg)
     }
   }
 

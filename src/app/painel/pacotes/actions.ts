@@ -216,7 +216,7 @@ export async function createPackageAction(
         .single()
 
       if (apptError || !appt) {
-        console.error(`Error creating appointment for session ${i + 1}:`, apptError)
+        console.error('Error creating appointment for session', i + 1, ':', apptError)
         continue
       }
 
@@ -233,7 +233,7 @@ export async function createPackageAction(
         })
 
       if (payErr) {
-        console.error(`Error creating payment for session ${i + 1}:`, payErr)
+        console.error('Error creating payment for session', i + 1, ':', payErr)
       }
     }
 

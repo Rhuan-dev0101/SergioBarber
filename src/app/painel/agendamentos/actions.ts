@@ -614,7 +614,7 @@ export async function bulkCheckoutAction(
         message: 'Pagamento confirmado com sucesso.'
       })
     } catch (err) {
-      console.error(`Checkout error for ${item.appointmentId}:`, err)
+      console.error('Checkout error for', item.appointmentId, ':', err)
       results.push({
         appointmentId: item.appointmentId,
         success: false,
