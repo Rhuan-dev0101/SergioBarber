@@ -1,7 +1,7 @@
 'use server'
 
 import { headers } from 'next/headers'
-import { createServerSupabaseClient } from '@/lib/supabase'
+import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase'
 import { checkRateLimit } from '@/lib/rateLimit'
 
 export type AuthResponse = {
@@ -9,6 +9,20 @@ export type AuthResponse = {
   message: string
   redirectTo?: string
 }
+
+/**
+ * Resposta unica de cadastro (anti-enumeracao de contas).
+ *
+ * O mesmo texto e' devolvido para "e-mail novo" e para "e-mail ja cadastrado".
+ * Se as duas situacoes respondessem coisas diferentes, bastaria um laco sobre
+ * uma lista de e-mails para descobrir quem e' cliente da barbearia.
+ *
+ * Para que isso seja verdade de ponta a ponta, o endpoint /auth/v1/signup do
+ * proprio Supabase tambem precisa parar de auto-confirmar o e-mail
+ * (mailer_autoconfirm = false) -- veja SECURITY.md, item 2.
+ */
+const NEUTRAL_SIGNUP_MESSAGE =
+  'Se este e-mail estiver disponivel, enviaremos um link de confirmacao. Verifique sua caixa de entrada e a pasta de spam.'
 
 /**
  * Server Action to log in a user.
@@ -107,27 +121,45 @@ export async function signUpAction(prevState: any, formData: FormData): Promise<
     })
 
     if (authError) {
-      // 5. No User Enumeration: return a generic error message
+      // Anti-enumeracao: "e-mail ja cadastrado" nao pode ser distinguivel de
+      // um cadastro novo. Erros de conta existente devolvem exatamente a mesma
+      // resposta do caminho de sucesso; so falhas reais de infraestrutura
+      // (rede, provedor fora do ar) retornam erro.
+      const alreadyRegistered =
+        authError.code === 'user_already_exists' ||
+        authError.status === 422 ||
+        /already\s*(registered|exists)/i.test(authError.message || '')
+
+      if (alreadyRegistered) {
+        return { success: true, message: NEUTRAL_SIGNUP_MESSAGE }
+      }
+
+      console.error('Signup auth error:', authError.message)
       return { success: false, message: 'Não foi possível realizar o cadastro. Tente novamente ou entre em contato.' }
     }
 
     const user = authData.user
     if (user) {
-      // If the user profile is created, let's insert the legal acceptances
-      // Since we need to log it, let's insert into legal_acceptances.
-      // Note: We bypass RLS in Server Action or let the authenticated client insert it.
-      // We can insert under the user's session context if they are logged in.
-      // If they require email verification, they may not have a session yet, but we write it:
-      const { error: profileError } = await supabase.from('profiles').update({
-        phone: phone
-      }).eq('id', user.id)
+      // Gravamos telefone e aceites com o client de servico.
+      //
+      // Motivo: quando a confirmacao de e-mail estiver ligada (item 2 do
+      // hardening), o signUp NAO devolve sessao. O client de sessao cairia no
+      // role `anon` e estas escritas falhariam em silencio -- o telefone do
+      // cliente e o registro de consentimento LGPD seriam perdidos.
+      // O client de servico roda apenas no servidor e independe de sessao.
+      const admin = await createAdminSupabaseClient()
+
+      const { error: profileError } = await admin
+        .from('profiles')
+        .update({ phone })
+        .eq('id', user.id)
 
       if (profileError) {
-        console.error('Error updating phone in profile:', profileError)
+        console.error('Error updating phone in profile:', profileError.message)
       }
 
-      // Record legal acceptances
-      await supabase.from('legal_acceptances').insert([
+      // Registro de aceite dos documentos legais (LGPD)
+      const { error: acceptError } = await admin.from('legal_acceptances').insert([
         {
           profile_id: user.id,
           document_type: 'terms_of_use',
@@ -141,11 +173,16 @@ export async function signUpAction(prevState: any, formData: FormData): Promise<
           ip_address: ip
         }
       ])
+
+      if (acceptError) {
+        console.error('Error recording legal acceptances:', acceptError.message)
+      }
     }
 
-    return { 
-      success: true, 
-      message: 'Cadastro realizado com sucesso! Você já pode fazer login.' 
+    // Mesma mensagem do caminho "e-mail ja existe" (ver NEUTRAL_SIGNUP_MESSAGE).
+    return {
+      success: true,
+      message: NEUTRAL_SIGNUP_MESSAGE
     }
   } catch (err) {
     console.error('Signup action error:', err)
