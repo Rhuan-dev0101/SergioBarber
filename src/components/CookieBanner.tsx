@@ -2,53 +2,81 @@
 
 import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Shield, Settings, X, Check } from 'lucide-react'
-import { createClient } from '@/lib/supabase'
+import { Shield, Settings, X, Check, ShieldOff } from 'lucide-react'
+import { saveCookieConsentAction } from '@/app/cookie-consent/actions'
+
+const CONSENT_KEY = 'osanchez_cookie_consent'
+const VISITOR_ID_KEY = 'osanchez_visitor_id'
+
+export const OPEN_COOKIE_PREFERENCES_EVENT = 'osanchez:open-cookie-preferences'
+
+type ConsentSettings = { essential: boolean; analytics: boolean; marketing: boolean }
 
 export function CookieBanner() {
   const [isVisible, setIsVisible] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
-  const [analytics, setAnalytics] = useState(true)
+  const [analytics, setAnalytics] = useState(false)
   const [marketing, setMarketing] = useState(false)
-  const [visitorId, setVisitorId] = useState('')
 
   useEffect(() => {
-    // Check if consent already exists
-    const consent = localStorage.getItem('osanchez_cookie_consent')
-    let storedVisitorId = localStorage.getItem('osanchez_visitor_id')
+    const stored = localStorage.getItem(CONSENT_KEY)
 
-    if (!storedVisitorId) {
-      storedVisitorId = crypto.randomUUID()
-      localStorage.setItem('osanchez_visitor_id', storedVisitorId)
-    }
-    setVisitorId(storedVisitorId)
-
-    if (!consent) {
+    if (!stored) {
       // Delay showing the banner slightly for premium UX feel
       const timer = setTimeout(() => setIsVisible(true), 1500)
       return () => clearTimeout(timer)
     }
   }, [])
 
-  const saveConsent = async (consentSettings: { essential: boolean; analytics: boolean; marketing: boolean }) => {
-    localStorage.setItem('osanchez_cookie_consent', JSON.stringify(consentSettings))
-    setIsVisible(false)
+  useEffect(() => {
+    // Permite reabrir o painel a qualquer momento (ex.: link "Preferências
+    // de Cookies" no rodapé), pré-carregando a escolha já salva.
+    const handleReopen = () => {
+      const stored = localStorage.getItem(CONSENT_KEY)
+      if (stored) {
+        try {
+          const parsed: ConsentSettings = JSON.parse(stored)
+          setAnalytics(!!parsed.analytics)
+          setMarketing(!!parsed.marketing)
+        } catch {
+          // ignora JSON inválido e mantém os padrões
+        }
+      }
+      setShowSettings(true)
+      setIsVisible(true)
+    }
 
-    // Save to Supabase (anonymous insert)
+    window.addEventListener(OPEN_COOKIE_PREFERENCES_EVENT, handleReopen)
+    return () => window.removeEventListener(OPEN_COOKIE_PREFERENCES_EVENT, handleReopen)
+  }, [])
+
+  const saveConsent = async (consentSettings: ConsentSettings) => {
+    localStorage.setItem(CONSENT_KEY, JSON.stringify(consentSettings))
+    setIsVisible(false)
+    setShowSettings(false)
+
+    // O identificador de visitante só é criado no momento em que uma
+    // decisão de fato é salva — não no primeiro carregamento da página,
+    // que aconteceria antes de qualquer consentimento.
+    let visitorId = localStorage.getItem(VISITOR_ID_KEY)
+    if (!visitorId) {
+      visitorId = crypto.randomUUID()
+      localStorage.setItem(VISITOR_ID_KEY, visitorId)
+    }
+
     try {
-      const supabase = createClient()
-      await supabase.from('cookie_consents').insert({
-        visitor_id: visitorId,
-        consented_categories: consentSettings,
-        ip_address: 'client-side' // actual IP can be captured server-side via SQL default or request
-      })
+      await saveCookieConsentAction({ visitorId, ...consentSettings })
     } catch (error) {
-      console.error('Error saving cookie consent to db:', error)
+      console.error('Error saving cookie consent:', error)
     }
   }
 
   const handleAcceptAll = () => {
     saveConsent({ essential: true, analytics: true, marketing: true })
+  }
+
+  const handleRejectNonEssential = () => {
+    saveConsent({ essential: true, analytics: false, marketing: false })
   }
 
   const handleSavePreferences = () => {
@@ -65,8 +93,10 @@ export function CookieBanner() {
             <Shield className="w-5 h-5" />
             <h3 className="font-semibold text-base">Controle de Cookies</h3>
           </div>
-          <button 
-            onClick={() => setIsVisible(false)}
+          <button
+            onClick={handleRejectNonEssential}
+            aria-label="Fechar e rejeitar cookies não essenciais"
+            title="Fechar e rejeitar cookies não essenciais"
             className="text-muted-foreground hover:text-foreground transition-colors"
           >
             <X className="w-4 h-4" />
@@ -76,26 +106,36 @@ export function CookieBanner() {
         {!showSettings ? (
           <>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Nós usamos cookies para melhorar sua experiência, analisar tráfego e personalizar conteúdo. 
-              Ao continuar, você aceita o uso de cookies de acordo com nossa{' '}
+              Nós usamos cookies estritamente necessários para o funcionamento da plataforma.
+              Com sua permissão, também usamos cookies de estatísticas e marketing — veja os
+              detalhes na nossa{' '}
               <Link href="/politica-de-cookies" className="text-primary hover:underline font-medium">
                 Política de Cookies
               </Link>.
             </p>
-            <div className="flex gap-2 mt-2">
+            <div className="flex flex-col gap-2 mt-2">
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowSettings(true)}
+                  className="flex-1 px-3 py-2 rounded text-xs font-semibold bg-secondary hover:bg-muted text-foreground border border-border flex items-center justify-center gap-1.5 transition-all"
+                >
+                  <Settings className="w-3.5 h-3.5" />
+                  Preferências
+                </button>
+                <button
+                  onClick={handleAcceptAll}
+                  className="flex-1 px-3 py-2 rounded text-xs font-semibold bg-primary hover:bg-primary-hover text-primary-foreground flex items-center justify-center gap-1.5 transition-all shadow-md"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                  Aceitar Todos
+                </button>
+              </div>
               <button
-                onClick={() => setShowSettings(true)}
-                className="flex-1 px-3 py-2 rounded text-xs font-semibold bg-secondary hover:bg-muted text-foreground border border-border flex items-center justify-center gap-1.5 transition-all"
+                onClick={handleRejectNonEssential}
+                className="w-full px-3 py-2 rounded text-xs font-semibold bg-transparent hover:bg-secondary text-muted-foreground hover:text-foreground border border-transparent flex items-center justify-center gap-1.5 transition-all"
               >
-                <Settings className="w-3.5 h-3.5" />
-                Preferências
-              </button>
-              <button
-                onClick={handleAcceptAll}
-                className="flex-1 px-3 py-2 rounded text-xs font-semibold bg-primary hover:bg-primary-hover text-primary-foreground flex items-center justify-center gap-1.5 transition-all shadow-md"
-              >
-                <Check className="w-3.5 h-3.5" />
-                Aceitar Todos
+                <ShieldOff className="w-3.5 h-3.5" />
+                Rejeitar não essenciais
               </button>
             </div>
           </>

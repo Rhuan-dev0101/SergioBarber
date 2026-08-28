@@ -36,27 +36,20 @@ export async function GET(request: Request) {
     if (!error) {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
-        const ip = request.headers.get('x-forwarded-for') || '127.0.0.1'
+        // O aceite dos Termos/Privacidade NÃO é mais gravado aqui.
+        // Se o usuário ainda não tem registro, ele é enviado para /aceite,
+        // onde precisa marcar as duas caixas antes de prosseguir — só assim
+        // o registro em legal_acceptances corresponde a uma ação real do
+        // titular, e não a uma presunção feita no login.
         const { data: existing } = await supabase
           .from('legal_acceptances')
           .select('id')
           .eq('profile_id', user.id)
+          .limit(1)
 
         if (!existing || existing.length === 0) {
-          await supabase.from('legal_acceptances').insert([
-            {
-              profile_id: user.id,
-              document_type: 'terms_of_use',
-              version: '1.0',
-              ip_address: ip
-            },
-            {
-              profile_id: user.id,
-              document_type: 'privacy_policy',
-              version: '1.0',
-              ip_address: ip
-            }
-          ])
+          const aceiteUrl = `${origin}/aceite?redirectTo=${encodeURIComponent(redirectTo)}`
+          return NextResponse.redirect(aceiteUrl)
         }
       }
       // Direct user back to their original target page (e.g. /cliente/agendar?barberId=...)

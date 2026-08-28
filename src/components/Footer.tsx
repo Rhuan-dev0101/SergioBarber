@@ -7,6 +7,7 @@ import { Scissors, Phone, MapPin, Mail, Clock, Play } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { formatPhoneNumber, formatWhatsAppLink } from '@/lib/settings'
 import { TutorialModal } from '@/components/TutorialModal'
+import { OPEN_COOKIE_PREFERENCES_EVENT } from '@/components/CookieBanner'
 
 interface BusinessSettings {
   whatsapp?: string
@@ -149,6 +150,15 @@ export function Footer({ initialSettings }: { initialSettings?: BusinessSettings
               </li>
               <li className="transform hover:translate-x-1 transition-all duration-200">
                 <Link href="/politica-de-cookies" className="hover:text-primary transition-colors">Política de Cookies</Link>
+              </li>
+              <li className="transform hover:translate-x-1 transition-all duration-200">
+                <button
+                  type="button"
+                  onClick={() => window.dispatchEvent(new Event(OPEN_COOKIE_PREFERENCES_EVENT))}
+                  className="hover:text-primary transition-colors text-left cursor-pointer"
+                >
+                  Preferências de Cookies
+                </button>
               </li>
             </ul>
           </div>

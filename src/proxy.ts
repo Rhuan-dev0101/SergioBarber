@@ -7,13 +7,17 @@ import type { NextRequest } from 'next/server'
 // qualquer deploy de terceiros na Vercel a falar com esta API.
 const STATIC_ALLOWED_ORIGINS = [
   'http://localhost:3000',
-  'https://osanchez-barbearia.vercel.app',
+  'https://sergio-barber.vercel.app',
   process.env.NEXT_PUBLIC_SITE_URL,
 ].filter((o): o is string => Boolean(o))
 
-// Deploys de preview DESTE projeto (ex.: osanchez-barbearia-git-main-x.vercel.app).
+// Deploys de preview DESTE projeto (ex.: sergio-barber-git-main-x.vercel.app).
 // Ancorado no nome do projeto para nao aceitar *.vercel.app de outra conta.
-const PREVIEW_ORIGIN = /^https:\/\/osanchez-barbearia[a-z0-9-]*\.vercel\.app$/
+// Nota: 'osanchez-barbearia' era o nome anterior do projeto na Vercel; hoje
+// esse subdominio nao pertence a este deploy (responde 404), entao foi
+// removido daqui para nao deixar uma allowlist credenciada apontando para
+// um dominio que qualquer pessoa pode reivindicar no futuro.
+const PREVIEW_ORIGIN = /^https:\/\/sergio-barber[a-z0-9-]*\.vercel\.app$/
 
 function isAllowedOrigin(origin: string | null): origin is string {
   // `origin === 'null'` (iframe sandbox, arquivo local, redirect cross-site)

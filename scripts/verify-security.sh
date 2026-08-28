@@ -124,7 +124,7 @@ for O in "null" "https://evil.com" "https://evil-attacker.vercel.app"; do
   A=$(curl -sI "$APP_URL/" -H "Origin: $O" | tr -d '\r' | grep -i "^access-control-allow-origin:")
   [ -z "$A" ] && pass "Origin $O -> sem ACAO (bloqueado)" || fail "Origin $O -> $A"
 done
-for O in "http://localhost:3000" "https://osanchez-barbearia.vercel.app"; do
+for O in "http://localhost:3000" "https://sergio-barber.vercel.app"; do
   A=$(curl -sI "$APP_URL/" -H "Origin: $O" | tr -d '\r' | grep -i "^access-control-allow-origin:" | sed 's/.*: //')
   [ "$A" = "$O" ] && pass "Origin $O -> refletido corretamente" || fail "Origin $O -> '$A'"
 done

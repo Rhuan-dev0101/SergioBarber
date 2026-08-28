@@ -272,6 +272,18 @@ function LoginForm() {
           Criar conta
         </Link>
       </div>
+
+      {/* Legal notice — o aceite em si acontece em /aceite no primeiro login */}
+      <p className="text-center text-[10px] text-muted-foreground/80 leading-relaxed">
+        Ao continuar, você concorda com nossos{' '}
+        <Link href="/termos-de-uso" target="_blank" className="text-primary hover:underline">
+          Termos de Uso
+        </Link>{' '}
+        e nossa{' '}
+        <Link href="/politica-de-privacidade" target="_blank" className="text-primary hover:underline">
+          Política de Privacidade
+        </Link>.
+      </p>
     </div>
   )
 }
