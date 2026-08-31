@@ -2,7 +2,7 @@
 
 import React, { memo } from 'react'
 import {
-  User, Coffee, CheckCircle2, Scissors, Calendar, Plus, Repeat, Zap, DollarSign, ChevronRight, Clock, Lock
+  User, Coffee, CheckCircle2, Scissors, Calendar, Plus, Repeat, Zap, DollarSign, ChevronRight, Clock, Lock, Unlock
 } from 'lucide-react'
 import { apptShortCode, getLocalDateStr } from '@/lib/utils'
 import { isRecurringReservationActiveOnDate } from '@/lib/booking'
@@ -13,6 +13,7 @@ interface AgendaTimelineProps {
   barbers: any[]
   workingHours: any[]
   daysOff: any[]
+  blockedTimes: any[]
   selectedAgendaDate: string
   selectedBarberFilter: string
   userRole: string | null
@@ -22,7 +23,7 @@ interface AgendaTimelineProps {
   onSelectAgendaAppt: (appt: any) => void
   onOpenWalkInModal: (barberId?: string, defaultTime?: string) => void
   onOpenCheckoutModal: () => void
-  onBlockSlot: (barberId: string, slotStr: string) => void
+  onToggleBlockSlot: (barberId: string, slotStr: string, existingBlock: any | null) => void
 }
 
 export const AgendaTimeline = memo(function AgendaTimeline({
@@ -31,6 +32,7 @@ export const AgendaTimeline = memo(function AgendaTimeline({
   barbers,
   workingHours,
   daysOff,
+  blockedTimes,
   selectedAgendaDate,
   selectedBarberFilter,
   userRole,
@@ -40,7 +42,7 @@ export const AgendaTimeline = memo(function AgendaTimeline({
   onSelectAgendaAppt,
   onOpenWalkInModal,
   onOpenCheckoutModal,
-  onBlockSlot,
+  onToggleBlockSlot,
 }: AgendaTimelineProps) {
   const agendaBarbers = barbers.filter(b => {
     if (userRole === 'barber') return b.id === currentUser?.id
@@ -178,6 +180,13 @@ export const AgendaTimeline = memo(function AgendaTimeline({
                       return isRecurringReservationActiveOnDate(r.start_date, r.interval_weeks, selectedAgendaDate)
                     })
 
+                    const slotStartDate = new Date(`${selectedAgendaDate}T${slotStr}:00-03:00`)
+                    const slotEndDate = new Date(slotStartDate.getTime() + 60 * 60000)
+                    const blocked = blockedTimes.find(bt => {
+                      if (bt.barber_id !== barber.id) return false
+                      return new Date(bt.start_time) < slotEndDate && new Date(bt.end_time) > slotStartDate
+                    })
+
                     if (appt) {
                       const isPackage = appt.package_subscription_id || appt.services?.name?.toLowerCase().includes('pacote')
 
@@ -285,6 +294,32 @@ export const AgendaTimeline = memo(function AgendaTimeline({
                       )
                     }
 
+                    if (blocked) {
+                      return (
+                        <div
+                          key={slotStr}
+                          className="bg-[#1c1010] border border-red-500/30 rounded-2xl p-4 transition-all duration-200 flex items-center justify-between gap-3 shadow-md"
+                        >
+                          <div className="flex items-center gap-4 min-w-0">
+                            <span className="text-2xl font-bold font-mono text-red-400/80 tracking-tight w-16 shrink-0">{slotStr}</span>
+                            <div className="flex items-center gap-2 text-red-300 text-sm font-medium min-w-0">
+                              <Lock className="w-4 h-4 text-red-400 shrink-0" />
+                              <span className="truncate">Horário Fechado{blocked.reason ? ` — ${blocked.reason}` : ''}</span>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => onToggleBlockSlot(barber.id, slotStr, blocked)}
+                            title="Reabrir este horário"
+                            className="p-2.5 bg-red-500/15 hover:bg-red-500/25 text-red-400 border border-red-500/40 rounded-xl transition-all shadow-sm cursor-pointer active:scale-95 shrink-0"
+                          >
+                            <Lock className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )
+                    }
+
                     return (
                       <div
                         key={slotStr}
@@ -301,11 +336,11 @@ export const AgendaTimeline = memo(function AgendaTimeline({
                         <div className="flex items-center gap-2 shrink-0">
                           <button
                             type="button"
-                            onClick={() => onBlockSlot(barber.id, slotStr)}
+                            onClick={() => onToggleBlockSlot(barber.id, slotStr, null)}
                             title="Fechar este horário (bloquear para agendamentos)"
-                            className="p-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-xl transition-all shadow-sm cursor-pointer active:scale-95"
+                            className="p-2.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-xl transition-all shadow-sm cursor-pointer active:scale-95"
                           >
-                            <Lock className="w-3.5 h-3.5" />
+                            <Unlock className="w-3.5 h-3.5" />
                           </button>
                           <button
                             type="button"
