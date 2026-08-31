@@ -6,7 +6,7 @@ import {
   Scissors, Calendar, Clock, Search, Edit2, Trash2, CheckCircle2, 
   AlertCircle, Plus, Loader2, Save, X, User, Sparkles, Check, AlertTriangle, UserX,
   Filter, RotateCcw, CheckCircle, ChevronRight, Wallet, DollarSign, RefreshCw, FileText,
-  Repeat, ChevronLeft, CalendarDays, LayoutList, Coffee, Crown, Users, Zap
+  Repeat, ChevronLeft, CalendarDays, LayoutList, Coffee, Crown, Users, Zap, Lock
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
@@ -15,14 +15,16 @@ import { WalkInModal } from '@/components/agendamentos/WalkInModal'
 import { ExtraAppointmentModal } from '@/components/agendamentos/ExtraAppointmentModal'
 import { CheckoutModal } from '@/components/agendamentos/CheckoutModal'
 import { AgendaTimeline } from '@/components/agendamentos/AgendaTimeline'
-import { 
-  updateAppointmentStatusAction, 
-  updateAppointmentNotesAction, 
+import {
+  updateAppointmentStatusAction,
+  updateAppointmentNotesAction,
   deleteAppointmentAction,
   markNoShowAction
 } from './actions'
+import { addBlockedTimeAction } from '../funcionarios/actions'
 import { apptShortCode, getLocalDateStr } from '@/lib/utils'
 import { isRecurringReservationActiveOnDate } from '@/lib/booking'
+import { addMinutes } from 'date-fns'
 
 function getAppointmentPrice(appt: any): number {
   if (!appt) return 0
@@ -104,6 +106,10 @@ export default function PainelAgendamentos() {
 
   // No-show confirmation modal state
   const [noShowTarget, setNoShowTarget] = useState<any>(null)
+
+  // Block slot ("Fechar Horário") state
+  const [blockSlotTarget, setBlockSlotTarget] = useState<{ barberId: string; slotStr: string } | null>(null)
+  const [blockSlotReason, setBlockSlotReason] = useState('')
 
   // Receipt modal state
   const [selectedReceiptApptId, setSelectedReceiptApptId] = useState<string | null>(null)
@@ -393,6 +399,37 @@ export default function PainelAgendamentos() {
     setExtraModalBarberId(targetBarberId)
     setShowExtraModal(true)
   }, [userRole, currentUser, selectedBarberFilter])
+
+  const handleOpenBlockSlot = useCallback((barberId: string, slotStr: string) => {
+    setBlockSlotReason('')
+    setBlockSlotTarget({ barberId, slotStr })
+  }, [])
+
+  const handleConfirmBlockSlot = () => {
+    if (!blockSlotTarget) return
+    setErrorMsg('')
+    setSuccessMsg('')
+    const { barberId, slotStr } = blockSlotTarget
+    setBlockSlotTarget(null)
+
+    const startDate = new Date(`${selectedAgendaDate}T${slotStr}:00-03:00`)
+    const endDate = addMinutes(startDate, 60)
+
+    startTransition(async () => {
+      const res = await addBlockedTimeAction(
+        barberId,
+        startDate.toISOString(),
+        endDate.toISOString(),
+        blockSlotReason.trim() || 'Horário fechado pelo barbeiro'
+      )
+      if (!res.success) {
+        setErrorMsg(res.message)
+      } else {
+        setSuccessMsg(res.message)
+        loadData()
+      }
+    })
+  }
 
   const handleDelete = (appt: any) => {
     setDeleteTarget(appt)
@@ -795,6 +832,7 @@ export default function PainelAgendamentos() {
               onSelectAgendaAppt={(appt) => setSelectedAgendaAppt(appt)}
               onOpenWalkInModal={handleOpenWalkInModal}
               onOpenCheckoutModal={() => setShowCheckoutModal(true)}
+              onBlockSlot={handleOpenBlockSlot}
             />
           </div>
         ) : (
@@ -1402,6 +1440,69 @@ export default function PainelAgendamentos() {
                 >
                   {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UserX className="w-3.5 h-3.5" />}
                   Confirmar Não Compareceu
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Block Slot ("Fechar Horário") Confirmation Modal */}
+        {blockSlotTarget && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
+            <div className="bg-card border border-border/80 rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl">
+              <div className="flex items-center gap-3 text-red-400">
+                <div className="p-3 bg-red-500/10 rounded-full">
+                  <Lock className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-serif font-bold text-foreground">Fechar Horário</h3>
+                  <p className="text-xs text-muted-foreground">Este horário ficará indisponível para novos agendamentos.</p>
+                </div>
+              </div>
+
+              <div className="p-3.5 bg-secondary/30 border border-border/50 rounded-xl space-y-1.5 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Barbeiro:</span>
+                  <span className="font-semibold text-foreground">
+                    {barbers.find(b => b.id === blockSlotTarget.barberId)?.full_name || 'Barbeiro'}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Data/Hora:</span>
+                  <span className="font-semibold text-foreground">
+                    {formatAgendaHeaderDate(selectedAgendaDate)} às {blockSlotTarget.slotStr}
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-muted-foreground uppercase">Motivo (opcional)</label>
+                <input
+                  type="text"
+                  value={blockSlotReason}
+                  onChange={(e) => setBlockSlotReason(e.target.value)}
+                  placeholder="Ex: Almoço estendido, compromisso pessoal..."
+                  className="w-full px-3 py-2.5 bg-background border border-border focus:border-primary rounded-xl text-xs text-foreground placeholder:text-muted-foreground/60 outline-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setBlockSlotTarget(null)}
+                  disabled={isPending}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-muted-foreground hover:bg-secondary transition-all cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmBlockSlot}
+                  disabled={isPending}
+                  className="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-md cursor-pointer"
+                >
+                  {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Lock className="w-3.5 h-3.5" />}
+                  Sim, Fechar Horário
                 </button>
               </div>
             </div>

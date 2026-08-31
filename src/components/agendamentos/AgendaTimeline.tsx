@@ -2,7 +2,7 @@
 
 import React, { memo } from 'react'
 import {
-  User, Coffee, CheckCircle2, Scissors, Calendar, Plus, Repeat, Zap, DollarSign, ChevronRight, Clock
+  User, Coffee, CheckCircle2, Scissors, Calendar, Plus, Repeat, Zap, DollarSign, ChevronRight, Clock, Lock
 } from 'lucide-react'
 import { apptShortCode, getLocalDateStr } from '@/lib/utils'
 import { isRecurringReservationActiveOnDate } from '@/lib/booking'
@@ -22,6 +22,7 @@ interface AgendaTimelineProps {
   onSelectAgendaAppt: (appt: any) => void
   onOpenWalkInModal: (barberId?: string, defaultTime?: string) => void
   onOpenCheckoutModal: () => void
+  onBlockSlot: (barberId: string, slotStr: string) => void
 }
 
 export const AgendaTimeline = memo(function AgendaTimeline({
@@ -39,6 +40,7 @@ export const AgendaTimeline = memo(function AgendaTimeline({
   onSelectAgendaAppt,
   onOpenWalkInModal,
   onOpenCheckoutModal,
+  onBlockSlot,
 }: AgendaTimelineProps) {
   const agendaBarbers = barbers.filter(b => {
     if (userRole === 'barber') return b.id === currentUser?.id
@@ -286,24 +288,34 @@ export const AgendaTimeline = memo(function AgendaTimeline({
                     return (
                       <div
                         key={slotStr}
-                        onClick={() => onOpenWalkInModal(barber.id, slotStr)}
-                        className="bg-[#121212] hover:bg-[#161616] border border-white/10 hover:border-amber-500/40 rounded-2xl p-4 transition-all duration-200 flex items-center justify-between shadow-md cursor-pointer group"
+                        className="bg-[#121212] hover:bg-[#161616] border border-white/10 hover:border-amber-500/40 rounded-2xl p-4 transition-all duration-200 flex items-center justify-between gap-3 shadow-md group"
                       >
-                        <div className="flex items-center gap-4">
-                          <span className="text-2xl font-bold font-mono text-white tracking-tight w-16">{slotStr}</span>
+                        <div className="flex items-center gap-4 min-w-0">
+                          <span className="text-2xl font-bold font-mono text-white tracking-tight w-16 shrink-0">{slotStr}</span>
                           <div className="flex items-center gap-2 text-zinc-400 text-sm font-medium group-hover:text-zinc-200 transition-colors">
                             <Calendar className="w-4 h-4 text-zinc-500 group-hover:text-amber-400 transition-colors" />
                             <span>Horário Disponível</span>
                           </div>
                         </div>
 
-                        <button
-                          type="button"
-                          className="px-4 py-2 bg-[#262010] group-hover:bg-[#382f18] text-[#e5c158] border border-[#a3832c]/50 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1 active:scale-95"
-                        >
-                          <Plus className="w-3.5 h-3.5" />
-                          <span>Agendar</span>
-                        </button>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => onBlockSlot(barber.id, slotStr)}
+                            title="Fechar este horário (bloquear para agendamentos)"
+                            className="p-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-xl transition-all shadow-sm cursor-pointer active:scale-95"
+                          >
+                            <Lock className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onOpenWalkInModal(barber.id, slotStr)}
+                            className="px-4 py-2 bg-[#262010] hover:bg-[#382f18] text-[#e5c158] border border-[#a3832c]/50 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1 cursor-pointer active:scale-95"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>Agendar</span>
+                          </button>
+                        </div>
                       </div>
                     )
                   })}
