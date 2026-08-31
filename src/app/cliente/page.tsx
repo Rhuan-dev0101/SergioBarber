@@ -203,13 +203,14 @@ export default function ClientePanel() {
     a.status !== 'no_show'
   )
   const past = appointments
-    .filter(a => 
-      a.status === 'completed' || 
-      a.status === 'cancelled' || 
-      a.status === 'no_show' || 
+    .filter(a =>
+      a.status === 'completed' ||
+      a.status === 'cancelled' ||
+      a.status === 'no_show' ||
       a.start_time < nowStr
     )
     .sort((a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime())
+  const hasHistory = past.length > 0
 
   if (loading) {
     return (
@@ -246,6 +247,13 @@ export default function ClientePanel() {
                 <Edit className="w-3.5 h-3.5" />
                 Editar Perfil
               </Link>
+              <a
+                href="#historico"
+                className="flex-1 sm:flex-none text-center px-4 py-2.5 bg-secondary border border-border hover:bg-muted text-foreground font-semibold rounded text-xs flex items-center justify-center gap-1.5 transition-all"
+              >
+                <Clock className="w-3.5 h-3.5" />
+                Histórico
+              </a>
               <Link
                 href="/cliente/agendar"
                 onClick={handleAgendarClick}
@@ -380,7 +388,11 @@ export default function ClientePanel() {
 
                     <div className="space-y-1 max-w-sm mx-auto">
                       <p className="text-sm font-semibold text-foreground">Você não possui agendamentos ativos no momento.</p>
-                      <p className="text-xs text-muted-foreground">Escolha seu serviço e barbeiro preferido para garantir seu horário em poucos cliques.</p>
+                      <p className="text-xs text-muted-foreground">
+                        {hasHistory
+                          ? 'Que tal marcar seu próximo horário? Escolha o serviço e o barbeiro preferido em poucos cliques.'
+                          : 'Escolha seu serviço e barbeiro preferido para garantir seu horário em poucos cliques.'}
+                      </p>
                     </div>
 
                     <div className="pt-2">
@@ -390,7 +402,7 @@ export default function ClientePanel() {
                         className="inline-flex items-center justify-center gap-2.5 px-6 py-3 rounded-lg font-bold text-xs sm:text-sm text-primary-foreground bg-primary hover:bg-primary/90 border border-primary-light/30 shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/35 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 cursor-pointer group/btn"
                       >
                         <Scissors className="w-4 h-4 text-primary-foreground transition-transform group-hover/btn:rotate-12" />
-                        <span>Agendar meu primeiro serviço</span>
+                        <span>{hasHistory ? 'Agendar novo horário' : 'Agendar meu primeiro serviço'}</span>
                         <ArrowRight className="w-4 h-4 text-primary-foreground transition-transform group-hover/btn:translate-x-1" />
                       </Link>
                     </div>
@@ -399,8 +411,11 @@ export default function ClientePanel() {
               </div>
 
               {/* Past history section */}
-              <div className="space-y-4">
-                <h2 className="text-lg font-serif font-bold text-foreground">Histórico de Agendamentos</h2>
+              <div id="historico" className="space-y-4 scroll-mt-24">
+                <h2 className="text-lg font-serif font-bold text-foreground flex items-center gap-2">
+                  <Clock className="w-4.5 h-4.5 text-primary" />
+                  Histórico de Agendamentos
+                </h2>
                 
                 {past.length > 0 ? (
                   <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
