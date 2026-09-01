@@ -323,17 +323,17 @@ export const AgendaTimeline = memo(function AgendaTimeline({
                     return (
                       <div
                         key={slotStr}
-                        className="bg-[#121212] hover:bg-[#161616] border border-white/10 hover:border-amber-500/40 rounded-2xl p-4 transition-all duration-200 flex items-center justify-between gap-3 shadow-md group"
+                        className="bg-[#121212] hover:bg-[#161616] border border-white/10 hover:border-amber-500/40 rounded-2xl p-4 transition-all duration-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-md group"
                       >
                         <div className="flex items-center gap-4 min-w-0">
                           <span className="text-2xl font-bold font-mono text-white tracking-tight w-16 shrink-0">{slotStr}</span>
-                          <div className="flex items-center gap-2 text-zinc-400 text-sm font-medium group-hover:text-zinc-200 transition-colors">
-                            <Calendar className="w-4 h-4 text-zinc-500 group-hover:text-amber-400 transition-colors" />
-                            <span>Horário Disponível</span>
+                          <div className="flex items-center gap-2 text-zinc-400 text-sm font-medium group-hover:text-zinc-200 transition-colors min-w-0">
+                            <Calendar className="w-4 h-4 text-zinc-500 group-hover:text-amber-400 transition-colors shrink-0" />
+                            <span className="truncate">Horário Disponível</span>
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2 shrink-0">
+                        <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
                           <button
                             type="button"
                             onClick={() => onToggleBlockSlot(barber.id, slotStr, null)}
