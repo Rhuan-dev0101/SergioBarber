@@ -182,7 +182,14 @@ export default async function Home() {
 
       <main className="flex-grow">
         {/* Hero Section */}
-        <section className="relative overflow-hidden py-24 sm:py-32 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-secondary/50 via-background to-background">
+        <section className="relative overflow-hidden py-24 sm:py-32">
+          <img
+            src="/barbearia-ambiente.jpg"
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover object-[center_38%]"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-background/50 via-background/75 to-background" />
+          <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-background/30 to-background/80" />
           <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:32px_32px]" />
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
             <div className="text-center space-y-8 max-w-3xl mx-auto">
