@@ -49,6 +49,33 @@ const STATIC_BARBERS = [
   }
 ]
 
+// Picks a distinct line icon per service category so cards don't all look identical
+function ServiceIcon({ name, className }: { name: string; className?: string }) {
+  const n = (name || '').toLowerCase()
+  const hasCabelo = n.includes('cabelo') || n.includes('corte')
+  const hasBarba = n.includes('barba')
+
+  if (hasCabelo && hasBarba) {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <circle cx="6" cy="6" r="2.6" /><circle cx="6" cy="18" r="2.6" />
+        <line x1="19" y1="5" x2="9" y2="14" /><line x1="9" y1="10" x2="19" y2="19" />
+      </svg>
+    )
+  }
+  if (hasBarba) {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <path d="M5 19 L14 10" /><path d="M12.5 8.5 L18.5 14.5 L15 18 L9 12 Z" />
+      </svg>
+    )
+  }
+  if (n.includes('infantil') || n.includes('kids') || n.includes('criança') || n.includes('crianca')) {
+    return <Star className={className} />
+  }
+  return <Scissors className={className} />
+}
+
 function AgendarWizardInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -943,81 +970,52 @@ function AgendarWizardInner() {
                   <p className="text-xs text-muted-foreground">Escolha o serviço desejado com a garantia de atendimento de excelência e produtos premium.</p>
                 </div>
 
-                <div className="space-y-3.5 max-h-[380px] overflow-y-auto pr-1">
+                <div className="grid grid-cols-2 gap-3">
                   {services.length > 0 ? (
                     services.map((service) => {
                       const isSelected = selectedService?.id === service.id
-                      
+                      const [priceInt, priceDec] = Number(service.price).toFixed(2).split('.')
+
                       return (
                         <div
                           key={service.id}
                           onClick={() => setSelectedService(service)}
-                          className={`relative group p-5 rounded-xl border text-left transition-all duration-300 cursor-pointer overflow-hidden flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${
+                          className={`relative p-4 rounded-2xl text-left transition-all duration-300 cursor-pointer flex flex-col gap-2 ${
                             isSelected
-                              ? 'border-primary bg-gradient-to-r from-primary/15 via-primary/5 to-transparent shadow-lg shadow-primary/10 ring-1 ring-primary/40'
-                              : 'border-border/70 hover:border-primary/50 bg-secondary/30 hover:bg-secondary/50 shadow-sm hover:shadow-md'
+                              ? 'border-2 border-primary bg-gradient-to-br from-primary/[0.18] to-[#17171d] shadow-lg shadow-primary/15'
+                              : 'border-[1.5px] border-white/[0.22] bg-[#17171d] hover:border-primary/50'
                           }`}
                         >
-                          {/* Glow when selected */}
                           {isSelected && (
-                            <div className="absolute -top-10 -right-10 w-24 h-24 bg-primary/20 rounded-full blur-xl pointer-events-none" />
+                            <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-primary flex items-center justify-center animate-in zoom-in-75 duration-200">
+                              <Check className="w-3.5 h-3.5 text-primary-foreground stroke-[3]" />
+                            </div>
                           )}
 
-                          <div className="flex items-start gap-4 flex-1 relative z-10">
-                            {/* Service Icon Badge */}
-                            <div className={`w-12 h-12 rounded-xl border flex items-center justify-center shrink-0 transition-all duration-300 ${
-                              isSelected 
-                                ? 'bg-primary text-primary-foreground border-primary/40 shadow-md scale-105' 
-                                : 'bg-primary/10 text-primary border-primary/20 group-hover:bg-primary/20'
-                            }`}>
-                              <Scissors className="w-5 h-5" />
-                            </div>
-
-                            <div className="space-y-1.5 flex-1">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <h4 className="font-serif font-bold text-base text-foreground group-hover:text-primary transition-colors">
-                                  {service.name}
-                                </h4>
-                              </div>
-
-                              {service.description && (
-                                <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-                                  {service.description}
-                                </p>
-                              )}
-
-                              <div className="flex items-center gap-2 pt-0.5">
-                                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground bg-background/60 px-2.5 py-0.5 rounded-full border border-border/50">
-                                  <Clock className="w-3 h-3 text-primary" /> {service.duration} minutos
-                                </span>
-                              </div>
-                            </div>
+                          <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${
+                            isSelected
+                              ? 'bg-primary text-primary-foreground'
+                              : 'bg-primary/10 border border-primary/25 text-primary'
+                          }`}>
+                            <ServiceIcon name={service.name} className="w-5 h-5" />
                           </div>
 
-                          {/* Price and Checkmark */}
-                          <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto gap-4 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/40 relative z-10">
-                            <div className="text-left sm:text-right">
-                              <span className="text-xs text-muted-foreground block text-[10px] uppercase font-bold tracking-wider">Valor</span>
-                              <span className="text-lg sm:text-xl font-serif font-bold text-primary">
-                                R$&nbsp;{Number(service.price).toFixed(2)}
-                              </span>
-                            </div>
+                          <h4 className="font-serif font-bold text-sm text-foreground mt-0.5">
+                            {service.name}
+                          </h4>
 
-                            {isSelected ? (
-                              <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md animate-in zoom-in-75 duration-200 shrink-0">
-                                <Check className="w-4 h-4 text-primary-foreground stroke-[3]" />
-                              </div>
-                            ) : (
-                              <div className="w-7 h-7 rounded-full border border-border/80 group-hover:border-primary/40 flex items-center justify-center shrink-0 transition-colors">
-                                <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-transform group-hover:translate-x-0.5" />
-                              </div>
-                            )}
+                          <div className="font-serif font-extrabold text-xl text-primary leading-none">
+                            R$&nbsp;{priceInt}<span className="text-xs font-semibold">,{priceDec}</span>
                           </div>
+
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-muted-foreground bg-background/50 border border-border/60 px-2 py-0.5 rounded-full w-fit mt-0.5">
+                            <Clock className="w-2.5 h-2.5 text-primary" /> {service.duration} min
+                          </span>
                         </div>
                       )
                     })
                   ) : (
-                    <div className="p-8 bg-secondary/20 rounded-xl border border-border/70 text-center space-y-3 text-xs text-muted-foreground">
+                    <div className="col-span-2 p-8 bg-secondary/20 rounded-xl border border-border/70 text-center space-y-3 text-xs text-muted-foreground">
                       <p className="font-semibold text-foreground text-sm">Nenhum serviço encontrado</p>
                       <p>Este profissional ainda não possui serviços cadastrados nesta categoria. Por favor, volte e escolha outro profissional.</p>
                     </div>
