@@ -10,7 +10,7 @@ import { BarbersSection } from '@/components/BarbersSection'
 import { HeroActions } from '@/components/HeroActions'
 import { TestimonialsSection } from '@/components/TestimonialsSection'
 import { EmbeddedTutorialSection } from '@/components/EmbeddedTutorialSection'
-import { getBusinessSettings, formatPhoneNumber, formatWhatsAppLink } from '@/lib/settings'
+import { getBusinessSettings, formatPhoneNumber, formatWhatsAppLink, getGoogleMapsEmbedUrl } from '@/lib/settings'
 
 // Static fallback seed data in case database is empty or unreachable during build
 const FALLBACK_SERVICES = [
@@ -452,7 +452,7 @@ export default async function Home() {
                 <h2 className="text-3xl font-serif font-bold text-foreground">Ambiente Climatizado & Premium</h2>
               </div>
               <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                Localizada no coração de São Paulo, a Osanchez Barbearia oferece um espaço aconchegante e climatizado para você relaxar enquanto aguarda seu horário.
+                Localizada no coração de Guarulhos, a Osanchez Barbearia oferece um espaço aconchegante e climatizado para você relaxar enquanto aguarda seu horário.
               </p>
 
               {/* Amenity Badges */}
@@ -495,13 +495,17 @@ export default async function Home() {
               </div>
             </div>
 
-            <div className="aspect-video w-full bg-secondary/50 rounded-lg border border-border flex flex-col items-center justify-center p-8 text-center text-muted-foreground relative overflow-hidden">
-              <MapPin className="w-12 h-12 text-primary/30 mb-3" />
-              <h4 className="font-semibold text-sm text-foreground mb-1">Mapa de Localização</h4>
-              <p className="text-xs max-w-xs leading-normal mb-4">Clique no botão abaixo para traçar sua rota no Google Maps.</p>
-              <Link 
+            <div className="aspect-video w-full bg-secondary/50 rounded-lg border border-border relative overflow-hidden">
+              <iframe
+                src={getGoogleMapsEmbedUrl()}
+                title="Localização da Osanchez Barbearia no Google Maps"
+                className="absolute inset-0 w-full h-full border-0 grayscale-[30%] contrast-[1.1]"
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
+              <Link
                 href="/localizacao"
-                className="px-4 py-2 bg-secondary border border-border text-foreground hover:bg-muted text-xs font-semibold rounded-md transition-all"
+                className="absolute bottom-3 right-3 px-4 py-2 bg-secondary/95 backdrop-blur border border-border text-foreground hover:bg-muted text-xs font-semibold rounded-md transition-all shadow-md"
               >
                 Como Chegar
               </Link>

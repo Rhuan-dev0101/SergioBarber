@@ -1,9 +1,9 @@
 import React from 'react'
 export const dynamic = 'force-dynamic'
-import { MapPin, Phone, Clock, Heart } from 'lucide-react'
+import { Phone, Heart } from 'lucide-react'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
-import { getBusinessSettings, formatPhoneNumber } from '@/lib/settings'
+import { getBusinessSettings, formatPhoneNumber, getGoogleMapsEmbedUrl } from '@/lib/settings'
 
 export default async function Localizacao() {
   const settings = await getBusinessSettings()
@@ -85,18 +85,14 @@ export default async function Localizacao() {
             </div>
 
             {/* Map Area */}
-            <div className="lg:col-span-7 aspect-video lg:aspect-auto bg-secondary/30 rounded-lg border border-border min-h-[300px] flex flex-col items-center justify-center p-8 text-center text-muted-foreground relative overflow-hidden">
-              <MapPin className="w-16 h-16 text-primary/30 mb-4 animate-bounce" />
-              <h4 className="font-serif font-bold text-base text-foreground mb-2">Mapa Interativo (Google Maps)</h4>
-              <p className="text-xs max-w-sm leading-relaxed mb-6">
-                Para fins deste MVP de produção, integramos coordenadas prontas. Em produção, este container exibe o widget de mapas dinâmico.
-              </p>
-              <div className="absolute inset-0 bg-grid-white/[0.01] bg-[size:16px_16px] pointer-events-none" />
-              
-              <div className="text-[10px] text-muted-foreground bg-background px-3 py-1.5 rounded border border-border flex items-center gap-1.5 shadow">
-                <Clock className="w-3.5 h-3.5 text-primary" />
-                Coord: -23.5505, -46.6333 (Centro, SP)
-              </div>
+            <div className="lg:col-span-7 aspect-video lg:aspect-auto bg-secondary/30 rounded-lg border border-border min-h-[300px] relative overflow-hidden">
+              <iframe
+                src={getGoogleMapsEmbedUrl()}
+                title="Localização da Osanchez Barbearia no Google Maps"
+                className="absolute inset-0 w-full h-full border-0 grayscale-[30%] contrast-[1.1]"
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
             </div>
           </div>
         </div>

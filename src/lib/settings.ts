@@ -10,6 +10,19 @@ export interface BusinessSettings {
 }
 
 /**
+ * Fixed coordinates of the physical barbershop location, used to embed a real
+ * Google Maps view (no API key required). Update if the business relocates.
+ */
+export const BARBERSHOP_COORDS = { lat: -23.4212142, lng: -46.5324821 }
+
+/**
+ * Embeddable Google Maps URL (works in an <iframe>, no API key needed).
+ */
+export function getGoogleMapsEmbedUrl(zoom: number = 17): string {
+  return `https://www.google.com/maps?q=${BARBERSHOP_COORDS.lat},${BARBERSHOP_COORDS.lng}&z=${zoom}&output=embed`
+}
+
+/**
  * Fetch business settings from database (server-side helper)
  */
 export async function getBusinessSettings(): Promise<BusinessSettings | null> {

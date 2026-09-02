@@ -26,7 +26,7 @@ const csp = [
   `img-src 'self' data: blob: ${SUPABASE_ORIGIN} https://images.unsplash.com https://*.googleusercontent.com https://*.fbcdn.net https://i.ytimg.com`,
   "font-src 'self' data:",
   `connect-src 'self' ${SUPABASE_ORIGIN} ${SUPABASE_WS}`,
-  "frame-src https://www.youtube.com https://www.youtube-nocookie.com",
+  "frame-src https://www.youtube.com https://www.youtube-nocookie.com https://www.google.com",
   "media-src 'self' blob:",
   "worker-src 'self' blob:",
   "object-src 'none'",
