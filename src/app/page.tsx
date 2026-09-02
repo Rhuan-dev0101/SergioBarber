@@ -212,12 +212,7 @@ export default async function Home() {
                 <span>Capricho</span>
               </div>
               
-              <HeroActions 
-                whatsappUrl={whatsappUrl}
-                initialDesktopUrl={(settings as any)?.tutorial_video_desktop_url}
-                initialMobileUrl={(settings as any)?.tutorial_video_mobile_url}
-                rawWhatsapp={rawWhatsapp}
-              />
+              <HeroActions whatsappUrl={whatsappUrl} />
             </div>
 
             {/* Embedded Tutorial Section directly on Home Page */}

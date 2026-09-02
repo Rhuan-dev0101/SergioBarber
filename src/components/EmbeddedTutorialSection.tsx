@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Smartphone, Monitor, Play, Sparkles, PlusSquare, Share2, CheckCircle2 } from 'lucide-react'
+import { Smartphone, Play, Sparkles, PlusSquare, Share2, CheckCircle2 } from 'lucide-react'
 
 interface EmbeddedTutorialSectionProps {
   initialDesktopUrl?: string | null
@@ -71,7 +71,7 @@ export function EmbeddedTutorialSection({
               }`}
             >
               <Smartphone className="w-4 h-4" />
-              <span>No Celular</span>
+              <span>No Android</span>
             </button>
 
             <button
@@ -83,8 +83,8 @@ export function EmbeddedTutorialSection({
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
-              <Monitor className="w-4 h-4" />
-              <span>No Computador</span>
+              <Smartphone className="w-4 h-4" />
+              <span>No iPhone</span>
             </button>
           </div>
         </div>
@@ -95,7 +95,7 @@ export function EmbeddedTutorialSection({
             <div className="relative w-full aspect-video rounded-2xl overflow-hidden border border-primary/30 shadow-2xl bg-black">
               <iframe
                 src={embedUrl}
-                title={`Tutorial Osanchez - ${device === 'mobile' ? 'Celular' : 'Computador'}`}
+                title={`Tutorial Osanchez - ${device === 'mobile' ? 'Android' : 'iPhone'}`}
                 className="w-full h-full border-0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
