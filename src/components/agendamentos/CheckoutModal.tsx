@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import {
-  DollarSign, X, CheckCircle2, AlertCircle, Scissors, Zap, Wallet, Loader2, FileText
+  DollarSign, X, CheckCircle2, AlertCircle, Scissors, Zap, Wallet, Loader2, FileText, Pencil, Check
 } from 'lucide-react'
 import { bulkCheckoutAction } from '@/app/painel/agendamentos/actions'
 
@@ -12,6 +12,7 @@ export type CheckoutItem = {
   serviceName: string
   barberName?: string
   price: number
+  originalPrice: number
   time: string
   originalMethod: string
   selectedMethod: string
@@ -52,17 +53,21 @@ export function CheckoutModal({
   const [checkoutItems, setCheckoutItems] = useState<CheckoutItem[]>([])
   const [checkoutProcessing, setCheckoutProcessing] = useState(false)
   const [checkoutDone, setCheckoutDone] = useState(false)
+  const [editingPriceIdx, setEditingPriceIdx] = useState<number | null>(null)
+  const [priceInputValue, setPriceInputValue] = useState('')
 
   useEffect(() => {
     if (isOpen) {
       const items: CheckoutItem[] = unpaidAppointments.map(a => {
         const payMethod = Array.isArray(a.payments) ? a.payments[0]?.method : a.payments?.method
+        const price = getAppointmentPrice(a)
         return {
           apptId: a.id,
           customerName: a.customerName || 'Cliente',
           serviceName: a.services?.name || 'Serviço',
           barberName: a.barberName || 'Barbeiro',
-          price: getAppointmentPrice(a),
+          price,
+          originalPrice: price,
           time: formatTime(a.start_time),
           originalMethod: payMethod || 'cash',
           selectedMethod: payMethod || 'cash',
@@ -75,13 +80,22 @@ export function CheckoutModal({
       setCheckoutItems(items)
       setCheckoutDone(false)
       setCheckoutProcessing(false)
+      setEditingPriceIdx(null)
     }
   }, [isOpen, unpaidAppointments, getAppointmentPrice, formatTime])
+
+  const confirmPriceEdit = (idx: number) => {
+    const parsed = parseFloat(priceInputValue.replace(',', '.'))
+    if (!Number.isFinite(parsed) || parsed < 0) return
+    setCheckoutItems(prev => prev.map((ci, i) => (i === idx ? { ...ci, price: parsed } : ci)))
+    setEditingPriceIdx(null)
+  }
 
   const handleClose = () => {
     setCheckoutItems([])
     setCheckoutDone(false)
     setCheckoutProcessing(false)
+    setEditingPriceIdx(null)
     onClose()
   }
 
@@ -89,7 +103,11 @@ export function CheckoutModal({
     setCheckoutProcessing(true)
     const selectedItems = checkoutItems
       .filter(i => i.selected)
-      .map(i => ({ appointmentId: i.apptId, paymentMethod: i.selectedMethod }))
+      .map(i => ({
+        appointmentId: i.apptId,
+        paymentMethod: i.selectedMethod,
+        ...(i.price !== i.originalPrice ? { finalAmount: i.price } : {})
+      }))
 
     try {
       const res = await bulkCheckoutAction(selectedItems)
@@ -214,9 +232,59 @@ export function CheckoutModal({
                     <p className="text-xs text-muted-foreground truncate">{item.serviceName}</p>
                   </div>
 
-                  <span className="font-serif font-bold text-amber-400 text-sm shrink-0">
-                    R$ {item.price.toFixed(2)}
-                  </span>
+                  {editingPriceIdx === idx ? (
+                    <div className="flex items-center gap-1 shrink-0">
+                      <span className="text-xs text-muted-foreground">R$</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        autoFocus
+                        value={priceInputValue}
+                        onChange={(e) => setPriceInputValue(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') confirmPriceEdit(idx)
+                          if (e.key === 'Escape') setEditingPriceIdx(null)
+                        }}
+                        className="w-20 px-2 py-1 bg-background border border-amber-500/50 rounded-lg text-xs font-bold text-foreground outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => confirmPriceEdit(idx)}
+                        title="Confirmar valor"
+                        className="p-1 text-emerald-400 hover:bg-emerald-500/10 rounded cursor-pointer"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditingPriceIdx(null)}
+                        title="Cancelar"
+                        className="p-1 text-muted-foreground hover:bg-secondary rounded cursor-pointer"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1 shrink-0">
+                      <span className="font-serif font-bold text-amber-400 text-sm">
+                        R$ {item.price.toFixed(2)}
+                      </span>
+                      {!checkoutProcessing && !checkoutDone && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingPriceIdx(idx)
+                            setPriceInputValue(item.price.toFixed(2))
+                          }}
+                          title="Editar valor (ex: aplicar desconto)"
+                          className="p-1 text-muted-foreground hover:text-amber-400 hover:bg-amber-500/10 rounded cursor-pointer transition-all"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Row bottom: payment method selector + status */}
@@ -241,6 +309,12 @@ export function CheckoutModal({
                   {item.selectedMethod !== item.originalMethod && item.selected && item.status === 'idle' && (
                     <span className="text-[9px] uppercase font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/30 whitespace-nowrap shrink-0">
                       Alterado
+                    </span>
+                  )}
+
+                  {item.price !== item.originalPrice && item.selected && item.status === 'idle' && (
+                    <span className="text-[9px] uppercase font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30 whitespace-nowrap shrink-0">
+                      Valor Alterado
                     </span>
                   )}
 

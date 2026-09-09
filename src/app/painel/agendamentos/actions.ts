@@ -495,13 +495,15 @@ export async function deleteAppointmentAction(apptId: string): Promise<ActionRes
  *
  * SAFETY:
  * - Processes each appointment INDEPENDENTLY (no bulk SQL).
- * - Only touches `appointments.status` and `payments.{status, method}`.
+ * - Only touches `appointments.status` and `payments.{status, method, total_amount}`.
+ *   `total_amount` is only touched when the staff explicitly overrides it (e.g. a discount).
  * - Returns per-row success/failure so the UI can report individually.
  * - Never modifies customers, package_subscriptions, other days, etc.
  */
 export type BulkCheckoutItem = {
   appointmentId: string
   paymentMethod: string // 'cash' | 'card' | 'pix' | 'other'
+  finalAmount?: number // optional manual override of the charged amount (e.g. a discount applied at checkout)
 }
 
 export type BulkCheckoutResult = {
@@ -579,13 +581,28 @@ export async function bulkCheckoutAction(
         continue
       }
 
-      // 3. Update payment: status → confirmed_manually, method → selected
+      // 3. Update payment: status → confirmed_manually, method → selected,
+      //    total_amount → staff override when provided (e.g. a discount)
+      const paymentUpdate: { status: string; method: string; total_amount?: number } = {
+        status: 'confirmed_manually',
+        method: item.paymentMethod
+      }
+
+      if (item.finalAmount !== undefined && item.finalAmount !== null) {
+        if (!Number.isFinite(item.finalAmount) || item.finalAmount < 0) {
+          results.push({
+            appointmentId: item.appointmentId,
+            success: false,
+            message: 'Valor final informado é inválido.'
+          })
+          continue
+        }
+        paymentUpdate.total_amount = item.finalAmount
+      }
+
       const { error: payUpdateErr } = await supabase
         .from('payments')
-        .update({
-          status: 'confirmed_manually',
-          method: item.paymentMethod
-        })
+        .update(paymentUpdate)
         .eq('appointment_id', item.appointmentId)
 
       if (payUpdateErr) {
