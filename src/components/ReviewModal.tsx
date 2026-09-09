@@ -181,7 +181,7 @@ export function ReviewModal({ isOpen, onClose, appointment, onSuccess }: ReviewM
           <div className="space-y-0.5">
             <h3 className="text-lg font-serif font-bold text-foreground flex items-center gap-2">
               <Star className="w-5 h-5 text-amber-400 fill-amber-400" />
-              Avaliar Corte
+              Avaliar Osanchez Barbearia
             </h3>
             <p className="text-xs text-muted-foreground">
               {appointment.serviceName} com <strong className="text-foreground">{appointment.barberName}</strong>

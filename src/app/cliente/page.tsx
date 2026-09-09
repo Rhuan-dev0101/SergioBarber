@@ -211,6 +211,7 @@ export default function ClientePanel() {
     )
     .sort((a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime())
   const hasHistory = past.length > 0
+  const pendingReviewAppts = past.filter(a => a.status === 'completed' && !a.review)
 
   if (loading) {
     return (
@@ -264,6 +265,42 @@ export default function ClientePanel() {
               </Link>
             </div>
           </div>
+
+          {/* Prompt to review the barbershop after a completed haircut */}
+          {pendingReviewAppts.length > 0 && (
+            <div className="relative overflow-hidden p-6 sm:p-7 rounded-xl border border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-secondary/30 to-background shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="absolute -top-10 -right-10 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
+              <div className="flex items-start gap-4 relative z-10">
+                <div className="w-11 h-11 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center shrink-0">
+                  <Star className="w-5 h-5 fill-amber-400 text-amber-400" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="font-serif font-bold text-base sm:text-lg text-foreground">Como foi sua experiência na Osanchez Barbearia?</h3>
+                  <p className="text-xs text-muted-foreground">
+                    {pendingReviewAppts[0].services?.name || 'Seu último atendimento'} com {pendingReviewAppts[0].barberName} em {formatDate(pendingReviewAppts[0].start_time)}
+                    {pendingReviewAppts.length > 1 && ` · +${pendingReviewAppts.length - 1} outro${pendingReviewAppts.length > 2 ? 's' : ''} corte${pendingReviewAppts.length > 2 ? 's' : ''} aguardando avaliação`}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  const appt = pendingReviewAppts[0]
+                  setSelectedApptForReview({
+                    id: appt.id,
+                    barber_id: appt.barber_id,
+                    barberName: appt.barberName,
+                    serviceName: appt.services?.name || 'Corte/Serviço',
+                    dateFormatted: formatDate(appt.start_time)
+                  })
+                  setIsReviewModalOpen(true)
+                }}
+                className="relative z-10 w-full sm:w-auto shrink-0 px-5 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-black font-bold rounded-lg text-xs flex items-center justify-center gap-1.5 transition-all shadow-md hover:shadow-amber-500/20 active:scale-95 cursor-pointer"
+              >
+                <Star className="w-3.5 h-3.5 fill-black text-black" />
+                Avaliar Agora
+              </button>
+            </div>
+          )}
 
           {errorMsg && (
             <div className="p-3 bg-destructive/10 border border-destructive/20 rounded flex items-start gap-2 text-xs text-destructive">
@@ -448,7 +485,7 @@ export default function ClientePanel() {
                               className="px-3.5 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-black font-bold rounded-lg text-xs flex items-center gap-1.5 transition-all shadow-md hover:shadow-amber-500/20 active:scale-95 cursor-pointer animate-pulse"
                             >
                               <Star className="w-3.5 h-3.5 fill-black text-black" />
-                              Avaliar Corte
+                              Avaliar Experiência
                             </button>
                           )}
 
