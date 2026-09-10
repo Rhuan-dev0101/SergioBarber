@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useTransition, Suspense, useMemo, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useTransition, Suspense, useMemo, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { 
@@ -81,7 +81,20 @@ function AgendarWizardInner() {
   const searchParams = useSearchParams()
   const preSelectedBarberId = searchParams.get('barberId')
   const [step, setStep] = useState(1)
-  
+  const wizardTopRef = useRef<HTMLDivElement | null>(null)
+  const isFirstStepRender = useRef(true)
+
+  // Scroll back to the top of the wizard whenever the step changes, so the
+  // next step's heading is visible instead of leaving the user scrolled
+  // down near the "Continuar" button they just clicked.
+  useEffect(() => {
+    if (isFirstStepRender.current) {
+      isFirstStepRender.current = false
+      return
+    }
+    wizardTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [step])
+
   // Database state
   const [barbers, setBarbers] = useState<any[]>([])
   const [services, setServices] = useState<any[]>([])
@@ -221,6 +234,14 @@ function AgendarWizardInner() {
                 rating: calcRating
               }
             })
+
+          // Sergio (fundador) sempre aparece primeiro na seleção de profissional
+          formatted.sort((a, b) => {
+            const aIsSergio = a.name.toLowerCase().includes('sergio') ? 0 : 1
+            const bIsSergio = b.name.toLowerCase().includes('sergio') ? 0 : 1
+            return aIsSergio - bIsSergio
+          })
+
           setBarbers(formatted)
 
           if (preSelectedBarberId) {
@@ -803,7 +824,7 @@ function AgendarWizardInner() {
       <main className="flex-grow py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl mx-auto space-y-6">
           {/* Header Wizard Info */}
-          <div className="flex justify-between items-center pb-4 border-b border-border/60">
+          <div ref={wizardTopRef} className="flex justify-between items-center pb-4 border-b border-border/60 scroll-mt-24">
             <div className="flex items-center gap-2">
               <Scissors className="w-5 h-5 text-primary rotate-45" />
               <h1 className="text-xl font-serif font-bold text-foreground">Novo Agendamento</h1>
@@ -970,60 +991,8 @@ function AgendarWizardInner() {
                   <p className="text-xs text-muted-foreground">Escolha o serviço desejado com a garantia de atendimento de excelência e produtos premium.</p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  {services.length > 0 ? (
-                    services.map((service) => {
-                      const isSelected = selectedService?.id === service.id
-                      const [priceInt, priceDec] = Number(service.price).toFixed(2).split('.')
-
-                      return (
-                        <div
-                          key={service.id}
-                          onClick={() => setSelectedService(service)}
-                          className={`relative p-4 rounded-2xl text-left transition-all duration-300 cursor-pointer flex flex-col gap-2 ${
-                            isSelected
-                              ? 'border-2 border-primary bg-gradient-to-br from-primary/[0.18] to-[#17171d] shadow-lg shadow-primary/15'
-                              : 'border-[1.5px] border-white/[0.22] bg-[#17171d] hover:border-primary/50'
-                          }`}
-                        >
-                          {isSelected && (
-                            <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-primary flex items-center justify-center animate-in zoom-in-75 duration-200">
-                              <Check className="w-3.5 h-3.5 text-primary-foreground stroke-[3]" />
-                            </div>
-                          )}
-
-                          <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${
-                            isSelected
-                              ? 'bg-primary text-primary-foreground'
-                              : 'bg-primary/10 border border-primary/25 text-primary'
-                          }`}>
-                            <ServiceIcon name={service.name} className="w-5 h-5" />
-                          </div>
-
-                          <h4 className="font-serif font-bold text-sm text-foreground mt-0.5">
-                            {service.name}
-                          </h4>
-
-                          <div className="font-serif font-extrabold text-xl text-primary leading-none">
-                            R$&nbsp;{priceInt}<span className="text-xs font-semibold">,{priceDec}</span>
-                          </div>
-
-                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-muted-foreground bg-background/50 border border-border/60 px-2 py-0.5 rounded-full w-fit mt-0.5">
-                            <Clock className="w-2.5 h-2.5 text-primary" /> {service.duration} min
-                          </span>
-                        </div>
-                      )
-                    })
-                  ) : (
-                    <div className="col-span-2 p-8 bg-secondary/20 rounded-xl border border-border/70 text-center space-y-3 text-xs text-muted-foreground">
-                      <p className="font-semibold text-foreground text-sm">Nenhum serviço encontrado</p>
-                      <p>Este profissional ainda não possui serviços cadastrados nesta categoria. Por favor, volte e escolha outro profissional.</p>
-                    </div>
-                  )}
-                </div>
-
                 {/* ── Pacote Mensal Banner ── */}
-                <div className="rounded-xl border border-primary/25 bg-gradient-to-r from-primary/10 via-secondary/30 to-background p-5 relative overflow-hidden shadow-sm hover:shadow-md transition-all mt-4">
+                <div className="rounded-xl border border-primary/25 bg-gradient-to-r from-primary/10 via-secondary/30 to-background p-5 relative overflow-hidden shadow-sm hover:shadow-md transition-all">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl pointer-events-none" />
                   <div className="relative flex flex-col sm:flex-row sm:items-center gap-4">
                     <div className="flex-1 space-y-1.5">
@@ -1051,6 +1020,74 @@ function AgendarWizardInner() {
                       <span>Assinar no WhatsApp</span>
                     </a>
                   </div>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  {services.length > 0 ? (
+                    services.map((service) => {
+                      const isSelected = selectedService?.id === service.id
+                      const [priceInt, priceDec] = Number(service.price).toFixed(2).split('.')
+
+                      return (
+                        <React.Fragment key={service.id}>
+                          <div
+                            onClick={() => setSelectedService(service)}
+                            className={`relative p-4 rounded-2xl text-left transition-all duration-300 cursor-pointer flex items-center gap-3 ${
+                              isSelected
+                                ? 'border-2 border-primary bg-gradient-to-br from-primary/[0.18] to-[#17171d] shadow-lg shadow-primary/15'
+                                : 'border-[1.5px] border-white/[0.22] bg-[#17171d] hover:border-primary/50'
+                            }`}
+                          >
+                            {isSelected && (
+                              <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-primary flex items-center justify-center animate-in zoom-in-75 duration-200">
+                                <Check className="w-3.5 h-3.5 text-primary-foreground stroke-[3]" />
+                              </div>
+                            )}
+
+                            <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${
+                              isSelected
+                                ? 'bg-primary text-primary-foreground'
+                                : 'bg-primary/10 border border-primary/25 text-primary'
+                            }`}>
+                              <ServiceIcon name={service.name} className="w-5 h-5" />
+                            </div>
+
+                            <div className="flex-1 min-w-0 space-y-1">
+                              <h4 className="font-serif font-bold text-sm text-foreground">
+                                {service.name}
+                              </h4>
+                              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-muted-foreground bg-background/50 border border-border/60 px-2 py-0.5 rounded-full w-fit">
+                                <Clock className="w-2.5 h-2.5 text-primary" /> {service.duration} min
+                              </span>
+                            </div>
+
+                            <div className="font-serif font-extrabold text-xl text-primary leading-none shrink-0 pr-6">
+                              R$&nbsp;{priceInt}<span className="text-xs font-semibold">,{priceDec}</span>
+                            </div>
+                          </div>
+
+                          {isSelected && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setStep(step + 1)
+                              }}
+                              className="w-full py-3 bg-primary hover:bg-primary-hover text-primary-foreground rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all shadow-md active:scale-[0.98] cursor-pointer animate-in fade-in duration-200"
+                            >
+                              Continuar
+                              <ChevronRight className="w-4 h-4 text-primary-foreground" />
+                            </button>
+                          )}
+                        </React.Fragment>
+                      )
+                    })
+                  ) : (
+                    <div className="p-8 bg-secondary/20 rounded-xl border border-border/70 text-center space-y-3 text-xs text-muted-foreground">
+                      <p className="font-semibold text-foreground text-sm">Nenhum serviço encontrado</p>
+                      <p>Este profissional ainda não possui serviços cadastrados nesta categoria. Por favor, volte e escolha outro profissional.</p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
