@@ -1,8 +1,8 @@
 'use client'
 
-import React, { memo } from 'react'
+import React, { memo, useState } from 'react'
 import {
-  User, Coffee, CheckCircle2, Scissors, Calendar, Plus, Repeat, Zap, DollarSign, ChevronRight, Clock, Lock, Unlock
+  User, Coffee, CheckCircle2, Scissors, Calendar, Plus, Repeat, Zap, DollarSign, ChevronRight, Clock, Lock, Unlock, Pencil, Check, X
 } from 'lucide-react'
 import { apptShortCode, getLocalDateStr } from '@/lib/utils'
 import { isRecurringReservationActiveOnDate } from '@/lib/booking'
@@ -24,6 +24,7 @@ interface AgendaTimelineProps {
   onOpenWalkInModal: (barberId?: string, defaultTime?: string) => void
   onOpenCheckoutModal: () => void
   onToggleBlockSlot: (barberId: string, slotStr: string, existingBlock: any | null) => void
+  onUpdateAppointmentPrice: (apptId: string, newAmount: number) => void
 }
 
 export const AgendaTimeline = memo(function AgendaTimeline({
@@ -43,7 +44,83 @@ export const AgendaTimeline = memo(function AgendaTimeline({
   onOpenWalkInModal,
   onOpenCheckoutModal,
   onToggleBlockSlot,
+  onUpdateAppointmentPrice,
 }: AgendaTimelineProps) {
+  const [editingPriceApptId, setEditingPriceApptId] = useState<string | null>(null)
+  const [priceInputValue, setPriceInputValue] = useState('')
+
+  const handleConfirmPriceEdit = (apptId: string) => {
+    const parsed = parseFloat(priceInputValue.replace(',', '.'))
+    if (!Number.isFinite(parsed) || parsed < 0) return
+    setEditingPriceApptId(null)
+    onUpdateAppointmentPrice(apptId, parsed)
+  }
+
+  const renderPriceEditor = (appt: any, variant: 'onGold' | 'onDark') => {
+    const price = getAppointmentPrice(appt)
+    const isEditing = editingPriceApptId === appt.id
+
+    if (isEditing) {
+      return (
+        <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+          <span className={`text-xs ${variant === 'onGold' ? 'text-zinc-800' : 'text-zinc-400'}`}>R$</span>
+          <input
+            type="number"
+            step="0.01"
+            min="0"
+            autoFocus
+            value={priceInputValue}
+            onChange={(e) => setPriceInputValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleConfirmPriceEdit(appt.id)
+              if (e.key === 'Escape') setEditingPriceApptId(null)
+            }}
+            className="w-20 px-2 py-1 bg-black/30 border border-amber-500/60 rounded-lg text-xs font-bold text-white outline-none"
+          />
+          <button
+            type="button"
+            onClick={() => handleConfirmPriceEdit(appt.id)}
+            title="Confirmar valor"
+            className="p-1 text-emerald-400 hover:bg-emerald-500/10 rounded cursor-pointer"
+          >
+            <Check className="w-3.5 h-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setEditingPriceApptId(null)}
+            title="Cancelar"
+            className={`p-1 rounded cursor-pointer ${variant === 'onGold' ? 'text-zinc-800 hover:bg-black/10' : 'text-zinc-400 hover:bg-white/10'}`}
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )
+    }
+
+    return (
+      <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+        <span className={`font-serif font-bold text-sm ${variant === 'onGold' ? 'text-zinc-950' : 'text-amber-400'}`}>
+          R$ {price.toFixed(2)}
+        </span>
+        <button
+          type="button"
+          onClick={() => {
+            setEditingPriceApptId(appt.id)
+            setPriceInputValue(price.toFixed(2))
+          }}
+          title="Editar valor deste cliente"
+          className={`p-1 rounded cursor-pointer transition-all ${
+            variant === 'onGold'
+              ? 'text-zinc-800 hover:bg-black/10'
+              : 'text-zinc-400 hover:text-amber-400 hover:bg-amber-500/10'
+          }`}
+        >
+          <Pencil className="w-3.5 h-3.5" />
+        </button>
+      </div>
+    )
+  }
+
   const agendaBarbers = barbers.filter(b => {
     if (userRole === 'barber') return b.id === currentUser?.id
     if (selectedBarberFilter === 'all') return true
@@ -217,6 +294,7 @@ export const AgendaTimeline = memo(function AgendaTimeline({
                             </div>
 
                             <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                              {renderPriceEditor(appt, 'onGold')}
                               <span className="px-3.5 py-1.5 rounded-xl bg-zinc-950/30 text-zinc-950 border border-zinc-950/40 text-xs font-black uppercase flex items-center gap-1.5 shadow-sm">
                                 <CheckCircle2 className="w-4 h-4 text-zinc-950" />
                                 {appt.status === 'completed' ? 'CONCLUÍDO' : 'CONFIRMADO'}
@@ -257,6 +335,7 @@ export const AgendaTimeline = memo(function AgendaTimeline({
                           </div>
 
                           <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                            {renderPriceEditor(appt, 'onDark')}
                             <span className="px-3.5 py-1.5 rounded-xl bg-[#262010] text-[#e5c158] border border-[#a3832c]/50 text-xs font-extrabold flex items-center gap-1.5 shadow-sm">
                               <CheckCircle2 className="w-4 h-4 text-[#e5c158]" />
                               {appt.status === 'completed' ? 'Concluído' : appt.status === 'no_show' ? 'Não Compareceu' : 'Confirmado'}

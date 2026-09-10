@@ -19,7 +19,8 @@ import {
   updateAppointmentStatusAction,
   updateAppointmentNotesAction,
   deleteAppointmentAction,
-  markNoShowAction
+  markNoShowAction,
+  updateAppointmentPriceAction
 } from './actions'
 import { addBlockedTimeAction, deleteBlockedTimeAction } from '../funcionarios/actions'
 import { apptShortCode, getLocalDateStr } from '@/lib/utils'
@@ -455,6 +456,32 @@ export default function PainelAgendamentos() {
     }
   }
 
+  const handleUpdateAppointmentPrice = (apptId: string, newAmount: number) => {
+    setErrorMsg('')
+    setSuccessMsg('')
+
+    // OPTIMISTIC: reflect the new amount immediately
+    setAppointments(prev => prev.map(a => {
+      if (a.id !== apptId) return a
+      const payments = Array.isArray(a.payments)
+        ? a.payments.map((p: any, i: number) => (i === 0 ? { ...p, total_amount: newAmount } : p))
+        : a.payments
+          ? { ...a.payments, total_amount: newAmount }
+          : a.payments
+      return { ...a, payments }
+    }))
+
+    startTransition(async () => {
+      const res = await updateAppointmentPriceAction(apptId, newAmount)
+      if (!res.success) {
+        setErrorMsg(res.message)
+        loadData() // revert on failure
+      } else {
+        setSuccessMsg(res.message)
+      }
+    })
+  }
+
   const handleDelete = (appt: any) => {
     setDeleteTarget(appt)
   }
@@ -858,6 +885,7 @@ export default function PainelAgendamentos() {
               onOpenWalkInModal={handleOpenWalkInModal}
               onOpenCheckoutModal={() => setShowCheckoutModal(true)}
               onToggleBlockSlot={handleToggleBlockSlot}
+              onUpdateAppointmentPrice={handleUpdateAppointmentPrice}
             />
           </div>
         ) : (

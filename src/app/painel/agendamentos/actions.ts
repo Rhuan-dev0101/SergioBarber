@@ -491,6 +491,55 @@ export async function deleteAppointmentAction(apptId: string): Promise<ActionRes
 }
 
 /**
+ * Update the charged amount for a single appointment (e.g. a discount given
+ * at the barber's discretion, right there on the agenda).
+ *
+ * SAFETY: touches ONLY payments.total_amount for that one appointment.
+ * Does not change status, method, or anything else.
+ */
+export async function updateAppointmentPriceAction(
+  appointmentId: string,
+  newAmount: number
+): Promise<ActionResponse> {
+  const staff = await verifyStaffSession()
+  if (!staff) {
+    return { success: false, message: 'Não autorizado.' }
+  }
+
+  if (!Number.isFinite(newAmount) || newAmount < 0) {
+    return { success: false, message: 'Valor inválido.' }
+  }
+
+  const supabase = await createServerSupabaseClient()
+
+  const { data: appt, error: fetchErr } = await supabase
+    .from('appointments')
+    .select('id, barber_id')
+    .eq('id', appointmentId)
+    .single()
+
+  if (fetchErr || !appt) {
+    return { success: false, message: 'Agendamento não encontrado.' }
+  }
+
+  if (staff.role === 'barber' && appt.barber_id !== staff.user.id) {
+    return { success: false, message: 'Você só pode alterar seus próprios agendamentos.' }
+  }
+
+  const { error } = await supabase
+    .from('payments')
+    .update({ total_amount: newAmount })
+    .eq('appointment_id', appointmentId)
+
+  if (error) {
+    console.error('Error updating appointment price:', error)
+    return { success: false, message: 'Erro ao atualizar o valor.' }
+  }
+
+  return { success: true, message: 'Valor atualizado com sucesso.' }
+}
+
+/**
  * Bulk Checkout do Dia — settle multiple unpaid appointments at once.
  *
  * SAFETY:
