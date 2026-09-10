@@ -267,6 +267,39 @@ export const AgendaTimeline = memo(function AgendaTimeline({
                     if (appt) {
                       const isPackage = appt.package_subscription_id || appt.services?.name?.toLowerCase().includes('pacote')
 
+                      // Payment/attendance color coding for regular (non-package) cards:
+                      // green = paid, red = confirmed but not paid yet, gray = no-show.
+                      const apptPayStatus = Array.isArray(appt.payments) ? appt.payments[0]?.status : appt.payments?.status
+                      const isNoShow = appt.status === 'no_show'
+                      const isPaid = apptPayStatus === 'paid' || apptPayStatus === 'confirmed_manually'
+
+                      const statusTheme = isNoShow
+                        ? {
+                            cardClass: 'bg-gradient-to-r from-[#2c2c30] to-[#232326] border border-zinc-400/30 hover:border-zinc-400/50',
+                            timeClass: 'text-zinc-300',
+                            subtimeClass: 'text-zinc-400',
+                            iconClass: 'text-zinc-300',
+                            barberBadgeClass: 'bg-zinc-400/15 text-zinc-200 border-zinc-400/30',
+                            barberIconClass: 'text-zinc-300'
+                          }
+                        : isPaid
+                        ? {
+                            cardClass: 'bg-gradient-to-r from-[#06261a] to-[#0a3825] border border-[#10b981]/40 hover:border-[#10b981]/70',
+                            timeClass: 'text-[#34d399]',
+                            subtimeClass: 'text-[#a7f3d0]/80',
+                            iconClass: 'text-[#34d399]',
+                            barberBadgeClass: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+                            barberIconClass: 'text-emerald-400'
+                          }
+                        : {
+                            cardClass: 'bg-gradient-to-r from-[#2a0e0e] to-[#3a1414] border border-red-500/40 hover:border-red-500/70',
+                            timeClass: 'text-red-400',
+                            subtimeClass: 'text-red-300/70',
+                            iconClass: 'text-red-400',
+                            barberBadgeClass: 'bg-red-500/20 text-red-300 border-red-500/40',
+                            barberIconClass: 'text-red-400'
+                          }
+
                       if (isPackage) {
                         return (
                           <div
@@ -308,26 +341,22 @@ export const AgendaTimeline = memo(function AgendaTimeline({
                         <div
                           key={slotStr}
                           onClick={() => onSelectAgendaAppt(appt)}
-                          className={`bg-gradient-to-r from-[#06261a] to-[#0a3825] border border-[#10b981]/40 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg hover:border-[#10b981]/70 transition-all cursor-pointer group ${
-                            appt.status === 'completed'
-                              ? 'brightness-110'
-                              : appt.status === 'no_show'
-                              ? 'from-[#332208] to-[#472f0b] border-amber-500/40'
-                              : ''
+                          className={`${statusTheme.cardClass} rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg transition-all cursor-pointer group ${
+                            appt.status === 'completed' ? 'brightness-110' : ''
                           }`}
                         >
                           <div className="flex items-center gap-4 min-w-0">
-                            <span className="text-2xl font-bold font-mono text-[#34d399] tracking-tight w-16 shrink-0">{slotStr}</span>
+                            <span className={`text-2xl font-bold font-mono ${statusTheme.timeClass} tracking-tight w-16 shrink-0`}>{slotStr}</span>
                             <div className="min-w-0 space-y-0.5">
-                              <p className="text-xs text-[#a7f3d0]/80 font-medium">
+                              <p className={`text-xs ${statusTheme.subtimeClass} font-medium`}>
                                 {formatTime(appt.start_time) || slotStr} - {appt.end_time ? formatTime(appt.end_time) : slotStr}
                               </p>
                               <h5 className="font-bold text-base text-white uppercase flex items-center gap-2 flex-wrap truncate">
-                                <User className="w-4 h-4 text-[#34d399] shrink-0" />
+                                <User className={`w-4 h-4 ${statusTheme.iconClass} shrink-0`} />
                                 <span>{appt.customerName}</span>
                                 <span className="text-zinc-400 font-normal">• {appt.services?.name}</span>
-                                <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1 shrink-0">
-                                  <Scissors className="w-3 h-3 text-emerald-400" />
+                                <span className={`text-[10px] uppercase font-black px-2 py-0.5 rounded-md ${statusTheme.barberBadgeClass} flex items-center gap-1 shrink-0`}>
+                                  <Scissors className={`w-3 h-3 ${statusTheme.barberIconClass}`} />
                                   {appt.barberName?.split(' ')[0] || barber.full_name?.split(' ')[0]}
                                 </span>
                               </h5>
@@ -338,7 +367,7 @@ export const AgendaTimeline = memo(function AgendaTimeline({
                             {renderPriceEditor(appt, 'onDark')}
                             <span className="px-3.5 py-1.5 rounded-xl bg-[#262010] text-[#e5c158] border border-[#a3832c]/50 text-xs font-extrabold flex items-center gap-1.5 shadow-sm">
                               <CheckCircle2 className="w-4 h-4 text-[#e5c158]" />
-                              {appt.status === 'completed' ? 'Concluído' : appt.status === 'no_show' ? 'Não Compareceu' : 'Confirmado'}
+                              {appt.status === 'completed' ? 'Concluído' : appt.status === 'no_show' ? 'Não Compareceu' : isPaid ? 'Pago' : 'Aguardando Pagamento'}
                             </span>
                           </div>
                         </div>
