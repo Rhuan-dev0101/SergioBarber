@@ -1,6 +1,15 @@
-'use server'
-
 import { createServerSupabaseClient } from '@/lib/supabase'
+
+// Sem 'use server' de proposito: as funcoes abaixo nao fazem nenhuma
+// checagem de autenticacao/ownership sobre o customerId/appointmentId que
+// recebem (confiam em quem chama ja ter validado a sessao). Com 'use server'
+// no arquivo, cada export vira um Server Action invocavel via HTTP por
+// qualquer requisicao -- o que tornaria markNoShowFeeCharged() um jeito de
+// qualquer um zerar a propria taxa de no-show sem pagar, e
+// getOutstandingNoShowFee() um jeito de consultar a taxa de qualquer
+// customerId. Estas funcoes sao helpers server-only, chamadas apenas de
+// dentro de outras Server Actions (agendar/actions.ts, agendamentos/actions.ts,
+// financeiro/actions.ts) que ja autenticam antes de chamar.
 
 export type NoShowFeeInfo = {
   hasFee: boolean
