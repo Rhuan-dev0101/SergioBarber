@@ -6,12 +6,13 @@ import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { AlertCircle, Loader2, ShieldCheck } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
+import { sanitizeRedirectPath } from '@/lib/utils'
 import { recordLegalAcceptanceAction } from './actions'
 
 function AceiteForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const redirectTo = searchParams.get('redirectTo') || '/cliente'
+  const redirectTo = sanitizeRedirectPath(searchParams.get('redirectTo'), '/cliente')
 
   const [checkingSession, setCheckingSession] = useState(true)
   const [acceptTerms, setAcceptTerms] = useState(false)

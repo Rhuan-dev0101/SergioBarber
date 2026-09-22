@@ -1,11 +1,14 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { sanitizeRedirectPath } from '@/lib/utils'
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  const redirectTo = searchParams.get('redirectTo') || '/cliente'
+  // redirectTo vem da query string (controlada pelo cliente OAuth) -- precisa
+  // ser um path interno, nunca uma URL externa (open redirect).
+  const redirectTo = sanitizeRedirectPath(searchParams.get('redirectTo'), '/cliente')
 
   if (code) {
     const cookieStore = await cookies()

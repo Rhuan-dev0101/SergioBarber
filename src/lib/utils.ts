@@ -3,6 +3,19 @@ export function cn(...inputs: any[]) {
 }
 
 /**
+ * Valida que um destino de redirecionamento pós-login (vindo de query string,
+ * portanto controlado pelo atacante) é um path interno do app, nunca uma URL
+ * externa. Bloqueia `https://evil.com`, `//evil.com` (protocol-relative) e
+ * `/\evil.com` (alguns navegadores tratam backslash como barra).
+ * Usado em /entrar, /aceite e /auth/callback antes de qualquer redirect.
+ */
+export function sanitizeRedirectPath(path: string | null | undefined, fallback: string = '/cliente'): string {
+  if (!path) return fallback
+  if (!/^\/(?!\/|\\)/.test(path)) return fallback
+  return path
+}
+
+/**
  * Derives a short human-readable reference code from an appointment UUID.
  * Takes the first 6 characters of the UUID and uppercases them, then
  * prefixes with "#" — e.g. "dd33ce7c-d637-..." → "#DD33CE".

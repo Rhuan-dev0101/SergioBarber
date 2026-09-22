@@ -8,6 +8,7 @@ import { Scissors, Mail, Lock, ArrowRight, AlertCircle, Loader2, Eye, EyeOff, Su
 import { loginAction } from '@/app/auth/actions'
 import { createClient } from '@/lib/supabase'
 import { useTheme } from '@/components/ThemeProvider'
+import { sanitizeRedirectPath } from '@/lib/utils'
 
 function LoginForm() {
   const [email, setEmail] = useState('')
@@ -18,7 +19,9 @@ function LoginForm() {
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
   const searchParams = useSearchParams()
-  const redirectTo = searchParams.get('redirectTo') || ''
+  // Sanitizado aqui na entrada: todo uso downstream (OAuth redirect, router.push)
+  // ja recebe um path interno seguro, nunca uma URL externa vinda da query string.
+  const redirectTo = sanitizeRedirectPath(searchParams.get('redirectTo'), '')
 
   useEffect(() => {
     const errorParam = searchParams.get('error')
