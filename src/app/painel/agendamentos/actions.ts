@@ -164,6 +164,23 @@ export async function updateAppointmentNotesAction(apptId: string, notes: string
 
   try {
     const supabase = await createServerSupabaseClient()
+
+    // Barber pode gerenciar apenas os proprios agendamentos (mesmo padrao
+    // aplicado em updateAppointmentStatusAction/markNoShowAction/etc. neste
+    // arquivo) -- sem isso, qualquer barbeiro podia ler/sobrescrever notas
+    // privadas de agendamentos de outros barbeiros so' pelo ID.
+    if (staff.role === 'barber') {
+      const { data: appt } = await supabase
+        .from('appointments')
+        .select('barber_id')
+        .eq('id', apptId)
+        .single()
+
+      if (!appt || appt.barber_id !== staff.user.id) {
+        return { success: false, message: 'Você só pode gerenciar seus próprios agendamentos.' }
+      }
+    }
+
     const { error } = await supabase
       .from('appointments')
       .update({ notes: notes || null })

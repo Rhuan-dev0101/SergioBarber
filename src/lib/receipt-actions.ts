@@ -47,6 +47,23 @@ export async function getReceiptDataAction(
       return { success: false, message: 'Não autenticado.' }
     }
 
+    // Esta action e' usada hoje apenas pelo painel de staff (ReceiptModal em
+    // /painel/agendamentos e /painel/financeiro) e aceita paymentId/appointmentId
+    // arbitrarios sem filtrar por dono -- sem esta checagem, qualquer cliente
+    // autenticado poderia chamar a action diretamente (Server Actions sao
+    // endpoints HTTP normais) e ler nome, servico e valor de QUALQUER outro
+    // cliente pelo ID. Restringe a admin/barber ate' existir um fluxo de
+    // recibo para o proprio cliente (que exigiria checar ownership em vez de role).
+    const { data: staffProfile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    if (!staffProfile || (staffProfile.role !== 'admin' && staffProfile.role !== 'barber')) {
+      return { success: false, message: 'Não autorizado.' }
+    }
+
     // 1. Fetch Business Settings
     const settings = await getBusinessSettings()
     const businessName = settings?.pixName || 'Osanchez Barbearia'
