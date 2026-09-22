@@ -20,6 +20,21 @@ export type CookieConsentInput = {
  * em cookie_consents não está no escopo desta correção).
  */
 export async function saveCookieConsentAction(input: CookieConsentInput): Promise<{ success: boolean }> {
+  // Server Action e' um endpoint HTTP normal, acessivel sem passar pelo
+  // CookieBanner -- e grava com o client de servico (bypassa RLS). Sem
+  // validar tipo/tamanho, um visitorId gigante ou de tipo errado passaria
+  // direto para o banco.
+  if (
+    typeof input?.visitorId !== 'string' ||
+    input.visitorId.length === 0 ||
+    input.visitorId.length > 100 ||
+    typeof input.essential !== 'boolean' ||
+    typeof input.analytics !== 'boolean' ||
+    typeof input.marketing !== 'boolean'
+  ) {
+    return { success: false }
+  }
+
   try {
     const headerList = await headers()
     const ip = headerList.get('x-forwarded-for') || '127.0.0.1'
