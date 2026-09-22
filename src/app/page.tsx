@@ -51,7 +51,7 @@ export default async function Home() {
   let barbers = FALLBACK_BARBERS
   let gallery = FALLBACK_GALLERY
   let approvedTestimonials: any[] = []
-  let ratingsMap: Record<string, { avg: number; count: number }> = {}
+  const ratingsMap: Record<string, { avg: number; count: number }> = {}
 
   try {
     const supabase = await createServerSupabaseClient()

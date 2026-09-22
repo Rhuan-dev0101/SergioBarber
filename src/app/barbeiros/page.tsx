@@ -33,7 +33,7 @@ export default async function Barbeiros() {
   const settings = await getBusinessSettings()
   let barbers = SEED_BARBERS
   let approvedTestimonials: any[] = []
-  let ratingsMap: Record<string, { avg: number; count: number }> = {}
+  const ratingsMap: Record<string, { avg: number; count: number }> = {}
 
   try {
     const supabase = await createServerSupabaseClient()

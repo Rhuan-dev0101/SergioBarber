@@ -74,7 +74,7 @@ export function ReviewModal({ isOpen, onClose, appointment, onSuccess }: ReviewM
       const filePath = `reviews/${userId}_${Date.now()}.${fileExt}`
 
       // Try uploading to 'review-photos' bucket first
-      let { data, error } = await supabase.storage
+      const { data, error } = await supabase.storage
         .from('review-photos')
         .upload(filePath, file, { cacheControl: '3600', upsert: true })
 

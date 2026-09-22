@@ -80,7 +80,7 @@ export function WalkInModal({
       try {
         const res = await fetch(`/api/booking/slots?barberId=${selectedBarberId}&dateStr=${walkInDate}&duration=${service.duration}&allowPast=true`)
         const data = await res.json()
-        let fetchedSlots: string[] = data.slots || []
+        const fetchedSlots: string[] = data.slots || []
 
         if (defaultTime && !fetchedSlots.includes(defaultTime)) {
           fetchedSlots.push(defaultTime)
