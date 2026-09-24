@@ -190,6 +190,7 @@ export function ReviewModal({ isOpen, onClose, appointment, onSuccess }: ReviewM
           <button
             onClick={onClose}
             disabled={isSubmitting}
+            aria-label="Fechar"
             className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
           >
             <X className="w-5 h-5" />

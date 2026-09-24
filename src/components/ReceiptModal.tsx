@@ -252,6 +252,7 @@ export function ReceiptModal({ paymentId, appointmentId, onClose }: ReceiptModal
           </div>
           <button
             onClick={onClose}
+            aria-label="Fechar"
             className="p-2 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-xl transition-all cursor-pointer"
           >
             <X className="w-5 h-5" />

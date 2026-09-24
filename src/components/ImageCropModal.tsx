@@ -61,9 +61,10 @@ export function ImageCropModal({
               <p className="text-[11px] text-muted-foreground">Arraste a imagem para centralizar o corte de cabelo no enquadramento quadrado.</p>
             </div>
           </div>
-          <button 
-            type="button" 
+          <button
+            type="button"
             onClick={onClose}
+            aria-label="Fechar"
             className="text-muted-foreground hover:text-foreground p-1 rounded-lg hover:bg-secondary transition-colors"
           >
             <X className="w-5 h-5" />
