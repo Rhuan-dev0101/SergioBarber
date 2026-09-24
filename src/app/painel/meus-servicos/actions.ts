@@ -36,6 +36,13 @@ export async function addBarberServiceAction(
 
   const targetBarberId = barberId || session.id
 
+  // Barber so' pode vincular servicos ao proprio perfil -- sem isso, um
+  // barbeiro conseguia editar o catalogo de precos de outro so passando o
+  // barberId dele.
+  if (session.role === 'barber' && targetBarberId !== session.id) {
+    return { success: false, message: 'Você só pode gerenciar seus próprios serviços.' }
+  }
+
   if (!targetBarberId || !serviceId || price === undefined || duration === undefined) {
     return { success: false, message: 'Parâmetros inválidos.' }
   }
@@ -91,6 +98,10 @@ export async function createAndAddBarberServiceAction(
   if (!session) return { success: false, message: 'Acesso negado.' }
 
   const targetBarberId = barberId || session.id
+
+  if (session.role === 'barber' && targetBarberId !== session.id) {
+    return { success: false, message: 'Você só pode gerenciar seus próprios serviços.' }
+  }
 
   if (!targetBarberId || !name || price === undefined || duration === undefined) {
     return { success: false, message: 'Campos obrigatórios ausentes.' }
@@ -186,6 +197,18 @@ export async function updateBarberServiceAction(
   try {
     const supabase = await createServerSupabaseClient()
 
+    if (session.role === 'barber') {
+      const { data: existing } = await supabase
+        .from('barber_services')
+        .select('barber_id')
+        .eq('id', id)
+        .single()
+
+      if (!existing || existing.barber_id !== session.id) {
+        return { success: false, message: 'Você só pode gerenciar seus próprios serviços.' }
+      }
+    }
+
     const { error } = await supabase
       .from('barber_services')
       .update({
@@ -221,6 +244,18 @@ export async function deleteBarberServiceAction(
 
   try {
     const supabase = await createServerSupabaseClient()
+
+    if (session.role === 'barber') {
+      const { data: existing } = await supabase
+        .from('barber_services')
+        .select('barber_id')
+        .eq('id', id)
+        .single()
+
+      if (!existing || existing.barber_id !== session.id) {
+        return { success: false, message: 'Você só pode gerenciar seus próprios serviços.' }
+      }
+    }
 
     const { error } = await supabase
       .from('barber_services')
