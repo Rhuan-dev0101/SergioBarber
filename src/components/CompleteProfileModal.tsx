@@ -73,7 +73,7 @@ export function CompleteProfileModal({
         }
       } catch (err) {
         console.error('Exception in CompleteProfileModal:', err)
-        setErrorMsg('Erro interno no servidor.')
+        setErrorMsg('Não foi possível salvar seu perfil. Tente novamente em instantes.')
       }
     })
   }
