@@ -56,6 +56,7 @@ export default function PainelGaleria() {
 
   // Edit single photo state
   const [editingImage, setEditingImage] = useState<any | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<any | null>(null)
   const [editCroppedFile, setEditCroppedFile] = useState<File | null>(null)
 
   const [errorMsg, setErrorMsg] = useState('')
@@ -442,7 +443,6 @@ export default function PainelGaleria() {
 
   // Delete image
   const handleDelete = (img: any) => {
-    if (!confirm(`Deseja realmente excluir "${img.title || 'esta imagem'}" da galeria?`)) return
     setErrorMsg('')
     setSuccessMsg('')
 
@@ -460,6 +460,7 @@ export default function PainelGaleria() {
         loadGallery()
       }
     })
+    setDeleteTarget(null)
   }
 
   if (loading) {
@@ -911,7 +912,7 @@ export default function PainelGaleria() {
                       <Edit2 className="w-3 h-3" /> Editar
                     </button>
                     <button
-                      onClick={() => handleDelete(img)}
+                      onClick={() => setDeleteTarget(img)}
                       disabled={isPending || uploading}
                       className="p-1.5 bg-destructive/80 hover:bg-destructive text-white rounded shadow cursor-pointer transition-all"
                       title="Excluir imagem"
@@ -941,6 +942,43 @@ export default function PainelGaleria() {
         onClose={() => setCroppingItem(null)}
         onConfirm={handleConfirmCrop}
       />
+
+      {/* DELETE CONFIRM MODAL */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="glass max-w-sm w-full rounded-lg border border-border shadow-2xl p-6 relative flex flex-col space-y-6">
+            <div className="space-y-2 text-left">
+              <h3 className="text-lg font-serif font-bold text-rose-500 flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 text-rose-500" />
+                Excluir Imagem?
+              </h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Deseja realmente excluir &quot;{deleteTarget.title || 'esta imagem'}&quot; da galeria? Esta ação não poderá ser desfeita.
+              </p>
+            </div>
+
+            <div className="flex gap-3 justify-end pt-2">
+              <button
+                type="button"
+                onClick={() => setDeleteTarget(null)}
+                disabled={isPending}
+                className="px-4 py-2 bg-secondary hover:bg-muted text-foreground border border-border font-bold rounded text-xs transition-all cursor-pointer disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDelete(deleteTarget)}
+                disabled={isPending}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded text-xs transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+              >
+                {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin text-white" /> : <Trash2 className="w-3.5 h-3.5 text-white" />}
+                Sim, excluir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

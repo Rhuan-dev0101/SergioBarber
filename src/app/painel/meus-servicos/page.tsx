@@ -2,9 +2,9 @@
 
 import React, { useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { 
-  Scissors, Plus, Edit2, Trash2, Clock, DollarSign, AlertCircle, 
-  CheckCircle2, Loader2, Save, X, Sparkles, Check 
+import {
+  Scissors, Plus, Edit2, Trash2, Clock, DollarSign, AlertCircle,
+  CheckCircle2, Loader2, Save, X, Sparkles, Check, AlertTriangle
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
@@ -31,6 +31,7 @@ export default function MeusServicos() {
   // Modals
   const [showAddModal, setShowAddModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<any>(null)
   const [addTab, setAddTab] = useState<'existing' | 'new'>('existing')
 
   // Form states
@@ -222,10 +223,9 @@ export default function MeusServicos() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Tem certeza que deseja remover este serviço do seu perfil? Esta ação não remove o serviço do catálogo da barbearia.')) return
     setErrorMsg('')
     setSuccessMsg('')
-    
+
     setActionLoading(true)
     const res = await deleteBarberServiceAction(id)
     if (!res.success) {
@@ -235,6 +235,7 @@ export default function MeusServicos() {
       await loadData(selectedBarberId)
     }
     setActionLoading(false)
+    setDeleteTarget(null)
   }
 
   const triggerEdit = (bs: any) => {
@@ -399,7 +400,7 @@ export default function MeusServicos() {
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
                         <button
-                          onClick={() => handleDelete(bs.id)}
+                          onClick={() => setDeleteTarget(bs)}
                           disabled={actionLoading}
                           className="p-2 bg-secondary hover:bg-destructive/10 text-foreground border border-border hover:text-destructive rounded-lg cursor-pointer inline-flex items-center justify-center transition-all disabled:opacity-50"
                           title="Remover Serviço"
@@ -447,6 +448,48 @@ export default function MeusServicos() {
           barberId={selectedBarberId}
           editingService={barberServices.find(bs => bs.id === editingId)}
         />
+
+        {/* DELETE CONFIRM MODAL */}
+        {deleteTarget && (
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="glass p-6 sm:p-8 rounded-xl border border-red-800/50 max-w-md w-full shadow-2xl space-y-5 relative">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full bg-red-900/30 border border-red-800/40 flex items-center justify-center shrink-0">
+                  <AlertTriangle className="w-5 h-5 text-red-400" />
+                </div>
+                <div>
+                  <h3 className="font-serif font-bold text-lg text-foreground">Remover Serviço?</h3>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    Esta ação não remove o serviço do catálogo da barbearia, apenas do seu perfil.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setDeleteTarget(null)}
+                  disabled={actionLoading}
+                  className="flex-1 px-4 py-2.5 bg-secondary hover:bg-muted border border-border text-foreground rounded-lg text-xs font-semibold transition-all cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDelete(deleteTarget.id)}
+                  disabled={actionLoading}
+                  className="flex-1 px-4 py-2.5 bg-red-700 hover:bg-red-800 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {actionLoading ? (
+                    <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Removendo...</>
+                  ) : (
+                    <><Trash2 className="w-3.5 h-3.5" /> Sim, remover</>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
       </main>
     </div>
