@@ -4,9 +4,9 @@ import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { 
-  Scissors, LayoutDashboard, CalendarRange, Users, UserCog, 
+  Scissors, LayoutDashboard, CalendarRange, Users, UserCog,
   Sparkles, DollarSign, Settings, LogOut, Menu, X, User, Image as ImageIcon,
-  Crown, Star, History, Repeat, ChevronDown, ChevronRight
+  Crown, Star, History, Repeat, ChevronDown, ChevronRight, Loader2
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 
@@ -94,7 +94,10 @@ export function DashboardSidebar() {
     })
   }
 
+  const [loggingOut, setLoggingOut] = useState(false)
+
   const handleLogout = async () => {
+    setLoggingOut(true)
     await supabase.auth.signOut()
     router.push('/')
   }
@@ -423,10 +426,15 @@ export function DashboardSidebar() {
         <div className="p-3.5 border-t border-border/40 shrink-0">
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold text-destructive hover:bg-destructive/10 transition-all cursor-pointer min-h-[42px]"
+            disabled={loggingOut}
+            className="flex items-center gap-3 w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold text-destructive hover:bg-destructive/10 transition-all cursor-pointer min-h-[42px] disabled:opacity-50"
           >
-            <LogOut className="w-4 h-4 shrink-0" />
-            <span>Sair do Painel</span>
+            {loggingOut ? (
+              <Loader2 className="w-4 h-4 shrink-0 animate-spin" />
+            ) : (
+              <LogOut className="w-4 h-4 shrink-0" />
+            )}
+            <span>{loggingOut ? 'Saindo...' : 'Sair do Painel'}</span>
           </button>
         </div>
 
