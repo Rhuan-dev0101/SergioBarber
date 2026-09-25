@@ -64,7 +64,7 @@ ALTER TABLE public.appointments
 ADD CONSTRAINT appointments_no_overlap_per_barber
 EXCLUDE USING gist (
   barber_id WITH =,
-  tsrange(start_time, end_time) WITH &&
+  tstzrange(start_time, end_time) WITH &&
 )
 WHERE (status <> 'cancelled' AND COALESCE(is_extra, FALSE) = FALSE);
 
@@ -79,7 +79,7 @@ COMMIT;
 --   JOIN public.appointments a2
 --     ON a1.barber_id = a2.barber_id
 --    AND a1.id < a2.id
---    AND tsrange(a1.start_time, a1.end_time) && tsrange(a2.start_time, a2.end_time)
+--    AND tstzrange(a1.start_time, a1.end_time) && tstzrange(a2.start_time, a2.end_time)
 --   WHERE a1.status <> 'cancelled' AND COALESCE(a1.is_extra, FALSE) = FALSE
 --     AND a2.status <> 'cancelled' AND COALESCE(a2.is_extra, FALSE) = FALSE;
 --
