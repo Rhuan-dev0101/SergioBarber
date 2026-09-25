@@ -731,6 +731,7 @@ export default function PainelAgendamentos() {
                     onClick={handlePrevDay}
                     className="p-2.5 bg-secondary/60 hover:bg-secondary border border-border/80 text-foreground rounded-xl transition-all cursor-pointer"
                     title="Dia Anterior"
+                    aria-label="Dia Anterior"
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </button>
@@ -752,6 +753,7 @@ export default function PainelAgendamentos() {
                     onClick={handleNextDay}
                     className="p-2.5 bg-secondary/60 hover:bg-secondary border border-border/80 text-foreground rounded-xl transition-all cursor-pointer"
                     title="Próximo Dia"
+                    aria-label="Próximo Dia"
                   >
                     <ChevronRight className="w-4 h-4" />
                   </button>

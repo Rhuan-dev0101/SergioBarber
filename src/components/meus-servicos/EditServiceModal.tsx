@@ -89,7 +89,7 @@ export function EditServiceModal({
               <p className="text-[11px] text-muted-foreground">{editingService.services?.name}</p>
             </div>
           </div>
-          <button onClick={handleClose} className="p-1 text-muted-foreground hover:text-foreground rounded-lg">
+          <button onClick={handleClose} aria-label="Fechar" className="p-1 text-muted-foreground hover:text-foreground rounded-lg">
             <X className="w-5 h-5" />
           </button>
         </div>

@@ -136,6 +136,7 @@ export function ExtraAppointmentModal({
           </h3>
           <button
             onClick={handleClose}
+            aria-label="Fechar"
             className="text-muted-foreground hover:text-foreground p-1.5 hover:bg-secondary rounded-lg transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />

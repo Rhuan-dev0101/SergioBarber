@@ -592,18 +592,18 @@ export default function AdminAvaliacoesPage() {
                   </div>
                 </div>
 
-                {/* Bottom Action Bar: Aprovar, Reprovar, Apagar */}
+                {/* Bottom Action Bar: Aprovar, Reprovar, Excluir */}
                 <div className="pt-3 border-t border-border/40 flex items-center justify-between gap-2">
-                  
-                  {/* Delete Button (Apagar) */}
+
+                  {/* Delete Button (Excluir) */}
                   <button
                     onClick={() => setDeleteConfirmId(review.id)}
                     disabled={isPending}
                     className="p-2 bg-destructive/10 hover:bg-destructive/20 border border-destructive/25 text-destructive rounded-xl transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1 text-xs font-semibold"
-                    title="Apagar avaliação permanentemente"
+                    title="Excluir avaliação permanentemente"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">Apagar</span>
+                    <span className="hidden sm:inline">Excluir</span>
                   </button>
 
                   <div className="flex items-center gap-2">
@@ -660,7 +660,7 @@ export default function AdminAvaliacoesPage() {
                 <Trash2 className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="text-lg font-serif font-bold text-foreground">Apagar Avaliação?</h3>
+                <h3 className="text-lg font-serif font-bold text-foreground">Excluir Avaliação?</h3>
                 <p className="text-xs text-muted-foreground">Esta ação não poderá ser desfeita.</p>
               </div>
             </div>

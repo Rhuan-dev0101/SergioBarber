@@ -31,6 +31,8 @@ export default function PainelFuncionarios() {
   const [userRole, setUserRole] = useState<string | null>(null)
   const [showConfirmDelete, setShowConfirmDelete] = useState(false)
   const [actionLoading, setActionLoading] = useState(false)
+  const [deleteTimeTarget, setDeleteTimeTarget] = useState<{ table: 'blocked_times' | 'days_off'; id: string } | null>(null)
+  const [deletingTime, setDeletingTime] = useState(false)
 
   // Form inputs: Profile Data & Email
   const [editBio, setEditBio] = useState('')
@@ -341,20 +343,23 @@ export default function PainelFuncionarios() {
   }
 
   const handleDeleteTimeItem = async (table: 'blocked_times' | 'days_off', id: string) => {
-    if (!confirm('Deseja realmente remover este registro?')) return
     setErrorMsg('')
     setSuccessMsg('')
-    
+    setDeletingTime(true)
+
     try {
       const { error } = await supabase.from(table).delete().eq('id', id)
       if (error) {
-        setErrorMsg('Erro ao deletar registro.')
+        setErrorMsg('Erro ao excluir registro.')
       } else {
         setSuccessMsg('Registro removido com sucesso.')
         loadBarberDetails()
       }
     } catch (err) {
       console.error(err)
+    } finally {
+      setDeletingTime(false)
+      setDeleteTimeTarget(null)
     }
   }
 
@@ -850,8 +855,10 @@ export default function PainelFuncionarios() {
                                 </p>
                               </div>
                               <button
-                                onClick={() => handleDeleteTimeItem('blocked_times', block.id)}
-                                className="p-1 text-destructive hover:bg-secondary rounded cursor-pointer transition-colors"
+                                onClick={() => setDeleteTimeTarget({ table: 'blocked_times', id: block.id })}
+                                disabled={deletingTime}
+                                aria-label="Remover bloqueio"
+                                className="p-1 text-destructive hover:bg-secondary rounded cursor-pointer transition-colors disabled:opacity-50"
                               >
                                 <Trash2 className="w-4 h-4 text-destructive" />
                               </button>
@@ -924,8 +931,10 @@ export default function PainelFuncionarios() {
                                 <p className="text-[10px] text-muted-foreground">Dia: {formatDate(off.date + 'T00:00:00')}</p>
                               </div>
                               <button
-                                onClick={() => handleDeleteTimeItem('days_off', off.id)}
-                                className="p-1 text-destructive hover:bg-secondary rounded cursor-pointer transition-colors"
+                                onClick={() => setDeleteTimeTarget({ table: 'days_off', id: off.id })}
+                                disabled={deletingTime}
+                                aria-label="Remover folga"
+                                className="p-1 text-destructive hover:bg-secondary rounded cursor-pointer transition-colors disabled:opacity-50"
                               >
                                 <Trash2 className="w-4 h-4 text-destructive" />
                               </button>
@@ -1169,6 +1178,44 @@ export default function PainelFuncionarios() {
                 >
                   {(actionLoading || isPending) ? <Loader2 className="w-3.5 h-3.5 animate-spin text-white" /> : <Trash2 className="w-3.5 h-3.5 text-white" />}
                   Excluir Permanentemente
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {deleteTimeTarget && (
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="glass max-w-sm w-full rounded-lg border border-border shadow-2xl p-6 relative flex flex-col space-y-6">
+              <div className="space-y-2 text-left">
+                <h3 className="text-lg font-serif font-bold text-rose-500 flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5 text-rose-500" />
+                  Remover Registro?
+                </h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  {deleteTimeTarget.table === 'blocked_times'
+                    ? 'Este bloqueio de agenda será removido e o horário ficará disponível novamente.'
+                    : 'Esta folga/férias será removida e o dia ficará disponível novamente.'}
+                </p>
+              </div>
+
+              <div className="flex gap-3 justify-end pt-2">
+                <button
+                  type="button"
+                  onClick={() => setDeleteTimeTarget(null)}
+                  disabled={deletingTime}
+                  className="px-4 py-2 bg-secondary hover:bg-muted text-foreground border border-border font-bold rounded text-xs transition-all cursor-pointer disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteTimeItem(deleteTimeTarget.table, deleteTimeTarget.id)}
+                  disabled={deletingTime}
+                  className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded text-xs transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  {deletingTime ? <Loader2 className="w-3.5 h-3.5 animate-spin text-white" /> : <Trash2 className="w-3.5 h-3.5 text-white" />}
+                  Sim, remover
                 </button>
               </div>
             </div>

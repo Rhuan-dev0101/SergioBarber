@@ -41,6 +41,7 @@ export default function PainelPacotes() {
   // Modal
   const [showModal, setShowModal] = useState(false)
   const [cancelTarget, setCancelTarget] = useState<any>(null)
+  const [cancelSessionTarget, setCancelSessionTarget] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<any>(null)
   const [editPackageTarget, setEditPackageTarget] = useState<any>(null)
   const [editPackagePrice, setEditPackagePrice] = useState('')
@@ -486,6 +487,7 @@ export default function PainelPacotes() {
         }
       }
     })
+    setCancelSessionTarget(null)
   }
 
   const handleStartReschedule = (appt: any) => {
@@ -969,6 +971,46 @@ export default function PainelPacotes() {
           </div>
         )}
 
+        {/* ── Cancel Single Session Confirmation Modal ────────── */}
+        {cancelSessionTarget && (
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="glass p-6 sm:p-8 rounded-xl border border-red-800/50 max-w-md w-full shadow-2xl space-y-5 relative">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full bg-red-900/30 border border-red-800/40 flex items-center justify-center shrink-0">
+                  <AlertTriangle className="w-5 h-5 text-red-400" />
+                </div>
+                <div>
+                  <h3 className="font-serif font-bold text-lg text-foreground">Desmarcar Este Dia?</h3>
+                  <p className="text-[11px] text-red-400 font-semibold mt-0.5">O horário desta sessão ficará livre para outros clientes</p>
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setCancelSessionTarget(null)}
+                  disabled={isPending}
+                  className="flex-1 px-4 py-2.5 bg-secondary hover:bg-muted border border-border text-foreground rounded-lg text-xs font-semibold transition-all cursor-pointer"
+                >
+                  Voltar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleCancelSession(cancelSessionTarget)}
+                  disabled={isPending}
+                  className="flex-1 px-4 py-2.5 bg-red-700 hover:bg-red-800 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {isPending ? (
+                    <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Desmarcando...</>
+                  ) : (
+                    <><Trash2 className="w-3.5 h-3.5" /> Sim, desmarcar</>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ── Cancel Confirmation Modal ──────────────────────── */}
         {cancelTarget && (
           <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -1192,7 +1234,7 @@ export default function PainelPacotes() {
                             <div className="flex flex-wrap gap-2 items-center shrink-0">
                               {appt.status === 'confirmed' && (
                                 <button
-                                  onClick={() => handleCancelSession(appt.id)}
+                                  onClick={() => setCancelSessionTarget(appt.id)}
                                   disabled={isPending}
                                   className="px-2.5 py-1.5 bg-destructive/10 hover:bg-destructive/20 border border-destructive/25 text-destructive text-xs font-bold rounded-lg transition-all cursor-pointer"
                                 >

@@ -36,6 +36,7 @@ export default function ClientePanel() {
   const [settings, setSettings] = useState<any>(null)
   const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false)
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false)
+  const [cancelTarget, setCancelTarget] = useState<string | null>(null)
   const [selectedApptForReview, setSelectedApptForReview] = useState<any>(null)
   
   const supabase = createClient()
@@ -158,7 +159,6 @@ export default function ClientePanel() {
   }, [])
 
   const handleCancel = (apptId: string) => {
-    if (!confirm('Deseja realmente cancelar este agendamento?')) return
     setErrorMsg('')
     setSuccessMsg('')
 
@@ -171,6 +171,7 @@ export default function ClientePanel() {
         loadData()
       }
     })
+    setCancelTarget(null)
   }
 
   const isCancelable = (startTimeStr: string) => {
@@ -382,7 +383,7 @@ export default function ClientePanel() {
                         <div className="flex gap-2 w-full sm:w-auto self-stretch sm:self-center justify-end">
                           {isCancelable(appt.start_time) ? (
                             <button
-                              onClick={() => handleCancel(appt.id)}
+                              onClick={() => setCancelTarget(appt.id)}
                               disabled={isPending}
                               className="px-3.5 py-2 bg-destructive/10 hover:bg-destructive/20 border border-destructive/25 text-destructive font-semibold rounded text-xs flex items-center justify-center gap-1.5 transition-all w-full sm:w-auto cursor-pointer"
                             >
@@ -573,6 +574,43 @@ export default function ClientePanel() {
           loadData()
         }}
       />
+
+      {/* CANCEL CONFIRM MODAL */}
+      {cancelTarget && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="glass max-w-sm w-full rounded-lg border border-border shadow-2xl p-6 relative flex flex-col space-y-6">
+            <div className="space-y-2 text-left">
+              <h3 className="text-lg font-serif font-bold text-rose-500 flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 text-rose-500" />
+                Cancelar Agendamento?
+              </h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Deseja realmente cancelar este agendamento? Esta ação não poderá ser desfeita.
+              </p>
+            </div>
+
+            <div className="flex gap-3 justify-end pt-2">
+              <button
+                type="button"
+                onClick={() => setCancelTarget(null)}
+                disabled={isPending}
+                className="px-4 py-2 bg-secondary hover:bg-muted text-foreground border border-border font-bold rounded text-xs transition-all cursor-pointer disabled:opacity-50"
+              >
+                Voltar
+              </button>
+              <button
+                type="button"
+                onClick={() => handleCancel(cancelTarget)}
+                disabled={isPending}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded text-xs transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+              >
+                {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin text-white" /> : <Trash2 className="w-3.5 h-3.5 text-white" />}
+                Sim, cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

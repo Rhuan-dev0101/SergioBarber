@@ -80,7 +80,7 @@ export function WalkInModal({
       try {
         const res = await fetch(`/api/booking/slots?barberId=${selectedBarberId}&dateStr=${walkInDate}&duration=${service.duration}&allowPast=true`)
         const data = await res.json()
-        let fetchedSlots: string[] = data.slots || []
+        const fetchedSlots: string[] = data.slots || []
 
         if (defaultTime && !fetchedSlots.includes(defaultTime)) {
           fetchedSlots.push(defaultTime)
@@ -177,6 +177,7 @@ export function WalkInModal({
             </h3>
             <button
               onClick={handleClose}
+              aria-label="Fechar"
               className="text-muted-foreground hover:text-foreground p-1.5 hover:bg-secondary rounded-lg transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />

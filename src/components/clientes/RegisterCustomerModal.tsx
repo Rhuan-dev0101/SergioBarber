@@ -82,7 +82,7 @@ export function RegisterCustomerModal({ isOpen, onClose, onSuccess }: RegisterCu
               <p className="text-[11px] text-muted-foreground">Adicione um novo cliente diretamente pelo painel</p>
             </div>
           </div>
-          <button onClick={handleClose} className="p-1 text-muted-foreground hover:text-foreground rounded-lg">
+          <button onClick={handleClose} aria-label="Fechar" className="p-1 text-muted-foreground hover:text-foreground rounded-lg">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -141,7 +141,7 @@ export function RegisterCustomerModal({ isOpen, onClose, onSuccess }: RegisterCu
             <div className="space-y-1">
               <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">Telefone / WhatsApp *</label>
               <input
-                type="text"
+                type="tel"
                 placeholder="Ex: (11) 98765-4321"
                 value={regPhone}
                 onChange={(e) => setRegPhone(e.target.value)}
