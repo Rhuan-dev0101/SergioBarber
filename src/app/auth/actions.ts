@@ -42,7 +42,7 @@ export async function loginAction(prevState: any, formData: FormData): Promise<A
   const ip = headerList.get('x-forwarded-for') || '127.0.0.1'
 
   // 1. Rate Limiting Check
-  const rateLimitStatus = checkRateLimit(ip, email)
+  const rateLimitStatus = await checkRateLimit(ip, email)
   if (rateLimitStatus.limited) {
     return { success: false, message: rateLimitStatus.message }
   }
@@ -100,7 +100,7 @@ export async function signUpAction(prevState: any, formData: FormData): Promise<
   const ip = headerList.get('x-forwarded-for') || '127.0.0.1'
 
   // 1. Rate Limiting Check
-  const rateLimitStatus = checkRateLimit(ip, email)
+  const rateLimitStatus = await checkRateLimit(ip, email)
   if (rateLimitStatus.limited) {
     return { success: false, message: rateLimitStatus.message }
   }
