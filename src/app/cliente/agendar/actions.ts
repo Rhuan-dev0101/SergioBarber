@@ -15,6 +15,8 @@ export type BookingResponse = {
  * Check if the current user has an outstanding no-show fee.
  * Called on the booking page to display the fee banner.
  */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 export async function checkNoShowFeeAction(): Promise<NoShowFeeInfo | null> {
   try {
     const supabase = await createServerSupabaseClient()
@@ -50,24 +52,11 @@ export async function createAppointmentAction(
       return { success: false, message: 'Sessão expirada. Por favor, faça login novamente.' }
     }
 
-    // Resolve mock barber IDs ('sergio-uuid', 'enzo-uuid') to real database UUID if needed
-    let targetBarberId = barberId
-    if (barberId === 'sergio-uuid' || barberId === 'enzo-uuid') {
-      const { data: realBarbers } = await adminDb
-        .from('barbers')
-        .select('id, profiles(full_name)')
-        .limit(10)
-      
-      const match = realBarbers?.find((b: any) =>
-        barberId === 'sergio-uuid'
-          ? b.profiles?.full_name?.toLowerCase().includes('sergio')
-          : b.profiles?.full_name?.toLowerCase().includes('enzo')
-      ) || realBarbers?.[0]
-
-      if (match?.id) {
-        targetBarberId = match.id
-      }
+    // Ids de seed ('sergio-uuid'/'enzo-uuid') nao sao barbeiros reais: agendamento exige UUID.
+    if (!UUID_RE.test(barberId)) {
+      return { success: false, message: 'Profissional indisponível no momento. Recarregue a página e tente novamente.' }
     }
+    const targetBarberId = barberId
 
     // 2. Fetch service details, availability, and outstanding no-show fee in PARALLEL
     const fetchServicePromise = (async () => {
@@ -165,6 +154,11 @@ export async function createAppointmentAction(
         appointment = fallbackList[0]
         apptError = null
       }
+    }
+
+    if (apptError?.code === '23P01') {
+      // exclusion_violation: a constraint anti-overbooking barrou um horario ocupado em corrida.
+      return { success: false, message: 'Desculpe, este horário não está mais disponível. Escolha outro.' }
     }
 
     if (apptError || !appointment) {
