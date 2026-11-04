@@ -34,34 +34,47 @@ const FALLBACK_GALLERY = [
 ]
 
 export default async function Home() {
-  const settings = await getBusinessSettings()
-  const rawWhatsapp = settings?.whatsapp || ''
-  const address = settings?.address || 'Rua da Barbearia, 123 - Centro, São Paulo - SP'
-  const whatsappUrl = formatWhatsAppLink(rawWhatsapp)
-  const formattedPhone = formatPhoneNumber(rawWhatsapp)
-  const telUrl = rawWhatsapp ? `tel:+${rawWhatsapp.replace(/\D/g, '')}` : '#'
-
-  const packageCorteWaMessage = "Olá! Tenho interesse no Pacote Mensal de Corte (4 cortes por R$150/mês). Gostaria de saber mais e agendar meu horário fixo!"
-  const packageCorteWaUrl = formatWhatsAppLink(rawWhatsapp, packageCorteWaMessage)
-
-  const packageComboWaMessage = "Olá! Tenho interesse no Pacote Mensal Cabelo + Barba (4 atendimentos completos por R$250/mês). Gostaria de saber mais e agendar meu horário fixo!"
-  const packageComboWaUrl = formatWhatsAppLink(rawWhatsapp, packageComboWaMessage)
-
   let services = FALLBACK_SERVICES
   let barbers = FALLBACK_BARBERS
   let gallery = FALLBACK_GALLERY
   let approvedTestimonials: any[] = []
   const ratingsMap: Record<string, { avg: number; count: number }> = {}
+  let settings: Awaited<ReturnType<typeof getBusinessSettings>> = null
 
   try {
     const supabase = await createServerSupabaseClient()
 
-    // Fetch approved reviews for public testimonials & barber average rating calculation
-    const { data: dbReviews } = await supabase
-      .from('reviews')
-      .select('*')
-      .eq('status', 'approved')
-      .order('created_at', { ascending: false })
+    // Todas as consultas independentes saem em paralelo (antes eram ~7 round-trips em sequencia).
+    const [
+      settingsResult,
+      { data: dbReviews },
+      { data: dbServices },
+      { data: dbBarbers },
+      { data: dbGallery },
+    ] = await Promise.all([
+      getBusinessSettings(),
+      // Approved reviews for public testimonials & barber average rating calculation
+      supabase
+        .from('reviews')
+        .select('id, barber_id, customer_id, rating, comment, created_at')
+        .eq('status', 'approved')
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('services')
+        .select('name, duration, price, description')
+        .eq('is_active', true)
+        .limit(6),
+      supabase
+        .from('barbers')
+        .select('id, bio, avatar_url, is_active, about_quote, experience_years, specialties, photo_url, profiles(full_name, role)')
+        .eq('is_active', true),
+      supabase
+        .from('gallery_images')
+        .select('title, category, url')
+        .order('created_at', { ascending: false })
+        .limit(4),
+    ])
+    settings = settingsResult
 
     if (dbReviews && dbReviews.length > 0) {
       const barberStats: Record<string, { total: number; count: number }> = {}
@@ -80,44 +93,28 @@ export default async function Home() {
         }
       })
 
-      const customerIds = Array.from(new Set(dbReviews.map(r => r.customer_id)))
-      const { data: customerProfiles } = await supabase
+      // Um unico lookup de nomes (clientes + barbeiros) em vez de duas consultas sequenciais.
+      const profileIds = Array.from(new Set(dbReviews.flatMap(r => [r.customer_id, r.barber_id])))
+      const { data: profiles } = await supabase
         .from('profiles')
         .select('id, full_name')
-        .in('id', customerIds)
+        .in('id', profileIds)
 
-      const customerMap = (customerProfiles || []).reduce((acc: any, c: any) => {
-        acc[c.id] = c.full_name
-        return acc
-      }, {})
-
-      const barberIds = Array.from(new Set(dbReviews.map(r => r.barber_id)))
-      const { data: barberProfiles } = await supabase
-        .from('profiles')
-        .select('id, full_name')
-        .in('id', barberIds)
-
-      const barberMap = (barberProfiles || []).reduce((acc: any, b: any) => {
-        acc[b.id] = b.full_name
+      const nameMap = (profiles || []).reduce((acc: Record<string, string>, p: any) => {
+        acc[p.id] = p.full_name
         return acc
       }, {})
 
       approvedTestimonials = dbReviews.map(r => ({
         id: r.id,
-        customerName: customerMap[r.customer_id] || 'Cliente',
-        barberName: barberMap[r.barber_id] || 'Barbeiro',
+        customerName: nameMap[r.customer_id] || 'Cliente',
+        barberName: nameMap[r.barber_id] || 'Barbeiro',
         rating: r.rating,
         comment: r.comment || '',
         createdAt: r.created_at
       }))
     }
 
-    const { data: dbServices } = await supabase
-      .from('services')
-      .select('name, duration, price, description')
-      .eq('is_active', true)
-      .limit(6)
-    
     if (dbServices && dbServices.length > 0) {
       const filteredDbServices = dbServices
         .filter(s => {
@@ -135,11 +132,6 @@ export default async function Home() {
         services = filteredDbServices
       }
     }
-
-    const { data: dbBarbers } = await supabase
-      .from('barbers')
-      .select('id, bio, avatar_url, is_active, about_quote, experience_years, specialties, photo_url, profiles(full_name, role)')
-      .eq('is_active', true)
 
     if (dbBarbers && dbBarbers.length > 0) {
       const activeBarbers = dbBarbers
@@ -159,12 +151,6 @@ export default async function Home() {
       }
     }
 
-    const { data: dbGallery } = await supabase
-      .from('gallery_images')
-      .select('title, category, url')
-      .order('created_at', { ascending: false })
-      .limit(4)
-
     if (dbGallery && dbGallery.length > 0) {
       gallery = dbGallery.map(g => ({
         title: g.title || '',
@@ -175,6 +161,18 @@ export default async function Home() {
   } catch (error) {
     console.error('Error fetching data from Supabase, using fallback seeds:', error)
   }
+
+  const rawWhatsapp = settings?.whatsapp || ''
+  const address = settings?.address || 'Rua da Barbearia, 123 - Centro, São Paulo - SP'
+  const whatsappUrl = formatWhatsAppLink(rawWhatsapp)
+  const formattedPhone = formatPhoneNumber(rawWhatsapp)
+  const telUrl = rawWhatsapp ? `tel:+${rawWhatsapp.replace(/\D/g, '')}` : '#'
+
+  const packageCorteWaMessage = "Olá! Tenho interesse no Pacote Mensal de Corte (4 cortes por R$150/mês). Gostaria de saber mais e agendar meu horário fixo!"
+  const packageCorteWaUrl = formatWhatsAppLink(rawWhatsapp, packageCorteWaMessage)
+
+  const packageComboWaMessage = "Olá! Tenho interesse no Pacote Mensal Cabelo + Barba (4 atendimentos completos por R$250/mês). Gostaria de saber mais e agendar meu horário fixo!"
+  const packageComboWaUrl = formatWhatsAppLink(rawWhatsapp, packageComboWaMessage)
 
   return (
     <div className="flex flex-col min-h-screen relative">
