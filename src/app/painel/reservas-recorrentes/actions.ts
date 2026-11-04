@@ -98,7 +98,7 @@ export async function createRecurringReservationAction(
     return { success: true, message: 'Reserva recorrente criada com sucesso!' }
   } catch (err) {
     console.error('Error in createRecurringReservationAction:', err)
-    return { success: false, message: 'Erro interno no servidor.' }
+    return { success: false, message: 'Não foi possível concluir a operação. Tente novamente em instantes.' }
   }
 }
 
@@ -136,7 +136,7 @@ export async function cancelRecurringReservationAction(reservationId: string): P
     return { success: true, message: 'Reserva recorrente cancelada com sucesso.' }
   } catch (err) {
     console.error('Error in cancelRecurringReservationAction:', err)
-    return { success: false, message: 'Erro interno no servidor.' }
+    return { success: false, message: 'Não foi possível concluir a operação. Tente novamente em instantes.' }
   }
 }
 
@@ -211,6 +211,6 @@ export async function getRecurringReservationsAction(): Promise<{
     return { success: true, message: 'Sucesso', reservations: enriched }
   } catch (err) {
     console.error('Error in getRecurringReservationsAction:', err)
-    return { success: false, message: 'Erro interno no servidor.', reservations: [] }
+    return { success: false, message: 'Não foi possível concluir a operação. Tente novamente em instantes.', reservations: [] }
   }
 }

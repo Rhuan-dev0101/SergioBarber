@@ -179,9 +179,10 @@ export default function AdminAvaliacoesPage() {
           .eq('id', reviewId)
 
         if (error) {
+          console.error(error)
           setActionFeedback({
             type: 'error',
-            message: `Erro ao alterar status: ${error.message}`
+            message: 'Não foi possível alterar o status da avaliação. Tente novamente.'
           })
         } else {
           setActionFeedback({
@@ -210,9 +211,10 @@ export default function AdminAvaliacoesPage() {
           .eq('id', reviewId)
 
         if (error) {
+          console.error(error)
           setActionFeedback({
             type: 'error',
-            message: `Erro ao apagar avaliação: ${error.message}`
+            message: 'Não foi possível excluir a avaliação. Tente novamente.'
           })
         } else {
           setActionFeedback({

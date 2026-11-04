@@ -55,6 +55,6 @@ export async function updateBusinessSettingsAction(
     return { success: true, message: 'Configurações atualizadas com sucesso!' }
   } catch (err) {
     console.error('Error inside updateBusinessSettingsAction:', err)
-    return { success: false, message: 'Erro interno no servidor.' }
+    return { success: false, message: 'Não foi possível concluir a operação. Tente novamente em instantes.' }
   }
 }

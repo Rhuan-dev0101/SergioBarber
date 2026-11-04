@@ -59,6 +59,15 @@ export async function proxy(request: NextRequest) {
     },
   })
 
+  const pathname = request.nextUrl.pathname
+
+  // So as areas protegidas precisam validar/renovar a sessao no servidor de
+  // auth. Paginas publicas e /api nao leem o usuario aqui, entao evitamos um
+  // round-trip ao Supabase em toda requisicao.
+  if (!pathname.startsWith('/cliente') && !pathname.startsWith('/painel')) {
+    return applyCors(response, origin)
+  }
+
   // Cria o client Supabase aqui para renovar o token de sessao.
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -83,8 +92,6 @@ export async function proxy(request: NextRequest) {
 
   // getUser() valida o token no servidor de auth (nao confia no cookie).
   const { data: { user } } = await supabase.auth.getUser()
-
-  const pathname = request.nextUrl.pathname
 
   // Area do cliente
   if (pathname.startsWith('/cliente')) {

@@ -41,10 +41,10 @@ function LoginForm() {
         }
       })
       if (error) {
-        setErrorMsg('Erro ao iniciar login com Google: ' + error.message)
+        console.error(error); setErrorMsg('Não foi possível continuar com Google. Tente novamente ou use e-mail e senha.')
       }
     } catch (err: any) {
-      setErrorMsg('Erro ao conectar ao Google: ' + err.message)
+      console.error(err); setErrorMsg('Não foi possível conectar ao Google. Verifique sua conexão e tente novamente.')
     }
   }
 
@@ -59,10 +59,10 @@ function LoginForm() {
         }
       })
       if (error) {
-        setErrorMsg('Erro ao iniciar login com Facebook: ' + error.message)
+        console.error(error); setErrorMsg('Não foi possível continuar com Facebook. Tente novamente ou use e-mail e senha.')
       }
     } catch (err: any) {
-      setErrorMsg('Erro ao conectar ao Facebook: ' + err.message)
+      console.error(err); setErrorMsg('Não foi possível conectar ao Facebook. Verifique sua conexão e tente novamente.')
     }
   }
 

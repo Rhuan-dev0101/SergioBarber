@@ -244,7 +244,7 @@ export async function createPackageAction(
     }
   } catch (err) {
     console.error('Error in createPackageAction:', err)
-    return { success: false, message: 'Erro interno no servidor ao criar pacote.' }
+    return { success: false, message: 'Não foi possível criar o pacote. Tente novamente em instantes.' }
   }
 }
 
@@ -310,7 +310,7 @@ export async function cancelPackageAction(packageId: string): Promise<PackageAct
     }
   } catch (err) {
     console.error('Error in cancelPackageAction:', err)
-    return { success: false, message: 'Erro interno no servidor ao cancelar pacote.' }
+    return { success: false, message: 'Não foi possível cancelar o pacote. Tente novamente em instantes.' }
   }
 }
 
@@ -351,7 +351,7 @@ export async function cancelPackageSessionAction(appointmentId: string): Promise
     return { success: true, message: 'Sessão desmarcada com sucesso. O horário está livre para outros clientes.' }
   } catch (err) {
     console.error('Error in cancelPackageSessionAction:', err)
-    return { success: false, message: 'Erro interno no servidor.' }
+    return { success: false, message: 'Não foi possível concluir a operação. Tente novamente em instantes.' }
   }
 }
 
@@ -447,7 +447,7 @@ export async function reschedulePackageSessionAction(
     }
   } catch (err) {
     console.error('Error in reschedulePackageSessionAction:', err)
-    return { success: false, message: 'Erro interno no servidor ao reagendar sessão.' }
+    return { success: false, message: 'Não foi possível reagendar a sessão. Tente novamente em instantes.' }
   }
 }
 
@@ -544,7 +544,7 @@ export async function markPackageAsPaidAction(packageId: string): Promise<Packag
     return { success: true, message: 'Pacote marcado como pago com sucesso.' }
   } catch (err) {
     console.error('Error in markPackageAsPaidAction:', err)
-    return { success: false, message: 'Erro interno no servidor.' }
+    return { success: false, message: 'Não foi possível concluir a operação. Tente novamente em instantes.' }
   }
 }
 
@@ -605,7 +605,7 @@ export async function deletePackageAction(packageId: string): Promise<PackageAct
     return { success: true, message: 'Pacote e todos os seus agendamentos foram excluídos permanentemente.' }
   } catch (err) {
     console.error('Error in deletePackageAction:', err)
-    return { success: false, message: 'Erro interno no servidor ao excluir pacote.' }
+    return { success: false, message: 'Não foi possível excluir o pacote. Tente novamente em instantes.' }
   }
 }
 
@@ -676,7 +676,7 @@ export async function updatePackagePriceAction(
     }
   } catch (err) {
     console.error('Error in updatePackagePriceAction:', err)
-    return { success: false, message: 'Erro interno no servidor ao atualizar preço do pacote.' }
+    return { success: false, message: 'Não foi possível atualizar o preço do pacote. Tente novamente em instantes.' }
   }
 }
 

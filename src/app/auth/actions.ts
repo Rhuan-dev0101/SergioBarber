@@ -62,7 +62,7 @@ export async function loginAction(prevState: any, formData: FormData): Promise<A
     return { success: true, message: 'Acesso autorizado.', redirectTo }
   } catch (err) {
     console.error('Login action error:', err)
-    return { success: false, message: 'Ocorreu um erro no servidor. Tente novamente mais tarde.' }
+    return { success: false, message: 'Não foi possível concluir a operação. Tente novamente em instantes.' }
   }
 }
 
@@ -186,6 +186,6 @@ export async function signUpAction(prevState: any, formData: FormData): Promise<
     }
   } catch (err) {
     console.error('Signup action error:', err)
-    return { success: false, message: 'Ocorreu um erro ao processar seu cadastro.' }
+    return { success: false, message: 'Não foi possível concluir seu cadastro. Tente novamente em instantes.' }
   }
 }
