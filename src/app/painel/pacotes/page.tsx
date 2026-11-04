@@ -1136,7 +1136,7 @@ export default function PainelPacotes() {
                     Cliente: <strong className="text-foreground">{editPackageTarget.customerName}</strong> • Barbeiro: <strong className="text-foreground">{editPackageTarget.barberName}</strong> • {editPackageTarget.serviceName}
                   </p>
                 </div>
-                <button
+                <button aria-label="Fechar"
                   onClick={() => { setEditPackageTarget(null); setRescheduleAppt(null) }}
                   className="text-muted-foreground hover:text-foreground p-1.5 hover:bg-secondary rounded-lg cursor-pointer transition-colors"
                 >
@@ -1343,7 +1343,7 @@ export default function PainelPacotes() {
                   </h3>
                   <p className="text-xs text-muted-foreground">Preencha os dados abaixo para gerar agendamentos recorrentes automaticamente</p>
                 </div>
-                <button
+                <button aria-label="Fechar"
                   onClick={() => setShowModal(false)}
                   className="text-muted-foreground hover:text-foreground p-1.5 hover:bg-secondary rounded-lg cursor-pointer transition-colors"
                 >

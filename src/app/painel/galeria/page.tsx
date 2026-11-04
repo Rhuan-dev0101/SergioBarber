@@ -546,7 +546,7 @@ export default function PainelGaleria() {
                 >
                   <Plus className="w-3.5 h-3.5" /> Adicionar Mais
                 </button>
-                <button
+                <button aria-label="Fechar"
                   type="button"
                   onClick={() => {
                     setBatchQueue([])
@@ -729,7 +729,7 @@ export default function PainelGaleria() {
           <form onSubmit={handleEditSubmit} className="p-6 bg-secondary/15 rounded-xl border border-border space-y-4 max-w-2xl shadow-2xl animate-in slide-in-from-top duration-200">
             <div className="flex justify-between items-center pb-2 border-b border-border/40">
               <h3 className="font-serif font-bold text-sm text-foreground uppercase tracking-wider">Editar Detalhes da Foto</h3>
-              <button 
+              <button aria-label="Fechar" 
                 type="button" 
                 onClick={() => {
                   setEditingImage(null)

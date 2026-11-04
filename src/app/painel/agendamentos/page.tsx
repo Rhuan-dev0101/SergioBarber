@@ -684,7 +684,7 @@ export default function PainelAgendamentos() {
               <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{errorMsg}</span>
             </div>
-            <button onClick={() => setErrorMsg('')} className="p-1 hover:bg-destructive/10 rounded-lg">
+            <button aria-label="Fechar aviso" onClick={() => setErrorMsg('')} className="p-1 hover:bg-destructive/10 rounded-lg">
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -696,7 +696,7 @@ export default function PainelAgendamentos() {
               <CheckCircle2 className="w-4 h-4 shrink-0" />
               <span>{successMsg}</span>
             </div>
-            <button onClick={() => setSuccessMsg('')} className="p-1 hover:bg-emerald-500/10 rounded-lg">
+            <button aria-label="Fechar aviso" onClick={() => setSuccessMsg('')} className="p-1 hover:bg-emerald-500/10 rounded-lg">
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -1003,7 +1003,7 @@ export default function PainelAgendamentos() {
                     className="w-full pl-8 pr-3 py-2 bg-background border border-border text-base text-foreground placeholder:text-muted-foreground/60 rounded-xl focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                   {searchQuery && (
-                    <button
+                    <button aria-label="Limpar busca"
                       type="button"
                       onClick={() => setSearchQuery('')}
                       className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
@@ -1288,7 +1288,7 @@ export default function PainelAgendamentos() {
                     {formatDate(selectedAgendaAppt.start_time)} às {formatTime(selectedAgendaAppt.start_time)}
                   </p>
                 </div>
-                <button
+                <button aria-label="Fechar"
                   onClick={() => setSelectedAgendaAppt(null)}
                   className="p-1 text-muted-foreground hover:text-foreground rounded-lg"
                 >

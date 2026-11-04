@@ -283,7 +283,7 @@ export default function PainelServicos() {
                   <Sparkles className="w-5 h-5 text-primary" />
                   {editingId ? 'Editar Serviço do Catálogo' : 'Novo Serviço no Catálogo'}
                 </h3>
-                <button
+                <button aria-label="Fechar"
                   onClick={() => setShowModal(false)}
                   className="text-muted-foreground hover:text-foreground p-1.5 hover:bg-secondary rounded-lg cursor-pointer transition-colors"
                 >

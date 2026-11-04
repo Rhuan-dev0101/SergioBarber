@@ -292,7 +292,7 @@ export default function PainelClientes() {
                 className="w-full pl-10 pr-9 py-2.5 bg-secondary/40 border border-border focus:border-primary rounded-xl text-base outline-none text-foreground transition-all"
               />
               {searchQuery && (
-                <button
+                <button aria-label="Limpar busca"
                   onClick={() => setSearchQuery('')}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
@@ -399,7 +399,7 @@ export default function PainelClientes() {
                     </div>
                   </div>
 
-                  <button 
+                  <button aria-label="Fechar" 
                     onClick={() => setSelectedCustomer(null)}
                     className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                   >
@@ -523,7 +523,7 @@ export default function PainelClientes() {
         {showConfirmDelete && (
           <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
             <div className="glass max-w-sm w-full rounded-lg border border-border shadow-2xl p-6 relative flex flex-col space-y-6">
-              <button
+              <button aria-label="Fechar"
                 onClick={() => setShowConfirmDelete(false)}
                 className="absolute top-4 right-4 text-muted-foreground hover:text-foreground cursor-pointer"
               >

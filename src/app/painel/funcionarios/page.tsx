@@ -535,7 +535,7 @@ export default function PainelFuncionarios() {
                     <h2 className="text-xl font-serif font-bold text-foreground">{selectedBarber.full_name}</h2>
                     <span className="text-[10px] uppercase font-bold text-primary">Configuração de Agenda</span>
                   </div>
-                  <button
+                  <button aria-label="Fechar"
                     onClick={() => setSelectedBarber(null)}
                     className="text-muted-foreground hover:text-foreground p-1 hover:bg-secondary rounded"
                   >
@@ -1141,7 +1141,7 @@ export default function PainelFuncionarios() {
         {showConfirmDelete && (
           <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
             <div className="glass max-w-sm w-full rounded-lg border border-border shadow-2xl p-6 relative flex flex-col space-y-6">
-              <button
+              <button aria-label="Fechar"
                 onClick={() => setShowConfirmDelete(false)}
                 className="absolute top-4 right-4 text-muted-foreground hover:text-foreground cursor-pointer"
               >

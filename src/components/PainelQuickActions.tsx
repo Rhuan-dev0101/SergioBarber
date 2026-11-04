@@ -381,7 +381,7 @@ export function PainelQuickActions() {
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{errorMsg}</span>
           </div>
-          <button onClick={() => setErrorMsg('')} className="text-muted-foreground hover:text-foreground">
+          <button aria-label="Fechar aviso" onClick={() => setErrorMsg('')} className="text-muted-foreground hover:text-foreground">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -393,7 +393,7 @@ export function PainelQuickActions() {
             <CheckCircle2 className="w-4 h-4 shrink-0" />
             <span>{successMsg}</span>
           </div>
-          <button onClick={() => setSuccessMsg('')} className="text-muted-foreground hover:text-foreground">
+          <button aria-label="Fechar aviso" onClick={() => setSuccessMsg('')} className="text-muted-foreground hover:text-foreground">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -489,7 +489,7 @@ export function PainelQuickActions() {
               <h3 className="font-serif font-bold text-lg text-foreground flex items-center gap-2">
                 <Scissors className="w-5 h-5 text-primary rotate-45" /> Novo Agendamento Presencial
               </h3>
-              <button
+              <button aria-label="Fechar"
                 onClick={() => setShowWalkInModal(false)}
                 className="text-muted-foreground hover:text-foreground p-1.5 hover:bg-secondary rounded-lg transition-colors cursor-pointer"
               >
@@ -659,7 +659,7 @@ export function PainelQuickActions() {
               <h3 className="font-serif font-bold text-lg text-foreground flex items-center gap-2">
                 <Zap className="w-5 h-5 text-amber-400" /> Atendimento Extra
               </h3>
-              <button
+              <button aria-label="Fechar"
                 onClick={() => setShowExtraModal(false)}
                 className="text-muted-foreground hover:text-foreground p-1.5 hover:bg-secondary rounded-lg transition-colors cursor-pointer"
               >
@@ -868,7 +868,7 @@ export function PainelQuickActions() {
                     </p>
                   </div>
                 </div>
-                <button
+                <button aria-label="Fechar"
                   onClick={() => setShowCheckoutModal(false)}
                   className="p-2 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-xl transition-all cursor-pointer"
                 >

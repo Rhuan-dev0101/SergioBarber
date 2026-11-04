@@ -337,7 +337,7 @@ export default function AdminAvaliacoesPage() {
               {actionFeedback.type === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
               <span className="font-medium">{actionFeedback.message}</span>
             </div>
-            <button onClick={() => setActionFeedback(null)} className="text-muted-foreground hover:text-foreground p-1">
+            <button aria-label="Fechar aviso" onClick={() => setActionFeedback(null)} className="text-muted-foreground hover:text-foreground p-1">
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -471,7 +471,7 @@ export default function AdminAvaliacoesPage() {
                 className="w-full pl-8 pr-3 py-2 rounded-xl bg-background border border-border text-base text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary"
               />
               {searchQuery && (
-                <button
+                <button aria-label="Limpar busca"
                   onClick={() => setSearchQuery('')}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
@@ -694,7 +694,7 @@ export default function AdminAvaliacoesPage() {
       {lightboxPhoto && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-200">
           <div className="relative max-w-3xl w-full max-h-[90vh] flex flex-col items-center justify-center space-y-3">
-            <button
+            <button aria-label="Fechar"
               onClick={() => setLightboxPhoto(null)}
               className="absolute -top-10 right-0 text-white/80 hover:text-white p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
             >
