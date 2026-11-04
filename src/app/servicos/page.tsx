@@ -27,7 +27,8 @@ const SEED_SERVICES = [
 ]
 
 export default async function Servicos() {
-  const settings = await getBusinessSettings()
+  // Inicia em paralelo com as demais consultas da pagina.
+  const settingsPromise = getBusinessSettings()
   let services = SEED_SERVICES.map(s => ({
     id: s.name,
     name: s.name,
@@ -145,6 +146,8 @@ export default async function Servicos() {
     if (items.length > 0) acc[cat] = items
     return acc
   }, {} as Record<string, any[]>)
+
+  const settings = await settingsPromise
 
   const waCorteMessage = "Olá! Tenho interesse no Pacote Mensal de Corte (4 cortes por R$150/mês). Gostaria de agendar meu horário fixo!"
   const waCorteUrl = formatWhatsAppLink(settings?.whatsapp, waCorteMessage)

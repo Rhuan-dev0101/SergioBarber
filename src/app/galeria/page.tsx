@@ -48,7 +48,8 @@ const SEED_GALLERY = [
 ]
 
 export default async function Galeria() {
-  const settings = await getBusinessSettings()
+  // Inicia em paralelo com as demais consultas da pagina.
+  const settingsPromise = getBusinessSettings()
   let images = SEED_GALLERY
 
   try {
@@ -70,6 +71,8 @@ export default async function Galeria() {
   } catch (error) {
     console.error('Error loading gallery details from db:', error)
   }
+
+  const settings = await settingsPromise
 
   return (
     <div className="flex flex-col min-h-screen">

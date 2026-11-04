@@ -30,7 +30,7 @@ const SEED_BARBERS = [
 ]
 
 export default async function Barbeiros() {
-  const settings = await getBusinessSettings()
+  const settingsPromise = getBusinessSettings()
   let barbers = SEED_BARBERS
   let approvedTestimonials: any[] = []
   const ratingsMap: Record<string, { avg: number; count: number }> = {}
@@ -38,12 +38,18 @@ export default async function Barbeiros() {
   try {
     const supabase = await createServerSupabaseClient()
 
-    // Fetch approved reviews for public testimonials & barber average rating calculation
-    const { data: dbReviews } = await supabase
-      .from('reviews')
-      .select('*')
-      .eq('status', 'approved')
-      .order('created_at', { ascending: false })
+    // Reviews aprovadas (depoimentos + media por barbeiro) e barbeiros ativos em paralelo.
+    const [{ data: dbReviews }, { data: dbBarbers }] = await Promise.all([
+      supabase
+        .from('reviews')
+        .select('id, barber_id, customer_id, rating, comment, created_at')
+        .eq('status', 'approved')
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('barbers')
+        .select('id, bio, avatar_url, is_active, about_quote, experience_years, specialties, photo_url, profiles(full_name, role)')
+        .eq('is_active', true),
+    ])
 
     if (dbReviews && dbReviews.length > 0) {
       const barberStats: Record<string, { total: number; count: number }> = {}
@@ -62,42 +68,26 @@ export default async function Barbeiros() {
         }
       })
 
-      const customerIds = Array.from(new Set(dbReviews.map(r => r.customer_id)))
-      const { data: customerProfiles } = await supabase
+      const profileIds = Array.from(new Set(dbReviews.flatMap(r => [r.customer_id, r.barber_id])))
+      const { data: profiles } = await supabase
         .from('profiles')
         .select('id, full_name')
-        .in('id', customerIds)
+        .in('id', profileIds)
 
-      const customerMap = (customerProfiles || []).reduce((acc: any, c: any) => {
-        acc[c.id] = c.full_name
-        return acc
-      }, {})
-
-      const barberIds = Array.from(new Set(dbReviews.map(r => r.barber_id)))
-      const { data: barberProfiles } = await supabase
-        .from('profiles')
-        .select('id, full_name')
-        .in('id', barberIds)
-
-      const barberMap = (barberProfiles || []).reduce((acc: any, b: any) => {
-        acc[b.id] = b.full_name
+      const nameMap = (profiles || []).reduce((acc: Record<string, string>, p: any) => {
+        acc[p.id] = p.full_name
         return acc
       }, {})
 
       approvedTestimonials = dbReviews.map(r => ({
         id: r.id,
-        customerName: customerMap[r.customer_id] || 'Cliente',
-        barberName: barberMap[r.barber_id] || 'Barbeiro',
+        customerName: nameMap[r.customer_id] || 'Cliente',
+        barberName: nameMap[r.barber_id] || 'Barbeiro',
         rating: r.rating,
         comment: r.comment || '',
         createdAt: r.created_at
       }))
     }
-
-    const { data: dbBarbers } = await supabase
-      .from('barbers')
-      .select('id, bio, avatar_url, is_active, about_quote, experience_years, specialties, photo_url, profiles(full_name, role)')
-      .eq('is_active', true)
 
     if (dbBarbers && dbBarbers.length > 0) {
       const activeBarbers = dbBarbers
@@ -119,6 +109,8 @@ export default async function Barbeiros() {
   } catch (error) {
     console.error('Error fetching barbers page details, using fallbacks:', error)
   }
+
+  const settings = await settingsPromise
 
   return (
     <div className="flex flex-col min-h-screen">
