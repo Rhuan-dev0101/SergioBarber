@@ -63,58 +63,56 @@ export default function ClientePanel() {
 
   const loadData = async () => {
     try {
-      // Fetch general settings
-      const { data: config } = await supabase
-        .from('business_settings')
-        .select('*')
-        .eq('key', 'general_settings')
-        .single()
-      if (config?.value) {
-        setSettings(config.value)
-      }
-
+      // getSession le o cookie localmente; com o usuario, as 4 consultas independentes saem em paralelo.
       const { data: { session } } = await supabase.auth.getSession()
       if (!session?.user) {
         router.push('/entrar')
         return
       }
 
-      // Fetch profile
-      const { data: prof } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .single()
-      
+      const [
+        { data: config },
+        { data: prof },
+        { data: appts },
+        { data: customerReviews }
+      ] = await Promise.all([
+        supabase
+          .from('business_settings')
+          .select('*')
+          .eq('key', 'general_settings')
+          .single(),
+        supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single(),
+        // Agendamentos com servicos e pagamentos (nomes dos barbeiros vem abaixo)
+        supabase
+          .from('appointments')
+          .select(`
+            id,
+            start_time,
+            end_time,
+            status,
+            notes,
+            package_subscription_id,
+            services (id, name, price, duration),
+            payments (id, total_amount, deposit_amount, status, method),
+            barber_id
+          `)
+          .eq('customer_id', session.user.id)
+          .order('start_time', { ascending: true }),
+        // Avaliacoes ja feitas, para saber quais agendamentos foram avaliados
+        supabase
+          .from('reviews')
+          .select('id, appointment_id, rating, status, comment')
+          .eq('customer_id', session.user.id)
+      ])
+
+      if (config?.value) {
+        setSettings(config.value)
+      }
       setProfile(prof)
-
-      // Fetch appointments joining services and barbers
-      // Note: Because relationship goes appointments -> barbers -> profiles,
-      // we query barbers(id, profiles(full_name)) or similar.
-      // To be resilient against DB structure changes, we can fetch profiles of barbers by subquery,
-      // or join profiles. If our schema references public.profiles(id) directly for barber_id,
-      // then we can join profiles! Let's write a join query:
-      const { data: appts } = await supabase
-        .from('appointments')
-        .select(`
-          id,
-          start_time,
-          end_time,
-          status,
-          notes,
-          package_subscription_id,
-          services (id, name, price, duration),
-          payments (id, total_amount, deposit_amount, status, method),
-          barber_id
-        `)
-        .eq('customer_id', session.user.id)
-        .order('start_time', { ascending: true })
-
-      // Fetch customer's existing reviews to check which appointments have been reviewed
-      const { data: customerReviews } = await supabase
-        .from('reviews')
-        .select('id, appointment_id, rating, status, comment')
-        .eq('customer_id', session.user.id)
 
       const reviewMap = (customerReviews || []).reduce((acc: any, r: any) => {
         acc[r.appointment_id] = r
