@@ -59,11 +59,47 @@ export default function PainelFinanceiro() {
 
       setUserRole(profile.role)
 
-      // Fetch active barbers for avatar filter (admin view)
-      const { data: dbBarbers } = await supabase
-        .from('barbers')
-        .select('id, is_active, photo_url, profiles (id, full_name)')
-        .eq('is_active', true)
+      // Barbeiros ativos (filtro de avatar), pagamentos e pacotes: independentes, em paralelo.
+      const [
+        { data: dbBarbers },
+        { data: payLogs },
+        { data: pkgSubs }
+      ] = await Promise.all([
+        supabase
+          .from('barbers')
+          .select('id, is_active, photo_url, profiles (id, full_name)')
+          .eq('is_active', true),
+        supabase
+          .from('payments')
+          .select(`
+            id,
+            appointment_id,
+            total_amount,
+            deposit_amount,
+            status,
+            method,
+            notes,
+            created_at,
+            appointments (
+              customer_id,
+              barber_id,
+              services (name)
+            )
+          `)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('package_subscriptions')
+          .select(`
+            id,
+            customer_id,
+            barber_id,
+            package_price,
+            payment_status,
+            created_at,
+            services (name)
+          `)
+          .order('created_at', { ascending: false })
+      ])
 
       if (dbBarbers) {
         const formatted: BarberInfo[] = dbBarbers
@@ -85,40 +121,6 @@ export default function PainelFinanceiro() {
           setFilterBarberId((prev) => (prev ? prev : session.user.id))
         }
       }
-
-      // Fetch payment entries joining appointments
-      const { data: payLogs } = await supabase
-        .from('payments')
-        .select(`
-          id,
-          appointment_id,
-          total_amount,
-          deposit_amount,
-          status,
-          method,
-          notes,
-          created_at,
-          appointments (
-            customer_id,
-            barber_id,
-            services (name)
-          )
-        `)
-        .order('created_at', { ascending: false })
-
-      // Fetch package subscriptions
-      const { data: pkgSubs } = await supabase
-        .from('package_subscriptions')
-        .select(`
-          id,
-          customer_id,
-          barber_id,
-          package_price,
-          payment_status,
-          created_at,
-          services (name)
-        `)
-        .order('created_at', { ascending: false })
 
       const paymentsList = payLogs || []
       const packagesList = pkgSubs || []
