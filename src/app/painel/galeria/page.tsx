@@ -15,7 +15,7 @@ import {
   deleteGalleryImageAction 
 } from './actions'
 import { GradientButton } from '@/components/ui/gradient-button'
-import { ImageCropModal } from '@/components/ImageCropModal'
+import dynamic from 'next/dynamic'
 import { getCroppedImg, PixelCrop } from '@/lib/cropUtils'
 
 interface BatchQueueItem {
@@ -33,6 +33,9 @@ interface BatchQueueItem {
   status: 'pending' | 'uploading' | 'done' | 'error'
   errorMessage?: string
 }
+
+// react-easy-crop so e' baixado quando o usuario abre o recorte.
+const ImageCropModal = dynamic(() => import('@/components/ImageCropModal').then(m => m.ImageCropModal), { ssr: false })
 
 export default function PainelGaleria() {
   const router = useRouter()
@@ -934,14 +937,14 @@ export default function PainelGaleria() {
       </main>
 
       {/* REUSABLE IMAGE CROP MODAL */}
-      <ImageCropModal
-        isOpen={!!croppingItem}
+      {croppingItem && <ImageCropModal
+        isOpen
         imageSrc={croppingItem?.imageSrc || ''}
         initialCrop={croppingItem?.crop}
         initialZoom={croppingItem?.zoom}
         onClose={() => setCroppingItem(null)}
         onConfirm={handleConfirmCrop}
-      />
+      />}
 
       {/* DELETE CONFIRM MODAL */}
       {deleteTarget && (

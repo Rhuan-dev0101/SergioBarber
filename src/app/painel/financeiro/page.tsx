@@ -8,7 +8,7 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
-import { ReceiptModal } from '@/components/ReceiptModal'
+import dynamic from 'next/dynamic'
 import { confirmPaymentAction } from './actions'
 
 type BarberInfo = {
@@ -17,6 +17,9 @@ type BarberInfo = {
   full_name: string
   photo_url?: string | null
 }
+
+// Modal de recibo (jspdf/html2canvas sob demanda): so carrega ao abrir.
+const ReceiptModal = dynamic(() => import('@/components/ReceiptModal').then(m => m.ReceiptModal), { ssr: false })
 
 export default function PainelFinanceiro() {
   const router = useRouter()

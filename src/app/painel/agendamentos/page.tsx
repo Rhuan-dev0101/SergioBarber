@@ -10,7 +10,7 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
-import { ReceiptModal } from '@/components/ReceiptModal'
+import dynamic from 'next/dynamic'
 import { WalkInModal } from '@/components/agendamentos/WalkInModal'
 import { ExtraAppointmentModal } from '@/components/agendamentos/ExtraAppointmentModal'
 import { CheckoutModal } from '@/components/agendamentos/CheckoutModal'
@@ -40,6 +40,9 @@ function getAppointmentPrice(appt: any): number {
   }
   return Number(appt.services?.price || 0)
 }
+
+// Modal de recibo (jspdf/html2canvas sob demanda): so carrega ao abrir.
+const ReceiptModal = dynamic(() => import('@/components/ReceiptModal').then(m => m.ReceiptModal), { ssr: false })
 
 export default function PainelAgendamentos() {
   const router = useRouter()
