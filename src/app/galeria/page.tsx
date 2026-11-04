@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import React from 'react'
 export const dynamic = 'force-dynamic'
 import Link from 'next/link'
@@ -96,7 +97,7 @@ export default async function Galeria() {
                 {/* Background Image & Dark Gradient Overlay */}
                 <div className="absolute inset-0 z-0 bg-secondary/30">
                   {item.url ? (
-                    <img 
+                    <Image fill sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw" 
                       src={item.url} 
                       alt={item.title} 
                       className="w-full h-full object-cover group-hover:scale-110 duration-700 ease-out filter grayscale group-hover:grayscale-0" 

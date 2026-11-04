@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import React, { useState, useEffect, useRef, useTransition, Suspense, useMemo, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -721,7 +722,7 @@ function AgendarWizardInner() {
                     </div>
                   ) : pixQrCode ? (
                     <div className="bg-white p-2 rounded-lg shrink-0 border border-border shadow-md">
-                      <img 
+                      <Image width={128} height={128} unoptimized 
                         src={pixQrCode} 
                         alt="QR Code Pix" 
                         className="w-32 h-32 block"
@@ -884,7 +885,7 @@ function AgendarWizardInner() {
                                   isSelected ? 'border-primary ring-2 ring-primary/30 scale-105' : 'border-border/80 group-hover:border-primary/50'
                                 }`}>
                                   {barber.avatar_url ? (
-                                    <img
+                                    <Image width={96} height={96} sizes="64px"
                                       src={barber.avatar_url}
                                       alt={barber.name}
                                       className="w-full h-full object-cover rounded-full transition-transform duration-300 group-hover:scale-105"

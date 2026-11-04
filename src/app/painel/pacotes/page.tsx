@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import React, { useEffect, useState, useTransition, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import {
@@ -763,7 +764,7 @@ export default function PainelPacotes() {
                         : 'border-border/80 group-hover:border-primary/50'
                     }`}>
                       {b.photo_url ? (
-                        <img
+                        <Image width={96} height={96} sizes="64px"
                           src={b.photo_url}
                           alt={b.full_name}
                           className="w-full h-full object-cover rounded-full"

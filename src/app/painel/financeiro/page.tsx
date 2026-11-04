@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import React, { useEffect, useState, useTransition, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { 
@@ -430,7 +431,7 @@ export default function PainelFinanceiro() {
                         : 'border-border/80 group-hover:border-primary/50'
                     }`}>
                       {b.photo_url ? (
-                        <img
+                        <Image width={96} height={96} sizes="64px"
                           src={b.photo_url}
                           alt={b.full_name}
                           className="w-full h-full object-cover rounded-full"
@@ -489,7 +490,7 @@ export default function PainelFinanceiro() {
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full border border-primary/40 overflow-hidden shrink-0 bg-secondary flex items-center justify-center text-primary font-bold">
                           {stat.photoUrl ? (
-                            <img src={stat.photoUrl} alt={stat.fullName} className="w-full h-full object-cover" />
+                            <Image width={96} height={96} sizes="64px" src={stat.photoUrl} alt={stat.fullName} className="w-full h-full object-cover" />
                           ) : (
                             stat.firstName.charAt(0)
                           )}

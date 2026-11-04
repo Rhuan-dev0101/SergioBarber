@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import React, { useState, useRef, useEffect, useMemo } from 'react'
 import { Scissors, User, ChevronDown, CheckCircle2, Clock, Wallet, DollarSign, CreditCard, QrCode, MoreHorizontal, Search, Phone } from 'lucide-react'
 
@@ -184,7 +185,7 @@ export function CustomBarberSelect({
         {selectedBarber ? (
           <div className="flex items-center gap-3 min-w-0">
             {selectedBarber.photo_url ? (
-              <img
+              <Image width={64} height={64} sizes="32px"
                 src={selectedBarber.photo_url}
                 alt={selectedBarber.full_name}
                 className="w-7 h-7 rounded-full object-cover border border-primary/40 shrink-0"
@@ -224,7 +225,7 @@ export function CustomBarberSelect({
               >
                 <div className="flex items-center gap-3 min-w-0">
                   {b.photo_url ? (
-                    <img
+                    <Image width={64} height={64} sizes="32px"
                       src={b.photo_url}
                       alt={b.full_name}
                       className="w-8 h-8 rounded-full object-cover border border-primary/40 shrink-0"

@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import React, { memo, useState } from 'react'
 import {
   User, Coffee, CheckCircle2, Scissors, Calendar, Plus, Repeat, Zap, DollarSign, ChevronRight, Clock, Lock, Unlock, Pencil, Check, X
@@ -189,7 +190,7 @@ export const AgendaTimeline = memo(function AgendaTimeline({
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full border border-primary/40 overflow-hidden shrink-0 shadow-md">
                     {barber.photo_url ? (
-                      <img src={barber.photo_url} alt={barber.full_name} className="w-full h-full object-cover rounded-full" />
+                      <Image width={96} height={96} sizes="64px" src={barber.photo_url} alt={barber.full_name} className="w-full h-full object-cover rounded-full" />
                     ) : (
                       <div className="w-full h-full bg-amber-500/10 flex items-center justify-center text-amber-400 font-bold text-base">
                         {barber.full_name.charAt(0).toUpperCase()}

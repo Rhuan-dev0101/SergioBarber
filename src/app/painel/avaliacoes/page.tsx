@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import React, { useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { 
@@ -575,7 +576,7 @@ export default function AdminAvaliacoesPage() {
                         onClick={() => setLightboxPhoto({ url: review.photo_url!, customer: review.customerName || 'Cliente' })}
                         className="relative rounded-xl overflow-hidden border border-border/80 bg-black/40 h-36 group/photo cursor-pointer flex items-center justify-center transition-all hover:border-primary"
                       >
-                        <img 
+                        <Image fill sizes="(max-width: 768px) 100vw, 33vw" 
                           src={review.photo_url} 
                           alt="Foto do corte" 
                           className="w-full h-full object-cover group-hover/photo:scale-105 transition-transform duration-300" 
@@ -702,7 +703,7 @@ export default function AdminAvaliacoesPage() {
             >
               <X className="w-6 h-6" />
             </button>
-            <img 
+            <Image width={1200} height={1200} sizes="90vw" 
               src={lightboxPhoto.url} 
               alt={`Foto do corte de ${lightboxPhoto.customer}`} 
               className="max-h-[80vh] w-auto max-w-full object-contain rounded-2xl border border-white/10 shadow-2xl"
