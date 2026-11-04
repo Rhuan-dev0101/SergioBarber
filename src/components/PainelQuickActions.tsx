@@ -483,7 +483,7 @@ export function PainelQuickActions() {
 
       {/* ================= MODAL 1: NOVO AGENDAMENTO (WALK-IN) ================= */}
       {showWalkInModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 animate-in fade-in duration-200">
           <div className="bg-card border border-border/80 rounded-2xl p-6 sm:p-8 w-full max-w-md space-y-5 relative shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center pb-3 border-b border-border/40">
               <h3 className="font-serif font-bold text-lg text-foreground flex items-center gap-2">
@@ -653,7 +653,7 @@ export function PainelQuickActions() {
 
       {/* ================= MODAL 2: ATENDIMENTO EXTRA ================= */}
       {showExtraModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 animate-in fade-in duration-200">
           <div className="bg-card border-2 border-dashed border-amber-500/40 rounded-2xl p-6 sm:p-8 w-full max-w-md space-y-5 relative shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center pb-3 border-b border-amber-500/20">
               <h3 className="font-serif font-bold text-lg text-foreground flex items-center gap-2">
@@ -853,7 +853,7 @@ export function PainelQuickActions() {
 
       {/* ================= MODAL 3: CHECKOUT DO DIA ================= */}
       {showCheckoutModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 animate-in fade-in duration-150">
           <div className="bg-card border border-border/80 rounded-2xl max-w-2xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
             <div className="p-4 sm:p-5 border-b border-border/60 bg-gradient-to-r from-[#1a150a] to-[#0e0e10] shrink-0">
               <div className="flex items-center justify-between">

@@ -945,7 +945,7 @@ export default function PainelGaleria() {
 
       {/* DELETE CONFIRM MODAL */}
       {deleteTarget && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
           <div className="glass max-w-sm w-full rounded-lg border border-border shadow-2xl p-6 relative flex flex-col space-y-6">
             <div className="space-y-2 text-left">
               <h3 className="text-lg font-serif font-bold text-rose-500 flex items-center gap-2">

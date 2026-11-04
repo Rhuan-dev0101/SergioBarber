@@ -275,7 +275,7 @@ export default function PainelServicos() {
 
         {/* Create/Edit Modal */}
         {showModal && (
-          <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
             <div className="glass max-w-lg w-full rounded-2xl border border-primary/40 shadow-2xl p-6 sm:p-8 relative space-y-6">
               
               <div className="flex justify-between items-center pb-3 border-b border-border/40">

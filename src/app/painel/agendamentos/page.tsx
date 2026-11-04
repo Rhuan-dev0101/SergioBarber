@@ -1274,7 +1274,7 @@ export default function PainelAgendamentos() {
 
         {/* Selected Appointment Detail Modal */}
         {selectedAgendaAppt && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 animate-in fade-in duration-150">
             <div className="bg-card border border-border/80 rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl relative">
               <div className="flex justify-between items-start pb-3 border-b border-border/40">
                 <div>
@@ -1403,7 +1403,7 @@ export default function PainelAgendamentos() {
 
         {/* Delete Confirmation Modal (Admin only) */}
         {deleteTarget && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 animate-in fade-in duration-150">
             <div className="bg-card border border-destructive/40 rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl">
               <div className="flex items-center gap-3 text-destructive">
                 <div className="p-3 bg-destructive/10 rounded-full">
@@ -1451,7 +1451,7 @@ export default function PainelAgendamentos() {
 
         {/* No-Show Confirmation Modal */}
         {noShowTarget && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 animate-in fade-in duration-150">
             <div className="bg-card border border-border/80 rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl">
               <div className="flex items-center gap-3 text-amber-400">
                 <div className="p-3 bg-amber-500/10 rounded-full">

@@ -521,7 +521,7 @@ export default function PainelClientes() {
 
         {/* CONFIRM DELETE MODAL */}
         {showConfirmDelete && (
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
             <div className="glass max-w-sm w-full rounded-lg border border-border shadow-2xl p-6 relative flex flex-col space-y-6">
               <button aria-label="Fechar"
                 onClick={() => setShowConfirmDelete(false)}

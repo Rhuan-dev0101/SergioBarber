@@ -973,7 +973,7 @@ export default function PainelPacotes() {
 
         {/* ── Cancel Single Session Confirmation Modal ────────── */}
         {cancelSessionTarget && (
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
             <div className="glass p-6 sm:p-8 rounded-xl border border-red-800/50 max-w-md w-full shadow-2xl space-y-5 relative">
               <div className="flex items-start gap-3">
                 <div className="w-10 h-10 rounded-full bg-red-900/30 border border-red-800/40 flex items-center justify-center shrink-0">
@@ -1013,7 +1013,7 @@ export default function PainelPacotes() {
 
         {/* ── Cancel Confirmation Modal ──────────────────────── */}
         {cancelTarget && (
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
             <div className="glass p-6 sm:p-8 rounded-xl border border-red-800/50 max-w-md w-full shadow-2xl space-y-5 relative">
               <div className="flex items-start gap-3">
                 <div className="w-10 h-10 rounded-full bg-red-900/30 border border-red-800/40 flex items-center justify-center shrink-0">
@@ -1077,7 +1077,7 @@ export default function PainelPacotes() {
 
         {/* ── Delete Confirmation Modal (permanent delete) ──────── */}
         {deleteTarget && (
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
             <div className="glass p-6 sm:p-8 rounded-xl border border-red-800/50 max-w-md w-full shadow-2xl space-y-5 relative">
               <div className="flex items-start gap-3">
                 <div className="w-10 h-10 rounded-full bg-red-900/30 border border-red-800/40 flex items-center justify-center shrink-0">
@@ -1124,7 +1124,7 @@ export default function PainelPacotes() {
 
         {/* ── Edit Package Modal ──────────────────────── */}
         {editPackageTarget && (
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
             <div className="glass p-6 sm:p-8 rounded-2xl border border-primary/40 max-w-2xl w-full shadow-2xl space-y-6 relative max-h-[90vh] overflow-y-auto">
               {/* Header */}
               <div className="flex justify-between items-center pb-4 border-b border-border/40">
@@ -1332,7 +1332,7 @@ export default function PainelPacotes() {
 
         {/* ── Create Package Modal (FORM DE PREENCHIMENTO DO PACOTE) ───────────────────────────── */}
         {showModal && (
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
             <div className="glass p-6 sm:p-8 rounded-2xl border border-primary/40 max-w-xl w-full shadow-2xl space-y-6 relative max-h-[90vh] overflow-y-auto">
               
               {/* Header */}
