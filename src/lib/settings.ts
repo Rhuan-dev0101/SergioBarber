@@ -1,5 +1,3 @@
-import { createServerSupabaseClient } from '@/lib/supabase'
-
 export interface BusinessSettings {
   whatsapp?: string
   address?: string
@@ -27,6 +25,9 @@ export function getGoogleMapsEmbedUrl(zoom: number = 17): string {
  */
 export async function getBusinessSettings(): Promise<BusinessSettings | null> {
   try {
+    // Import dinamico: componentes client importam os formatadores deste modulo
+    // e nao devem arrastar o supabase-js para o bundle inicial.
+    const { createServerSupabaseClient } = await import('@/lib/supabase')
     const supabase = await createServerSupabaseClient()
     const { data, error } = await supabase
       .from('business_settings')

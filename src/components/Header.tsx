@@ -6,7 +6,6 @@ import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { Scissors, Sun, Moon, Menu, X, User } from 'lucide-react'
 import { useTheme } from '@/components/ThemeProvider'
-import { createClient } from '@/lib/supabase'
 import { GradientButton } from '@/components/ui/gradient-button'
 
 export function Header() {
@@ -17,10 +16,25 @@ export function Header() {
   const [loading, setLoading] = useState(true)
   const pathname = usePathname()
   const router = useRouter()
-  const supabase = createClient()
+  // supabase-js so e' carregado quando ha cookie de sessao (visitante anonimo nao paga os ~200 KB).
+  const [supabase, setSupabase] = useState<ReturnType<typeof import('@/lib/supabase')['createClient']> | null>(null)
 
   useEffect(() => {
+    if (!/(?:^|;\s*)sb-[^=]*-auth-token/.test(document.cookie)) {
+      setLoading(false)
+      return
+    }
+    let cancelled = false
+    import('@/lib/supabase').then(m => {
+      if (!cancelled) setSupabase(m.createClient())
+    })
+    return () => { cancelled = true }
+  }, [])
+
+  useEffect(() => {
+    if (!supabase) return
     async function checkUser() {
+      if (!supabase) return
       const { data: { session } } = await supabase.auth.getSession()
       if (session?.user) {
         setUser(session.user)
@@ -65,7 +79,8 @@ export function Header() {
   }, [supabase])
 
   const handleLogout = async () => {
-    await supabase.auth.signOut()
+    const { createClient } = await import('@/lib/supabase')
+    await createClient().auth.signOut()
     router.push('/')
   }
 

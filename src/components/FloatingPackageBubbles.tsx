@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { Scissors, Sparkles } from 'lucide-react'
-import { createClient } from '@/lib/supabase'
 import { formatWhatsAppLink } from '@/lib/settings'
 
 export function FloatingPackageBubbles() {
@@ -13,15 +12,11 @@ export function FloatingPackageBubbles() {
   useEffect(() => {
     async function fetchSettings() {
       try {
-        const supabase = createClient()
-        const { data } = await supabase
-          .from('business_settings')
-          .select('value')
-          .eq('key', 'general_settings')
-          .single()
-
-        if (data?.value && (data.value as any).whatsapp) {
-          setWhatsapp((data.value as any).whatsapp)
+        const res = await fetch('/api/public-settings')
+        if (!res.ok) return
+        const data = await res.json()
+        if (data?.whatsapp) {
+          setWhatsapp(data.whatsapp)
         }
       } catch (err) {
         console.error('Error fetching settings for floating bubbles:', err)

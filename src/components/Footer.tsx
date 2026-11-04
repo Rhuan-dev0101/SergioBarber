@@ -4,10 +4,12 @@ import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Scissors, Phone, MapPin, Mail, Clock, Play } from 'lucide-react'
-import { createClient } from '@/lib/supabase'
 import { formatPhoneNumber, formatWhatsAppLink } from '@/lib/settings'
-import { TutorialModal } from '@/components/TutorialModal'
+import dynamic from 'next/dynamic'
 import { OPEN_COOKIE_PREFERENCES_EVENT } from '@/components/CookieBanner'
+
+// Modal (e supabase-js) so carrega quando o usuario abre o tutorial.
+const TutorialModal = dynamic(() => import('@/components/TutorialModal').then(m => m.TutorialModal), { ssr: false })
 
 interface BusinessSettings {
   whatsapp?: string
@@ -29,15 +31,11 @@ export function Footer({ initialSettings }: { initialSettings?: BusinessSettings
 
     async function loadSettings() {
       try {
-        const supabase = createClient()
-        const { data } = await supabase
-          .from('business_settings')
-          .select('value')
-          .eq('key', 'general_settings')
-          .single()
-        
-        if (data?.value) {
-          setSettings(data.value as BusinessSettings)
+        const res = await fetch('/api/public-settings')
+        if (!res.ok) return
+        const data = await res.json()
+        if (data) {
+          setSettings(data as BusinessSettings)
         }
       } catch (err) {
         console.error('Error fetching settings in Footer component:', err)
@@ -173,13 +171,13 @@ export function Footer({ initialSettings }: { initialSettings?: BusinessSettings
         </div>
       </div>
 
-      <TutorialModal
-        isOpen={showTutorial}
+      {showTutorial && <TutorialModal
+        isOpen
         onClose={() => setShowTutorial(false)}
         initialDesktopUrl={settings?.tutorial_video_desktop_url}
         initialMobileUrl={settings?.tutorial_video_mobile_url}
         initialWhatsapp={rawWhatsapp}
-      />
+      />}
     </footer>
   )
 }
