@@ -12,8 +12,7 @@ import {
   bulkCheckoutAction 
 } from '@/app/painel/agendamentos/actions'
 import { CustomServiceSelect, CustomBarberSelect, CustomGenericSelect, CustomCustomerSelect } from '@/components/CustomSelect'
-import { apptShortCode, getLocalDateStr } from '@/lib/utils'
-
+import { getLocalDateStr } from '@/lib/utils'
 export function PainelQuickActions() {
   const router = useRouter()
   const supabase = createClient()

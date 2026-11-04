@@ -1,12 +1,8 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { 
-  X, Download, Share2, Loader2, CheckCircle2, 
-  Scissors, Phone, MapPin, Calendar, Clock, CreditCard, DollarSign, AlertCircle, Sparkles
-} from 'lucide-react'
+import { X, Download, Share2, Loader2, CheckCircle2, Scissors, Phone, MapPin, Clock, AlertCircle } from 'lucide-react'
 import { ReceiptData, getReceiptDataAction } from '@/lib/receipt-actions'
-
 interface ReceiptModalProps {
   paymentId?: string
   appointmentId?: string
@@ -53,7 +49,7 @@ export function ReceiptModal({ paymentId, appointmentId, onClose }: ReceiptModal
         } else {
           setCanShare(false)
         }
-      } catch (e) {
+      } catch {
         setCanShare(false)
       }
     } else {

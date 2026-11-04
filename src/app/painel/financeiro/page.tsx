@@ -3,10 +3,7 @@
 import Image from 'next/image'
 import React, { useEffect, useState, useTransition, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { 
-  Scissors, DollarSign, Calendar, Clock, Check, X, 
-  AlertCircle, CheckCircle2, Loader2, ArrowUpRight, TrendingUp, Search, Crown, FileText, Users, BarChart3
-} from 'lucide-react'
+import { Scissors, DollarSign, Clock, AlertCircle, CheckCircle2, Loader2, TrendingUp, Search, Crown, FileText, Users, BarChart3 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
 import { ReceiptModal } from '@/components/ReceiptModal'

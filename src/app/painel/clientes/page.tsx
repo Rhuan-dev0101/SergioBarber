@@ -2,21 +2,12 @@
 
 import React, { useEffect, useState, useTransition, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { 
-  Scissors, Search, User, Mail, Phone, Edit, Calendar, Clock, 
-  AlertCircle, CheckCircle2, Loader2, Save, X, ArrowLeft, ChevronRight, Trash2,
-  Copy, Check
-} from 'lucide-react'
-import { apptShortCode } from '@/lib/utils'
+import { Scissors, Search, User, Mail, Phone, Calendar, Clock, AlertCircle, CheckCircle2, Loader2, Save, X, ChevronRight, Trash2 } from 'lucide-react'
+
 import { createClient } from '@/lib/supabase'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
 import { RegisterCustomerModal } from '@/components/clientes/RegisterCustomerModal'
-import { 
-  updateCustomerPrivateNotesAction, 
-  deleteCustomerAction,
-  registerCustomerManuallyAction
-} from './actions'
-
+import { updateCustomerPrivateNotesAction, deleteCustomerAction } from './actions'
 function getAppointmentPrice(appt: any): number {
   if (!appt) return 0
   const payment = Array.isArray(appt.payments) ? appt.payments[0] : appt.payments

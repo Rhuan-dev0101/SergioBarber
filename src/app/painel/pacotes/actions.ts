@@ -3,8 +3,7 @@
 import { createServerSupabaseClient } from '@/lib/supabase'
 import { getAvailableSlots } from '@/lib/booking'
 import { getSessionDatesForDuration } from '@/lib/package-utils'
-import { addMinutes, format } from 'date-fns'
-
+import { addMinutes } from 'date-fns'
 export type PackageActionResponse = {
   success: boolean
   message: string

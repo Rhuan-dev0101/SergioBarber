@@ -3,22 +3,11 @@
 import React, { useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { 
-  Scissors, User, Shield, Clock, Calendar, Check, AlertCircle, 
-  CheckCircle2, Loader2, Save, Plus, X, Lock, Play, Pause, Trash2, Camera 
-} from 'lucide-react'
+import { User, AlertCircle, CheckCircle2, Loader2, Save, Plus, X, Play, Pause, Trash2, Camera } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
 import { AddBarberModal } from '@/components/funcionarios/AddBarberModal'
-import { 
-  updateBarberStatusAction, 
-  updateBarberWorkingHoursAction, 
-  addBlockedTimeAction, 
-  addDayOffAction,
-  createBarberAction,
-  deleteBarberAction,
-  updateUserEmailAction
-} from './actions'
+import { updateBarberStatusAction, updateBarberWorkingHoursAction, addBlockedTimeAction, addDayOffAction, deleteBarberAction, updateUserEmailAction } from './actions'
 import { updateBarberProfileAction } from '../perfil-barbeiro/actions'
 import { GradientButton } from '@/components/ui/gradient-button'
 
@@ -1003,7 +992,7 @@ export default function PainelFuncionarios() {
                       </div>
 
                       <div className="space-y-1">
-                        <label htmlFor="editAboutQuote" className="block text-[10px] font-bold text-foreground uppercase tracking-wider">Frase "Sobre o Mestre"</label>
+                        <label htmlFor="editAboutQuote" className="block text-[10px] font-bold text-foreground uppercase tracking-wider">Frase &quot;Sobre o Mestre&quot;</label>
                         <textarea
                           id="editAboutQuote"
                           rows={3}

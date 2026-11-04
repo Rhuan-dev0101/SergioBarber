@@ -64,7 +64,7 @@ export function DashboardSidebar() {
       if (raw) {
         savedState = JSON.parse(raw)
       }
-    } catch (e) {
+    } catch {
       // ignore JSON parse error
     }
 
@@ -89,7 +89,7 @@ export function DashboardSidebar() {
       const next = { ...prev, [groupId]: !prev[groupId] }
       try {
         localStorage.setItem('osanchez_sidebar_groups', JSON.stringify(next))
-      } catch (e) {}
+      } catch {}
       return next
     })
   }

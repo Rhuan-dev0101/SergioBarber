@@ -2,8 +2,7 @@
 
 import Image from 'next/image'
 import React, { useState, useRef, useEffect, useMemo } from 'react'
-import { Scissors, User, ChevronDown, CheckCircle2, Clock, Wallet, DollarSign, CreditCard, QrCode, MoreHorizontal, Search, Phone } from 'lucide-react'
-
+import { Scissors, User, ChevronDown, CheckCircle2, Clock, Search, Phone } from 'lucide-react'
 // ==================== 1. CUSTOM SERVICE SELECT ====================
 export interface ServiceOption {
   id: string
@@ -441,7 +440,7 @@ export function CustomCustomerSelect({
         <div className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-card border border-border/90 rounded-2xl p-2 shadow-2xl space-y-1 max-h-60 overflow-y-auto animate-in fade-in zoom-in-95 duration-150 backdrop-blur-md">
           {filtered.length === 0 ? (
             <div className="p-3 text-xs text-muted-foreground text-center italic">
-              Nenhum cliente cadastrado encontrado com "{searchQuery}".
+              Nenhum cliente cadastrado encontrado com &quot;{searchQuery}&quot;.
             </div>
           ) : (
             filtered.map((c) => {

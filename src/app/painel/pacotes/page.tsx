@@ -3,26 +3,12 @@
 import Image from 'next/image'
 import React, { useEffect, useState, useTransition, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import {
-  Package, Plus, Loader2, Search, X, Check, AlertCircle,
-  CheckCircle2, Calendar, Clock, User, Scissors, Trash2,
-  AlertTriangle, ChevronDown, Crown, Sparkles, Edit, DollarSign, Save, Users
-} from 'lucide-react'
+import { Package, Plus, Loader2, X, Check, AlertCircle, CheckCircle2, Calendar, Clock, Scissors, Trash2, AlertTriangle, Crown, Edit, DollarSign, Save, Users } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
 import { CreatePackageForm } from '@/components/CreatePackageForm'
-import { getSessionDatesForDuration, getExpandedSessionDates } from '@/lib/package-utils'
-import {
-  createPackageAction,
-  cancelPackageAction,
-  validatePackageSlotsAction,
-  markPackageAsPaidAction,
-  deletePackageAction,
-  cancelPackageSessionAction,
-  reschedulePackageSessionAction,
-  updatePackagePriceAction
-} from './actions'
-
+import { getExpandedSessionDates } from '@/lib/package-utils'
+import { createPackageAction, cancelPackageAction, validatePackageSlotsAction, markPackageAsPaidAction, deletePackageAction, cancelPackageSessionAction, reschedulePackageSessionAction, updatePackagePriceAction } from './actions'
 const WEEKDAY_NAMES = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado']
 const WEEKDAY_SHORT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 

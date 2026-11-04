@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, Suspense } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Scissors, AlertCircle, Sun, Moon, Check, MessageCircle, Loader2, Crown, CreditCard } from 'lucide-react'
+import { AlertCircle, Sun, Moon, Check, Loader2, Crown, CreditCard } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { useTheme } from '@/components/ThemeProvider'
 import { formatWhatsAppLink } from '@/lib/settings'

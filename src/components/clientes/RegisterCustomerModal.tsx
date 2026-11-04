@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { User, Mail, Phone, X, CheckCircle2, Loader2, Copy, Check } from 'lucide-react'
+import { User, X, CheckCircle2, Loader2 } from 'lucide-react'
 import { registerCustomerManuallyAction } from '@/app/painel/clientes/actions'
 
 interface RegisterCustomerModalProps {

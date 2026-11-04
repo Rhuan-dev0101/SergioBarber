@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { User, Mail, X, Loader2, Scissors } from 'lucide-react'
+import { X, Loader2, Scissors } from 'lucide-react'
 import { createBarberAction } from '@/app/painel/funcionarios/actions'
 
 interface AddBarberModalProps {

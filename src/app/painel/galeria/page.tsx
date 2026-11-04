@@ -534,7 +534,7 @@ export default function PainelGaleria() {
                   <Layers className="w-5 h-5 text-primary" />
                   <h3 className="font-serif font-bold text-base text-foreground">Fila de Envio Em Lote ({batchQueue.length} {batchQueue.length === 1 ? 'foto' : 'fotos'})</h3>
                 </div>
-                <p className="text-xs text-muted-foreground mt-0.5">Preencha o título e detalhes individuais para cada foto e clique em "Ajustar Corte" para reposicionar a imagem no quadrado.</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Preencha o título e detalhes individuais para cada foto e clique em &quot;Ajustar Corte&quot; para reposicionar a imagem no quadrado.</p>
               </div>
 
               <div className="flex items-center gap-2">
@@ -926,7 +926,7 @@ export default function PainelGaleria() {
           ) : (
             <div className="col-span-full p-12 text-center text-muted-foreground italic bg-secondary/10 border border-border rounded-lg shadow flex flex-col items-center justify-center gap-2">
               <ImageIcon className="w-12 h-12 text-primary/10" />
-              <p className="text-xs">A galeria de fotos está vazia. Clique em "Adicionar Fotos (Lote)" para cadastrar imagens.</p>
+              <p className="text-xs">A galeria de fotos está vazia. Clique em &quot;Adicionar Fotos (Lote)&quot; para cadastrar imagens.</p>
             </div>
           )}
         </div>

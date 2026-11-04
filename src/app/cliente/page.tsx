@@ -3,10 +3,7 @@
 import React, { useEffect, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { 
-  Scissors, Calendar, Clock, User, Phone, Edit, Trash2, 
-  AlertCircle, CheckCircle, HelpCircle, Loader2, ArrowRight, Wallet, Star 
-} from 'lucide-react'
+import { Scissors, Calendar, Clock, User, Phone, Edit, Trash2, AlertCircle, CheckCircle, Loader2, ArrowRight, Wallet, Star } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 
 function getAppointmentPrice(appt: any): number {

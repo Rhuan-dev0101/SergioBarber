@@ -3,14 +3,9 @@
 import Image from 'next/image'
 import React, { useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { 
-  Star, CheckCircle2, XCircle, Clock, Filter, 
-  Search, User, Calendar, Loader2, AlertCircle, Sparkles, MessageSquare, RefreshCw,
-  Trash2, Eye, X, Image as ImageIcon, Award, BarChart3
-} from 'lucide-react'
+import { Star, CheckCircle2, XCircle, Clock, Search, User, Calendar, Loader2, AlertCircle, MessageSquare, RefreshCw, Trash2, Eye, X, Image as ImageIcon, Award, BarChart3 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
-
 type ReviewStatus = 'pending' | 'approved' | 'rejected'
 
 interface ReviewItem {
@@ -192,7 +187,7 @@ export default function AdminAvaliacoesPage() {
           })
           setReviews(prev => prev.map(r => r.id === reviewId ? { ...r, status: newStatus } : r))
         }
-      } catch (err: any) {
+      } catch {
         setActionFeedback({
           type: 'error',
           message: 'Falha ao atualizar o status da avaliação.'
@@ -224,7 +219,7 @@ export default function AdminAvaliacoesPage() {
           })
           setReviews(prev => prev.filter(r => r.id !== reviewId))
         }
-      } catch (err: any) {
+      } catch {
         setActionFeedback({
           type: 'error',
           message: 'Falha ao apagar avaliação.'
@@ -557,7 +552,7 @@ export default function AdminAvaliacoesPage() {
                     <MessageSquare className="w-4 h-4 text-primary/60 shrink-0 mt-0.5" />
                     {review.comment ? (
                       <p className="text-xs text-foreground italic leading-relaxed">
-                        "{review.comment}"
+                        &quot;{review.comment}&quot;
                       </p>
                     ) : (
                       <p className="text-xs text-muted-foreground/60 italic">

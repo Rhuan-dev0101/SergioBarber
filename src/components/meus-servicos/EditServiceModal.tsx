@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Scissors, Edit2, X, Loader2 } from 'lucide-react'
+import { Edit2, X, Loader2 } from 'lucide-react'
 import { updateBarberServiceAction } from '@/app/painel/meus-servicos/actions'
 
 interface EditServiceModalProps {

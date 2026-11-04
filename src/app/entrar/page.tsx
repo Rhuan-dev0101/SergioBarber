@@ -4,7 +4,7 @@ import React, { useState, useTransition, useEffect, Suspense, useRef } from 'rea
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Scissors, Mail, Lock, ArrowRight, AlertCircle, Loader2, Eye, EyeOff, Sun, Moon } from 'lucide-react'
+import { ArrowRight, AlertCircle, Loader2, Eye, EyeOff, Sun, Moon } from 'lucide-react'
 import { loginAction } from '@/app/auth/actions'
 import { createClient } from '@/lib/supabase'
 import { useTheme } from '@/components/ThemeProvider'

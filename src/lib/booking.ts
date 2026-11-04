@@ -1,5 +1,4 @@
-import { createServerSupabaseClient, createAdminSupabaseClient } from './supabase'
-
+import { createAdminSupabaseClient } from './supabase'
 function timeToMinutes(timeStr: string): number {
   const [h, m] = timeStr.split(':').map(Number)
   return h * 60 + m

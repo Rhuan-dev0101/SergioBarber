@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Scissors, Plus, X, Loader2 } from 'lucide-react'
+import { Scissors, X, Loader2 } from 'lucide-react'
 import { CustomServiceSelect } from '@/components/CustomSelect'
 import { addBarberServiceAction, createAndAddBarberServiceAction } from '@/app/painel/meus-servicos/actions'
 

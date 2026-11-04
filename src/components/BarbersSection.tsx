@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Check, ChevronDown, ChevronUp, User, Clock, Star, Calendar } from 'lucide-react'
+import { Check, ChevronDown, ChevronUp, Star } from 'lucide-react'
 import { GradientButton } from '@/components/ui/gradient-button'
 
 interface Barber {
@@ -154,7 +154,7 @@ export function BarbersSection({ initialBarbers, ratingsMap }: BarbersSectionPro
                 <div className="space-y-2">
                   <span className="text-[10px] uppercase tracking-wider font-semibold text-primary">Sobre o Mestre</span>
                   <p className="font-serif italic text-muted-foreground text-xs leading-relaxed">
-                    "{barber.about_quote || rich.history}"
+                    &quot;{barber.about_quote || rich.history}&quot;
                   </p>
                 </div>
 

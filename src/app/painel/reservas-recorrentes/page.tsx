@@ -2,20 +2,11 @@
 
 import React, { useEffect, useState, useTransition, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import {
-  Repeat, Plus, Loader2, Search, X, Check, AlertCircle,
-  CheckCircle2, Calendar, Clock, User, Trash2,
-  AlertTriangle, CalendarClock, Scissors
-} from 'lucide-react'
+import { Repeat, Plus, Loader2, Search, X, AlertCircle, CheckCircle2, Calendar, Clock, User, Trash2, AlertTriangle, CalendarClock, Scissors } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
 import { CreateRecurringModal } from '@/components/reservas-recorrentes/CreateRecurringModal'
-import {
-  createRecurringReservationAction,
-  cancelRecurringReservationAction,
-  getRecurringReservationsAction
-} from './actions'
-
+import { cancelRecurringReservationAction, getRecurringReservationsAction } from './actions'
 const DAY_NAMES = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
 const DAY_NAMES_SHORT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 

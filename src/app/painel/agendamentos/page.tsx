@@ -3,12 +3,7 @@
 import Image from 'next/image'
 import React, { useEffect, useState, useTransition, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { 
-  Scissors, Calendar, Clock, Search, Edit2, Trash2, CheckCircle2, 
-  AlertCircle, Plus, Loader2, Save, X, User, Sparkles, Check, AlertTriangle, UserX,
-  Filter, RotateCcw, CheckCircle, ChevronRight, Wallet, DollarSign, RefreshCw, FileText,
-  Repeat, ChevronLeft, CalendarDays, LayoutList, Coffee, Crown, Users, Zap
-} from 'lucide-react'
+import { Scissors, Calendar, Clock, Search, Edit2, Trash2, CheckCircle2, AlertCircle, Plus, Loader2, Save, X, User, Sparkles, AlertTriangle, UserX, RotateCcw, ChevronRight, RefreshCw, FileText, Repeat, ChevronLeft, CalendarDays, LayoutList, Users, Zap } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
 import { ReceiptModal } from '@/components/ReceiptModal'

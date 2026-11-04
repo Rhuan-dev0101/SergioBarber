@@ -4,11 +4,7 @@ import Image from 'next/image'
 import React, { useState, useEffect, useRef, useTransition, Suspense, useMemo, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { 
-  Scissors, Calendar, Clock, ChevronRight, ChevronLeft, 
-  Check, AlertCircle, ArrowLeft, Loader2, DollarSign, 
-  MessageSquare, User, CheckCircle2, QrCode, Banknote, CreditCard, Star, Award, Sparkles, Sunrise, Sun, Moon, ShieldCheck 
-} from 'lucide-react'
+import { Scissors, Calendar, Clock, ChevronRight, ChevronLeft, Check, AlertCircle, ArrowLeft, Loader2, DollarSign, MessageSquare, CheckCircle2, QrCode, Banknote, CreditCard, Star, Award, Sparkles, Sunrise, Sun, Moon, ShieldCheck } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { createAppointmentAction, getBarberMonthAvailabilityAction, checkNoShowFeeAction } from './actions'
 import type { NoShowFeeInfo } from '@/lib/no-show'

@@ -2,7 +2,7 @@
 
 import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase'
 import { getAvailableSlots, isRecurringReservationActiveOnDate } from '@/lib/booking'
-import { addMinutes, format } from 'date-fns'
+import { addMinutes } from 'date-fns'
 import { getOutstandingNoShowFee, type NoShowFeeInfo } from '@/lib/no-show'
 
 export type BookingResponse = {

@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Repeat, X, Loader2, Calendar } from 'lucide-react'
+import { Repeat, X, Loader2 } from 'lucide-react'
 import { CustomCustomerSelect, CustomBarberSelect } from '@/components/CustomSelect'
 import { createRecurringReservationAction } from '@/app/painel/reservas-recorrentes/actions'
 

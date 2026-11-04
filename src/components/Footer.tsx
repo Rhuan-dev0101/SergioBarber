@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Scissors, Phone, MapPin, Mail, Clock, Play } from 'lucide-react'
+import { Phone, MapPin, Mail, Play } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { formatPhoneNumber, formatWhatsAppLink } from '@/lib/settings'
 import { TutorialModal } from '@/components/TutorialModal'

@@ -2,10 +2,7 @@
 
 import React, { useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import {
-  Scissors, Plus, Edit2, Trash2, Clock, DollarSign, AlertCircle,
-  CheckCircle2, Loader2, Save, X, Sparkles, Check, AlertTriangle
-} from 'lucide-react'
+import { Scissors, Plus, Edit2, Trash2, Clock, AlertCircle, CheckCircle2, Loader2, Sparkles, AlertTriangle } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
 import { AddServiceModal } from '@/components/meus-servicos/AddServiceModal'

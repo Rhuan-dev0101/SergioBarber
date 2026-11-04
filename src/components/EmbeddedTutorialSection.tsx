@@ -1,8 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Smartphone, Play, Sparkles, PlusSquare, Share2, CheckCircle2 } from 'lucide-react'
-
+import { Smartphone, Play, Sparkles, PlusSquare, Share2 } from 'lucide-react'
 interface EmbeddedTutorialSectionProps {
   initialDesktopUrl?: string | null
   initialMobileUrl?: string | null
