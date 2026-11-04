@@ -60,8 +60,8 @@ export async function getAvailableSlots(barberId: string, dateStr: string, servi
 
   // Fetch working hours, days off, appointments, blocked times, and recurring reservations in PARALLEL
   const [
-    { data: workingHours },
-    { data: dayOff },
+    { data: workingHours, error: workingHoursErr },
+    { data: dayOff, error: dayOffErr },
     { data: appointments },
     { data: blockedTimes },
     { data: recurringReservations }
@@ -71,13 +71,13 @@ export async function getAvailableSlots(barberId: string, dateStr: string, servi
       .select('*')
       .eq('barber_id', targetBarberId)
       .eq('day_of_week', dayOfWeek)
-      .single(),
+      .maybeSingle(),
     supabase
       .from('days_off')
       .select('*')
       .eq('barber_id', targetBarberId)
       .eq('date', dateStr)
-      .single(),
+      .maybeSingle(),
     supabase
       .from('appointments')
       .select('start_time, end_time')
@@ -98,6 +98,11 @@ export async function getAvailableSlots(barberId: string, dateStr: string, servi
       .eq('day_of_week', dayOfWeek)
       .eq('status', 'active')
   ])
+
+  // Erro de consulta nao pode ser confundido com "dia fechado".
+  if (workingHoursErr || dayOffErr) {
+    throw new Error(`Falha ao consultar horarios/folgas: ${(workingHoursErr || dayOffErr)!.message}`)
+  }
 
   if (!workingHours || workingHours.is_closed || dayOff) {
     return [] // Closed or day off
