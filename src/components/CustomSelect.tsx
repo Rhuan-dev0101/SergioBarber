@@ -390,7 +390,7 @@ export function CustomCustomerSelect({
         <input
           type="text"
           disabled={disabled}
-          placeholder="Buscar cliente por nome ou telefone..."
+          aria-label="Buscar cliente por nome ou telefone" placeholder="Buscar cliente por nome ou telefone..."
           value={searchQuery}
           onChange={(e) => {
             setSearchQuery(e.target.value)

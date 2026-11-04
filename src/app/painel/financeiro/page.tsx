@@ -579,7 +579,7 @@ export default function PainelFinanceiro() {
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Buscar por cliente, serviço, barbeiro ou status..."
+            aria-label="Buscar por cliente, serviço, barbeiro ou status" placeholder="Buscar por cliente, serviço, barbeiro ou status..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 bg-secondary/50 border border-border focus:border-primary rounded-xl text-base outline-none text-foreground font-medium"

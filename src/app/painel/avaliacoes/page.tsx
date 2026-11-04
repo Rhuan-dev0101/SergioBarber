@@ -469,7 +469,7 @@ export default function AdminAvaliacoesPage() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Buscar cliente, barbeiro, comentário..."
+                aria-label="Buscar cliente, barbeiro, comentário" placeholder="Buscar cliente, barbeiro, comentário..."
                 className="w-full pl-8 pr-3 py-2 rounded-xl bg-background border border-border text-base text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary"
               />
               {searchQuery && (

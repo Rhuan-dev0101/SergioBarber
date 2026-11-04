@@ -286,7 +286,7 @@ export default function PainelClientes() {
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
                 type="text"
-                placeholder="Buscar por nome, e-mail ou WhatsApp..."
+                aria-label="Buscar por nome, e-mail ou WhatsApp" placeholder="Buscar por nome, e-mail ou WhatsApp..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-9 py-2.5 bg-secondary/40 border border-border focus:border-primary rounded-xl text-base outline-none text-foreground transition-all"
