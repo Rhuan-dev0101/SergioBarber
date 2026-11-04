@@ -64,7 +64,7 @@ export function DashboardSidebar() {
       if (raw) {
         savedState = JSON.parse(raw)
       }
-    } catch (e) {
+    } catch {
       // ignore JSON parse error
     }
 
@@ -89,7 +89,7 @@ export function DashboardSidebar() {
       const next = { ...prev, [groupId]: !prev[groupId] }
       try {
         localStorage.setItem('osanchez_sidebar_groups', JSON.stringify(next))
-      } catch (e) {}
+      } catch {}
       return next
     })
   }
@@ -444,7 +444,7 @@ export function DashboardSidebar() {
       {isOpen && (
         <div 
           onClick={() => setIsOpen(false)}
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 md:hidden animate-in fade-in duration-150"
+          className="fixed inset-0 bg-black/70 z-30 md:hidden animate-in fade-in duration-150"
         />
       )}
     </>

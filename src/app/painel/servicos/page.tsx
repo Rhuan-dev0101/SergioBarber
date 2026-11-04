@@ -2,10 +2,7 @@
 
 import React, { useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { 
-  Scissors, Plus, Edit2, Trash2, Clock, DollarSign, AlertCircle, 
-  CheckCircle2, Loader2, Save, X, Sparkles, Check 
-} from 'lucide-react'
+import { Scissors, Plus, Edit2, Clock, DollarSign, AlertCircle, CheckCircle2, Loader2, X, Sparkles, Check } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
 import { 
@@ -275,7 +272,7 @@ export default function PainelServicos() {
 
         {/* Create/Edit Modal */}
         {showModal && (
-          <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
             <div className="glass max-w-lg w-full rounded-2xl border border-primary/40 shadow-2xl p-6 sm:p-8 relative space-y-6">
               
               <div className="flex justify-between items-center pb-3 border-b border-border/40">
@@ -283,7 +280,7 @@ export default function PainelServicos() {
                   <Sparkles className="w-5 h-5 text-primary" />
                   {editingId ? 'Editar Serviço do Catálogo' : 'Novo Serviço no Catálogo'}
                 </h3>
-                <button
+                <button aria-label="Fechar"
                   onClick={() => setShowModal(false)}
                   className="text-muted-foreground hover:text-foreground p-1.5 hover:bg-secondary rounded-lg cursor-pointer transition-colors"
                 >

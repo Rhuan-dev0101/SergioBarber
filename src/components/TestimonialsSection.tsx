@@ -94,7 +94,7 @@ export function TestimonialsSection({ testimonials }: TestimonialsSectionProps) 
 
               {/* Comment text */}
               <p className="font-serif italic text-base sm:text-lg text-foreground leading-relaxed">
-                "{validTestimonials[currentIndex].comment}"
+                &quot;{validTestimonials[currentIndex].comment}&quot;
               </p>
             </div>
 

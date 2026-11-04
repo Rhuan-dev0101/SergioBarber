@@ -109,14 +109,12 @@ textarea {
 
 /* Glassmorphism utility */
 .glass {
-  background: rgba(18, 18, 22, 0.7);
-  backdrop-filter: blur(12px);
+  background: rgba(18, 18, 22, 0.92);
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .light .glass {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.92);
   border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
@@ -454,7 +452,6 @@ textarea {
     rgba(197, 168, 128, 0.45) 55%,
     transparent 70%
   );
-  animation: border-spin 6s linear infinite;
   z-index: -2;
   opacity: 0;
   transition: opacity 0.5s ease;
@@ -475,6 +472,7 @@ textarea {
 .shimmer-border-card:focus-within::before,
 .shimmer-border-card.active::before {
   opacity: 1;
+  animation: border-spin 6s linear infinite;
 }
 
 .shimmer-border-card:hover,
@@ -514,8 +512,7 @@ textarea {
     #181512,
     #0c0b0a
   );
-  background-size: 400% 400%;
-  animation: gradient-shift 14s ease infinite;
+  background-size: 100% 100%;
   border-radius: 1rem;
   border: 1px solid var(--border);
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), 0 0 25px rgba(197, 168, 128, 0.05);
@@ -532,8 +529,7 @@ textarea {
     rgba(197, 168, 128, 0.3),
     rgba(197, 168, 128, 0.1)
   );
-  background-size: 200% 200%;
-  animation: gradient-shift 14s ease infinite;
+  background-size: 100% 100%;
   z-index: -1;
   border-radius: calc(1rem + 1px);
   opacity: 0.8;

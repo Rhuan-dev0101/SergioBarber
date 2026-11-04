@@ -89,7 +89,7 @@ export async function updateAppointmentStatusAction(apptId: string, status: stri
     return { success: true, message: 'Status atualizado com sucesso.' }
   } catch (err) {
     console.error('Error inside updateAppointmentStatusAction:', err)
-    return { success: false, message: 'Erro interno no servidor.' }
+    return { success: false, message: 'Não foi possível concluir a operação. Tente novamente em instantes.' }
   }
 }
 
@@ -149,7 +149,7 @@ export async function markNoShowAction(apptId: string): Promise<ActionResponse> 
     return { success: true, message: 'Agendamento marcado como não compareceu. Taxa de 50% será aplicada no próximo agendamento do cliente.' }
   } catch (err) {
     console.error('Error inside markNoShowAction:', err)
-    return { success: false, message: 'Erro interno no servidor.' }
+    return { success: false, message: 'Não foi possível concluir a operação. Tente novamente em instantes.' }
   }
 }
 
@@ -194,7 +194,7 @@ export async function updateAppointmentNotesAction(apptId: string, notes: string
     return { success: true, message: 'Anotações salvas com sucesso.' }
   } catch (err) {
     console.error('Error inside updateAppointmentNotesAction:', err)
-    return { success: false, message: 'Erro interno no servidor.' }
+    return { success: false, message: 'Não foi possível concluir a operação. Tente novamente em instantes.' }
   }
 }
 
@@ -308,7 +308,7 @@ export async function createWalkInAppointmentAction(
     return { success: true, message: 'Agendamento presencial registrado com sucesso.' }
   } catch (err) {
     console.error('Error inside createWalkInAppointmentAction:', err)
-    return { success: false, message: 'Erro interno no servidor.' }
+    return { success: false, message: 'Não foi possível concluir a operação. Tente novamente em instantes.' }
   }
 }
 
@@ -457,7 +457,7 @@ export async function createExtraAppointmentAction(
     return { success: true, message: statusMsg }
   } catch (err) {
     console.error('Error inside createExtraAppointmentAction:', err)
-    return { success: false, message: 'Erro interno no servidor.' }
+    return { success: false, message: 'Não foi possível concluir a operação. Tente novamente em instantes.' }
   }
 }
 
@@ -503,7 +503,7 @@ export async function deleteAppointmentAction(apptId: string): Promise<ActionRes
     return { success: true, message: 'Agendamento excluído permanentemente.' }
   } catch (err) {
     console.error('Error inside deleteAppointmentAction:', err)
-    return { success: false, message: 'Erro interno no servidor.' }
+    return { success: false, message: 'Não foi possível concluir a operação. Tente novamente em instantes.' }
   }
 }
 
@@ -701,7 +701,7 @@ export async function bulkCheckoutAction(
       results.push({
         appointmentId: item.appointmentId,
         success: false,
-        message: 'Erro interno ao processar este agendamento.'
+        message: 'Não foi possível processar este agendamento. Tente novamente.'
       })
     }
   }

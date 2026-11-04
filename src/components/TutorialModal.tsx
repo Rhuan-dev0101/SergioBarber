@@ -88,7 +88,7 @@ export function TutorialModal({
   const whatsappUrl = formatWhatsAppLink(whatsapp, whatsappMessage)
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 bg-black/85 flex items-center justify-center p-4 animate-in fade-in duration-200">
       <div className="glass max-w-2xl w-full rounded-2xl border border-primary/40 shadow-2xl p-6 sm:p-8 relative flex flex-col space-y-6">
         
         {/* Header bar */}

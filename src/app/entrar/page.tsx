@@ -4,7 +4,7 @@ import React, { useState, useTransition, useEffect, Suspense, useRef } from 'rea
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Scissors, Mail, Lock, ArrowRight, AlertCircle, Loader2, Eye, EyeOff, Sun, Moon } from 'lucide-react'
+import { ArrowRight, AlertCircle, Loader2, Eye, EyeOff, Sun, Moon } from 'lucide-react'
 import { loginAction } from '@/app/auth/actions'
 import { createClient } from '@/lib/supabase'
 import { useTheme } from '@/components/ThemeProvider'
@@ -41,10 +41,10 @@ function LoginForm() {
         }
       })
       if (error) {
-        setErrorMsg('Erro ao iniciar login com Google: ' + error.message)
+        console.error(error); setErrorMsg('Não foi possível continuar com Google. Tente novamente ou use e-mail e senha.')
       }
     } catch (err: any) {
-      setErrorMsg('Erro ao conectar ao Google: ' + err.message)
+      console.error(err); setErrorMsg('Não foi possível conectar ao Google. Verifique sua conexão e tente novamente.')
     }
   }
 
@@ -59,10 +59,10 @@ function LoginForm() {
         }
       })
       if (error) {
-        setErrorMsg('Erro ao iniciar login com Facebook: ' + error.message)
+        console.error(error); setErrorMsg('Não foi possível continuar com Facebook. Tente novamente ou use e-mail e senha.')
       }
     } catch (err: any) {
-      setErrorMsg('Erro ao conectar ao Facebook: ' + err.message)
+      console.error(err); setErrorMsg('Não foi possível conectar ao Facebook. Verifique sua conexão e tente novamente.')
     }
   }
 
@@ -301,6 +301,7 @@ function ParticlesBackground() {
 
     const ctx = canvas.getContext('2d')
     if (!ctx) return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
 
     const setCanvasSize = () => {
       canvas.width = window.innerWidth

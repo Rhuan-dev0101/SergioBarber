@@ -65,7 +65,7 @@ export async function getBarberProfileAction(): Promise<ActionResponse<BarberPro
     }
   } catch (err) {
     console.error('Error inside getBarberProfileAction:', err)
-    return { success: false, message: 'Erro interno do servidor.' }
+    return { success: false, message: 'Não foi possível concluir a operação. Tente novamente em instantes.' }
   }
 }
 
@@ -126,6 +126,6 @@ export async function updateBarberProfileAction(
     return { success: true, message: 'Perfil de barbeiro atualizado com sucesso.' }
   } catch (err) {
     console.error('Error inside updateBarberProfileAction:', err)
-    return { success: false, message: 'Erro interno no servidor.' }
+    return { success: false, message: 'Não foi possível concluir a operação. Tente novamente em instantes.' }
   }
 }

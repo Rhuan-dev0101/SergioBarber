@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { User, Mail, Phone, X, CheckCircle2, Loader2, Copy, Check } from 'lucide-react'
+import { User, X, CheckCircle2, Loader2 } from 'lucide-react'
 import { registerCustomerManuallyAction } from '@/app/painel/clientes/actions'
 
 interface RegisterCustomerModalProps {
@@ -70,7 +70,7 @@ export function RegisterCustomerModal({ isOpen, onClose, onSuccess }: RegisterCu
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 animate-in fade-in duration-150">
       <div className="bg-card border border-border/80 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl relative">
         <div className="flex justify-between items-center pb-3 border-b border-border/40">
           <div className="flex items-center gap-2">

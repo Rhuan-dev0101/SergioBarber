@@ -77,7 +77,7 @@ export async function addGalleryImageAction(
     return { success: true, message: 'Imagem adicionada à galeria com sucesso!' }
   } catch (err) {
     console.error('Error inside addGalleryImageAction:', err)
-    return { success: false, message: 'Erro interno no servidor.' }
+    return { success: false, message: 'Não foi possível concluir a operação. Tente novamente em instantes.' }
   }
 }
 
@@ -136,7 +136,7 @@ export async function updateGalleryImageAction(
     return { success: true, message: 'Imagem da galeria atualizada com sucesso!' }
   } catch (err) {
     console.error('Error inside updateGalleryImageAction:', err)
-    return { success: false, message: 'Erro interno no servidor.' }
+    return { success: false, message: 'Não foi possível concluir a operação. Tente novamente em instantes.' }
   }
 }
 
@@ -190,6 +190,6 @@ export async function deleteGalleryImageAction(
     return { success: true, message: 'Imagem removida com sucesso!' }
   } catch (err) {
     console.error('Error inside deleteGalleryImageAction:', err)
-    return { success: false, message: 'Erro interno no servidor.' }
+    return { success: false, message: 'Não foi possível concluir a operação. Tente novamente em instantes.' }
   }
 }

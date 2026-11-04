@@ -1,13 +1,9 @@
 'use client'
 
+import Image from 'next/image'
 import React, { useEffect, useState, useTransition, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { 
-  Scissors, Calendar, Clock, Search, Edit2, Trash2, CheckCircle2, 
-  AlertCircle, Plus, Loader2, Save, X, User, Sparkles, Check, AlertTriangle, UserX,
-  Filter, RotateCcw, CheckCircle, ChevronRight, Wallet, DollarSign, RefreshCw, FileText,
-  Repeat, ChevronLeft, CalendarDays, LayoutList, Coffee, Crown, Users, Zap
-} from 'lucide-react'
+import { Scissors, Calendar, Clock, Search, Edit2, Trash2, CheckCircle2, AlertCircle, Plus, Loader2, Save, X, User, Sparkles, AlertTriangle, UserX, RotateCcw, ChevronRight, RefreshCw, FileText, Repeat, ChevronLeft, CalendarDays, LayoutList, Users, Zap } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
 import dynamic from 'next/dynamic'
@@ -163,7 +159,7 @@ export default function PainelAgendamentos() {
         { data: dbServices },
         { data: dbCustomers },
         { data: dbWH },
-        { data: dbDO },
+        { data: dbDO, error: dbDOErr },
         { data: dbRec },
         { data: dbBT },
         { data: appts, error: apptsErr }
@@ -172,7 +168,7 @@ export default function PainelAgendamentos() {
         supabase.from('services').select('id, name, duration, price, is_active').eq('is_active', true).order('name'),
         supabase.from('profiles').select('id, full_name, phone').eq('role', 'customer').order('full_name'),
         supabase.from('barber_working_hours').select('*'),
-        supabase.from('barber_days_off').select('*'),
+        supabase.from('days_off').select('barber_id, date, reason'),
         supabase.from('recurring_reservations').select('*').eq('status', 'active'),
         blockedTimesQuery,
         apptsQuery
@@ -194,7 +190,12 @@ export default function PainelAgendamentos() {
       if (dbServices) setServices(dbServices)
       if (dbCustomers) setCustomers(dbCustomers)
       if (dbWH) setWorkingHours(dbWH)
-      if (dbDO) setDaysOff(dbDO)
+      if (dbDOErr) {
+        console.error('Error fetching days off:', dbDOErr)
+        setErrorMsg('Erro ao carregar folgas dos barbeiros.')
+      } else if (dbDO) {
+        setDaysOff(dbDO)
+      }
       if (dbRec) setRecurringReservations(dbRec)
       if (dbBT) setBlockedTimes(dbBT)
 
@@ -687,7 +688,7 @@ export default function PainelAgendamentos() {
               <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{errorMsg}</span>
             </div>
-            <button onClick={() => setErrorMsg('')} className="p-1 hover:bg-destructive/10 rounded-lg">
+            <button aria-label="Fechar aviso" onClick={() => setErrorMsg('')} className="p-1 hover:bg-destructive/10 rounded-lg">
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -699,7 +700,7 @@ export default function PainelAgendamentos() {
               <CheckCircle2 className="w-4 h-4 shrink-0" />
               <span>{successMsg}</span>
             </div>
-            <button onClick={() => setSuccessMsg('')} className="p-1 hover:bg-emerald-500/10 rounded-lg">
+            <button aria-label="Fechar aviso" onClick={() => setSuccessMsg('')} className="p-1 hover:bg-emerald-500/10 rounded-lg">
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -827,7 +828,7 @@ export default function PainelAgendamentos() {
                               : 'border-border/80 group-hover:border-primary/50'
                           }`}>
                             {b.photo_url ? (
-                              <img
+                              <Image width={96} height={96} sizes="64px"
                                 src={b.photo_url}
                                 alt={b.full_name}
                                 className="w-full h-full object-cover rounded-full"
@@ -1000,13 +1001,13 @@ export default function PainelAgendamentos() {
                   <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
-                    placeholder="Buscar cliente, serviço..."
+                    aria-label="Buscar cliente, serviço" placeholder="Buscar cliente, serviço..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full pl-8 pr-3 py-2 bg-background border border-border text-base text-foreground placeholder:text-muted-foreground/60 rounded-xl focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                   {searchQuery && (
-                    <button
+                    <button aria-label="Limpar busca"
                       type="button"
                       onClick={() => setSearchQuery('')}
                       className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
@@ -1277,7 +1278,7 @@ export default function PainelAgendamentos() {
 
         {/* Selected Appointment Detail Modal */}
         {selectedAgendaAppt && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 animate-in fade-in duration-150">
             <div className="bg-card border border-border/80 rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl relative">
               <div className="flex justify-between items-start pb-3 border-b border-border/40">
                 <div>
@@ -1291,7 +1292,7 @@ export default function PainelAgendamentos() {
                     {formatDate(selectedAgendaAppt.start_time)} às {formatTime(selectedAgendaAppt.start_time)}
                   </p>
                 </div>
-                <button
+                <button aria-label="Fechar"
                   onClick={() => setSelectedAgendaAppt(null)}
                   className="p-1 text-muted-foreground hover:text-foreground rounded-lg"
                 >
@@ -1406,7 +1407,7 @@ export default function PainelAgendamentos() {
 
         {/* Delete Confirmation Modal (Admin only) */}
         {deleteTarget && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 animate-in fade-in duration-150">
             <div className="bg-card border border-destructive/40 rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl">
               <div className="flex items-center gap-3 text-destructive">
                 <div className="p-3 bg-destructive/10 rounded-full">
@@ -1454,7 +1455,7 @@ export default function PainelAgendamentos() {
 
         {/* No-Show Confirmation Modal */}
         {noShowTarget && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 animate-in fade-in duration-150">
             <div className="bg-card border border-border/80 rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl">
               <div className="flex items-center gap-3 text-amber-400">
                 <div className="p-3 bg-amber-500/10 rounded-full">

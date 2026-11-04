@@ -2,7 +2,7 @@
 
 import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase'
 import { getAvailableSlots, isRecurringReservationActiveOnDate } from '@/lib/booking'
-import { addMinutes, format } from 'date-fns'
+import { addMinutes } from 'date-fns'
 import { getOutstandingNoShowFee, type NoShowFeeInfo } from '@/lib/no-show'
 
 export type BookingResponse = {
@@ -207,7 +207,7 @@ export async function createAppointmentAction(
     }
   } catch (err) {
     console.error('Error in createAppointmentAction:', err)
-    return { success: false, message: 'Ocorreu um erro interno no servidor ao realizar o agendamento.' }
+    return { success: false, message: 'Não foi possível realizar o agendamento. Tente novamente em instantes.' }
   }
 }
 
@@ -480,7 +480,7 @@ export async function getBarberMonthAvailabilityAction(
     return { success: true, message: 'Sucesso', availability }
   } catch (error) {
     console.error('Error calculating month availability:', error)
-    return { success: false, message: 'Erro interno no servidor.', availability: {} }
+    return { success: false, message: 'Não foi possível concluir a operação. Tente novamente em instantes.', availability: {} }
   }
 }
 

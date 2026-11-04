@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, Suspense } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Scissors, AlertCircle, Sun, Moon, Check, MessageCircle, Loader2, Crown, CreditCard } from 'lucide-react'
+import { AlertCircle, Sun, Moon, Check, Loader2, Crown, CreditCard } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { useTheme } from '@/components/ThemeProvider'
 import { formatWhatsAppLink } from '@/lib/settings'
@@ -18,6 +18,7 @@ const ParticlesBackground = React.memo(function ParticlesBackground() {
 
     const ctx = canvas.getContext('2d')
     if (!ctx) return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
 
     const setCanvasSize = () => {
       canvas.width = window.innerWidth
@@ -130,10 +131,10 @@ function SignUpForm() {
         }
       })
       if (error) {
-        setErrorMsg('Erro ao se cadastrar com Google: ' + error.message)
+        console.error(error); setErrorMsg('Não foi possível continuar com Google. Tente novamente ou use e-mail e senha.')
       }
     } catch (err: any) {
-      setErrorMsg('Erro ao conectar ao Google: ' + err.message)
+      console.error(err); setErrorMsg('Não foi possível conectar ao Google. Verifique sua conexão e tente novamente.')
     }
   }
 
@@ -149,10 +150,10 @@ function SignUpForm() {
         }
       })
       if (error) {
-        setErrorMsg('Erro ao se cadastrar com Facebook: ' + error.message)
+        console.error(error); setErrorMsg('Não foi possível continuar com Facebook. Tente novamente ou use e-mail e senha.')
       }
     } catch (err: any) {
-      setErrorMsg('Erro ao conectar ao Facebook: ' + err.message)
+      console.error(err); setErrorMsg('Não foi possível conectar ao Facebook. Verifique sua conexão e tente novamente.')
     }
   }
 

@@ -1,15 +1,11 @@
 'use client'
 
+import Image from 'next/image'
 import React, { useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { 
-  Star, CheckCircle2, XCircle, Clock, Filter, 
-  Search, User, Calendar, Loader2, AlertCircle, Sparkles, MessageSquare, RefreshCw,
-  Trash2, Eye, X, Image as ImageIcon, Award, BarChart3
-} from 'lucide-react'
+import { Star, CheckCircle2, XCircle, Clock, Search, User, Calendar, Loader2, AlertCircle, MessageSquare, RefreshCw, Trash2, Eye, X, Image as ImageIcon, Award, BarChart3 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
-
 type ReviewStatus = 'pending' | 'approved' | 'rejected'
 
 interface ReviewItem {
@@ -179,9 +175,10 @@ export default function AdminAvaliacoesPage() {
           .eq('id', reviewId)
 
         if (error) {
+          console.error(error)
           setActionFeedback({
             type: 'error',
-            message: `Erro ao alterar status: ${error.message}`
+            message: 'Não foi possível alterar o status da avaliação. Tente novamente.'
           })
         } else {
           setActionFeedback({
@@ -190,7 +187,7 @@ export default function AdminAvaliacoesPage() {
           })
           setReviews(prev => prev.map(r => r.id === reviewId ? { ...r, status: newStatus } : r))
         }
-      } catch (err: any) {
+      } catch {
         setActionFeedback({
           type: 'error',
           message: 'Falha ao atualizar o status da avaliação.'
@@ -210,9 +207,10 @@ export default function AdminAvaliacoesPage() {
           .eq('id', reviewId)
 
         if (error) {
+          console.error(error)
           setActionFeedback({
             type: 'error',
-            message: `Erro ao apagar avaliação: ${error.message}`
+            message: 'Não foi possível excluir a avaliação. Tente novamente.'
           })
         } else {
           setActionFeedback({
@@ -221,7 +219,7 @@ export default function AdminAvaliacoesPage() {
           })
           setReviews(prev => prev.filter(r => r.id !== reviewId))
         }
-      } catch (err: any) {
+      } catch {
         setActionFeedback({
           type: 'error',
           message: 'Falha ao apagar avaliação.'
@@ -337,7 +335,7 @@ export default function AdminAvaliacoesPage() {
               {actionFeedback.type === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
               <span className="font-medium">{actionFeedback.message}</span>
             </div>
-            <button onClick={() => setActionFeedback(null)} className="text-muted-foreground hover:text-foreground p-1">
+            <button aria-label="Fechar aviso" onClick={() => setActionFeedback(null)} className="text-muted-foreground hover:text-foreground p-1">
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -467,11 +465,11 @@ export default function AdminAvaliacoesPage() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Buscar cliente, barbeiro, comentário..."
+                aria-label="Buscar cliente, barbeiro, comentário" placeholder="Buscar cliente, barbeiro, comentário..."
                 className="w-full pl-8 pr-3 py-2 rounded-xl bg-background border border-border text-base text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary"
               />
               {searchQuery && (
-                <button
+                <button aria-label="Limpar busca"
                   onClick={() => setSearchQuery('')}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
@@ -554,7 +552,7 @@ export default function AdminAvaliacoesPage() {
                     <MessageSquare className="w-4 h-4 text-primary/60 shrink-0 mt-0.5" />
                     {review.comment ? (
                       <p className="text-xs text-foreground italic leading-relaxed">
-                        "{review.comment}"
+                        &quot;{review.comment}&quot;
                       </p>
                     ) : (
                       <p className="text-xs text-muted-foreground/60 italic">
@@ -573,7 +571,7 @@ export default function AdminAvaliacoesPage() {
                         onClick={() => setLightboxPhoto({ url: review.photo_url!, customer: review.customerName || 'Cliente' })}
                         className="relative rounded-xl overflow-hidden border border-border/80 bg-black/40 h-36 group/photo cursor-pointer flex items-center justify-center transition-all hover:border-primary"
                       >
-                        <img 
+                        <Image fill sizes="(max-width: 768px) 100vw, 33vw" 
                           src={review.photo_url} 
                           alt="Foto do corte" 
                           className="w-full h-full object-cover group-hover/photo:scale-105 transition-transform duration-300" 
@@ -653,7 +651,7 @@ export default function AdminAvaliacoesPage() {
 
       {/* Delete Confirmation Modal */}
       {deleteConfirmId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 animate-in fade-in duration-150">
           <div className="bg-card border border-border/80 rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl">
             <div className="flex items-center gap-3 text-destructive">
               <div className="p-3 bg-destructive/10 rounded-full">
@@ -692,15 +690,15 @@ export default function AdminAvaliacoesPage() {
 
       {/* Photo Lightbox Modal */}
       {lightboxPhoto && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 animate-in fade-in duration-200">
           <div className="relative max-w-3xl w-full max-h-[90vh] flex flex-col items-center justify-center space-y-3">
-            <button
+            <button aria-label="Fechar"
               onClick={() => setLightboxPhoto(null)}
               className="absolute -top-10 right-0 text-white/80 hover:text-white p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
             >
               <X className="w-6 h-6" />
             </button>
-            <img 
+            <Image width={1200} height={1200} sizes="90vw" 
               src={lightboxPhoto.url} 
               alt={`Foto do corte de ${lightboxPhoto.customer}`} 
               className="max-h-[80vh] w-auto max-w-full object-contain rounded-2xl border border-white/10 shadow-2xl"

@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import React, { useState } from 'react'
 import { Star, X, Loader2, CheckCircle2, AlertCircle, MessageSquare, Camera, Image as ImageIcon, Trash2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
@@ -173,7 +174,7 @@ export function ReviewModal({ isOpen, onClose, appointment, onSuccess }: ReviewM
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 animate-in fade-in duration-200">
       <div className="relative w-full max-w-md bg-card border border-border/80 rounded-2xl shadow-2xl overflow-hidden p-6 space-y-5 max-h-[90vh] overflow-y-auto">
         
         {/* Header */}
@@ -282,7 +283,7 @@ export function ReviewModal({ isOpen, onClose, appointment, onSuccess }: ReviewM
 
             {photoPreview ? (
               <div className="relative rounded-xl overflow-hidden border border-border/80 bg-black/40 group max-h-48 flex items-center justify-center">
-                <img 
+                <Image width={600} height={400} unoptimized 
                   src={photoPreview} 
                   alt="Pré-visualização do corte" 
                   className="max-h-48 w-full object-contain rounded-xl"

@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Scissors, User, Phone, Mail, ArrowLeft, Check, Loader2, AlertCircle } from 'lucide-react'
+import { User, Phone, Mail, ArrowLeft, Check, Loader2, AlertCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { updateProfileAction } from '../actions'
 import { Header } from '@/components/Header'

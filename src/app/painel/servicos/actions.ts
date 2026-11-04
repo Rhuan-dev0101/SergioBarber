@@ -57,7 +57,7 @@ export async function createServiceAction(
     return { success: true, message: 'Serviço criado com sucesso!' }
   } catch (err) {
     console.error('Error inside createServiceAction:', err)
-    return { success: false, message: 'Erro interno no servidor.' }
+    return { success: false, message: 'Não foi possível concluir a operação. Tente novamente em instantes.' }
   }
 }
 
@@ -98,7 +98,7 @@ export async function updateServiceAction(
     return { success: true, message: 'Serviço atualizado com sucesso!' }
   } catch (err) {
     console.error('Error inside updateServiceAction:', err)
-    return { success: false, message: 'Erro interno no servidor.' }
+    return { success: false, message: 'Não foi possível concluir a operação. Tente novamente em instantes.' }
   }
 }
 
@@ -127,6 +127,6 @@ export async function toggleServiceStatusAction(
     return { success: true, message: 'Status do serviço atualizado!' }
   } catch (err) {
     console.error('Error inside toggleServiceStatusAction:', err)
-    return { success: false, message: 'Erro interno no servidor.' }
+    return { success: false, message: 'Não foi possível concluir a operação. Tente novamente em instantes.' }
   }
 }

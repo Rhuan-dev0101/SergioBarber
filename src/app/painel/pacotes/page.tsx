@@ -1,27 +1,14 @@
 'use client'
 
+import Image from 'next/image'
 import React, { useEffect, useState, useTransition, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import {
-  Package, Plus, Loader2, Search, X, Check, AlertCircle,
-  CheckCircle2, Calendar, Clock, User, Scissors, Trash2,
-  AlertTriangle, ChevronDown, Crown, Sparkles, Edit, DollarSign, Save, Users
-} from 'lucide-react'
+import { Package, Plus, Loader2, X, Check, AlertCircle, CheckCircle2, Calendar, Clock, Scissors, Trash2, AlertTriangle, Crown, Edit, DollarSign, Save, Users } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
 import { CreatePackageForm } from '@/components/CreatePackageForm'
-import { getSessionDatesForDuration, getExpandedSessionDates } from '@/lib/package-utils'
-import {
-  createPackageAction,
-  cancelPackageAction,
-  validatePackageSlotsAction,
-  markPackageAsPaidAction,
-  deletePackageAction,
-  cancelPackageSessionAction,
-  reschedulePackageSessionAction,
-  updatePackagePriceAction
-} from './actions'
-
+import { getExpandedSessionDates } from '@/lib/package-utils'
+import { createPackageAction, cancelPackageAction, validatePackageSlotsAction, markPackageAsPaidAction, deletePackageAction, cancelPackageSessionAction, reschedulePackageSessionAction, updatePackagePriceAction } from './actions'
 const WEEKDAY_NAMES = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado']
 const WEEKDAY_SHORT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 
@@ -763,7 +750,7 @@ export default function PainelPacotes() {
                         : 'border-border/80 group-hover:border-primary/50'
                     }`}>
                       {b.photo_url ? (
-                        <img
+                        <Image width={96} height={96} sizes="64px"
                           src={b.photo_url}
                           alt={b.full_name}
                           className="w-full h-full object-cover rounded-full"
@@ -973,7 +960,7 @@ export default function PainelPacotes() {
 
         {/* ── Cancel Single Session Confirmation Modal ────────── */}
         {cancelSessionTarget && (
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
             <div className="glass p-6 sm:p-8 rounded-xl border border-red-800/50 max-w-md w-full shadow-2xl space-y-5 relative">
               <div className="flex items-start gap-3">
                 <div className="w-10 h-10 rounded-full bg-red-900/30 border border-red-800/40 flex items-center justify-center shrink-0">
@@ -1013,7 +1000,7 @@ export default function PainelPacotes() {
 
         {/* ── Cancel Confirmation Modal ──────────────────────── */}
         {cancelTarget && (
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
             <div className="glass p-6 sm:p-8 rounded-xl border border-red-800/50 max-w-md w-full shadow-2xl space-y-5 relative">
               <div className="flex items-start gap-3">
                 <div className="w-10 h-10 rounded-full bg-red-900/30 border border-red-800/40 flex items-center justify-center shrink-0">
@@ -1077,7 +1064,7 @@ export default function PainelPacotes() {
 
         {/* ── Delete Confirmation Modal (permanent delete) ──────── */}
         {deleteTarget && (
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
             <div className="glass p-6 sm:p-8 rounded-xl border border-red-800/50 max-w-md w-full shadow-2xl space-y-5 relative">
               <div className="flex items-start gap-3">
                 <div className="w-10 h-10 rounded-full bg-red-900/30 border border-red-800/40 flex items-center justify-center shrink-0">
@@ -1124,7 +1111,7 @@ export default function PainelPacotes() {
 
         {/* ── Edit Package Modal ──────────────────────── */}
         {editPackageTarget && (
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
             <div className="glass p-6 sm:p-8 rounded-2xl border border-primary/40 max-w-2xl w-full shadow-2xl space-y-6 relative max-h-[90vh] overflow-y-auto">
               {/* Header */}
               <div className="flex justify-between items-center pb-4 border-b border-border/40">
@@ -1136,7 +1123,7 @@ export default function PainelPacotes() {
                     Cliente: <strong className="text-foreground">{editPackageTarget.customerName}</strong> • Barbeiro: <strong className="text-foreground">{editPackageTarget.barberName}</strong> • {editPackageTarget.serviceName}
                   </p>
                 </div>
-                <button
+                <button aria-label="Fechar"
                   onClick={() => { setEditPackageTarget(null); setRescheduleAppt(null) }}
                   className="text-muted-foreground hover:text-foreground p-1.5 hover:bg-secondary rounded-lg cursor-pointer transition-colors"
                 >
@@ -1332,7 +1319,7 @@ export default function PainelPacotes() {
 
         {/* ── Create Package Modal (FORM DE PREENCHIMENTO DO PACOTE) ───────────────────────────── */}
         {showModal && (
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
             <div className="glass p-6 sm:p-8 rounded-2xl border border-primary/40 max-w-xl w-full shadow-2xl space-y-6 relative max-h-[90vh] overflow-y-auto">
               
               {/* Header */}
@@ -1343,7 +1330,7 @@ export default function PainelPacotes() {
                   </h3>
                   <p className="text-xs text-muted-foreground">Preencha os dados abaixo para gerar agendamentos recorrentes automaticamente</p>
                 </div>
-                <button
+                <button aria-label="Fechar"
                   onClick={() => setShowModal(false)}
                   className="text-muted-foreground hover:text-foreground p-1.5 hover:bg-secondary rounded-lg cursor-pointer transition-colors"
                 >

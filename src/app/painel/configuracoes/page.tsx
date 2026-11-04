@@ -2,11 +2,7 @@
 
 import React, { useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { 
-  Scissors, Phone, MapPin, DollarSign, User, 
-  AlertCircle, CheckCircle2, Loader2, Save, Settings,
-  Video, Monitor, Smartphone
-} from 'lucide-react'
+import { Phone, MapPin, DollarSign, User, AlertCircle, CheckCircle2, Loader2, Save, Settings, Video, Monitor, Smartphone } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
 import { updateBusinessSettingsAction } from './actions'

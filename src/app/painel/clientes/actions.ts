@@ -58,7 +58,7 @@ export async function updateCustomerPrivateNotesAction(
     return { success: true, message: 'Anotações salvas com sucesso!' }
   } catch (err) {
     console.error('Error inside updateCustomerPrivateNotesAction:', err)
-    return { success: false, message: 'Erro interno no servidor.' }
+    return { success: false, message: 'Não foi possível concluir a operação. Tente novamente em instantes.' }
   }
 }
 
@@ -108,13 +108,13 @@ export async function deleteCustomerAction(customerId: string): Promise<ClientAc
 
     if (deleteError) {
       console.error('Error deleting user via admin API:', deleteError)
-      return { success: false, message: `Erro ao deletar usuário: ${deleteError.message}` }
+      return { success: false, message: 'Não foi possível excluir o usuário. Tente novamente em instantes.' }
     }
 
     return { success: true, message: 'Cliente excluído com sucesso!' }
   } catch (err) {
     console.error('Error inside deleteCustomerAction:', err)
-    return { success: false, message: 'Erro interno no servidor.' }
+    return { success: false, message: 'Não foi possível concluir a operação. Tente novamente em instantes.' }
   }
 }
 
@@ -263,7 +263,7 @@ export async function registerCustomerManuallyAction(
     }
   } catch (err) {
     console.error('Error inside registerCustomerManuallyAction:', err)
-    return { success: false, message: 'Erro interno no servidor.' }
+    return { success: false, message: 'Não foi possível concluir a operação. Tente novamente em instantes.' }
   }
 }
 

@@ -80,7 +80,7 @@ export async function addBarberServiceAction(
     return { success: true, message: 'Serviço vinculado com sucesso!' }
   } catch (err) {
     console.error('Error inside addBarberServiceAction:', err)
-    return { success: false, message: 'Erro interno no servidor.' }
+    return { success: false, message: 'Não foi possível concluir a operação. Tente novamente em instantes.' }
   }
 }
 
@@ -173,7 +173,7 @@ export async function createAndAddBarberServiceAction(
     return { success: true, message: 'Serviço adicionado com sucesso!' }
   } catch (err) {
     console.error('Error inside createAndAddBarberServiceAction:', err)
-    return { success: false, message: 'Erro interno no servidor.' }
+    return { success: false, message: 'Não foi possível concluir a operação. Tente novamente em instantes.' }
   }
 }
 
@@ -227,7 +227,7 @@ export async function updateBarberServiceAction(
     return { success: true, message: 'Serviço atualizado com sucesso!' }
   } catch (err) {
     console.error('Error inside updateBarberServiceAction:', err)
-    return { success: false, message: 'Erro interno no servidor.' }
+    return { success: false, message: 'Não foi possível concluir a operação. Tente novamente em instantes.' }
   }
 }
 
@@ -270,6 +270,6 @@ export async function deleteBarberServiceAction(
     return { success: true, message: 'Serviço removido com sucesso!' }
   } catch (err) {
     console.error('Error inside deleteBarberServiceAction:', err)
-    return { success: false, message: 'Erro interno no servidor.' }
+    return { success: false, message: 'Não foi possível concluir a operação. Tente novamente em instantes.' }
   }
 }

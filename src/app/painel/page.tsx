@@ -1,11 +1,7 @@
 import React from 'react'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { 
-  Scissors, Calendar, Clock, DollarSign, Users, Sparkles, 
-  ArrowUpRight, AlertCircle, TrendingUp, CheckCircle, XCircle,
-  ArrowRight, ShieldCheck, Award, UserCheck, ChevronRight
-} from 'lucide-react'
+import { Scissors, Calendar, Clock, DollarSign, Sparkles, TrendingUp, CheckCircle, XCircle, ArrowRight, UserCheck } from 'lucide-react'
 import { createServerSupabaseClient } from '@/lib/supabase'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
 import { PainelQuickActions } from '@/components/PainelQuickActions'

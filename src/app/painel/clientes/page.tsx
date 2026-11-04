@@ -2,21 +2,12 @@
 
 import React, { useEffect, useState, useTransition, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { 
-  Scissors, Search, User, Mail, Phone, Edit, Calendar, Clock, 
-  AlertCircle, CheckCircle2, Loader2, Save, X, ArrowLeft, ChevronRight, Trash2,
-  Copy, Check
-} from 'lucide-react'
-import { apptShortCode } from '@/lib/utils'
+import { Scissors, Search, User, Mail, Phone, Calendar, Clock, AlertCircle, CheckCircle2, Loader2, Save, X, ChevronRight, Trash2 } from 'lucide-react'
+
 import { createClient } from '@/lib/supabase'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
 import { RegisterCustomerModal } from '@/components/clientes/RegisterCustomerModal'
-import { 
-  updateCustomerPrivateNotesAction, 
-  deleteCustomerAction,
-  registerCustomerManuallyAction
-} from './actions'
-
+import { updateCustomerPrivateNotesAction, deleteCustomerAction } from './actions'
 function getAppointmentPrice(appt: any): number {
   if (!appt) return 0
   const payment = Array.isArray(appt.payments) ? appt.payments[0] : appt.payments
@@ -286,13 +277,13 @@ export default function PainelClientes() {
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
                 type="text"
-                placeholder="Buscar por nome, e-mail ou WhatsApp..."
+                aria-label="Buscar por nome, e-mail ou WhatsApp" placeholder="Buscar por nome, e-mail ou WhatsApp..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-9 py-2.5 bg-secondary/40 border border-border focus:border-primary rounded-xl text-base outline-none text-foreground transition-all"
               />
               {searchQuery && (
-                <button
+                <button aria-label="Limpar busca"
                   onClick={() => setSearchQuery('')}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
@@ -399,7 +390,7 @@ export default function PainelClientes() {
                     </div>
                   </div>
 
-                  <button 
+                  <button aria-label="Fechar" 
                     onClick={() => setSelectedCustomer(null)}
                     className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                   >
@@ -521,9 +512,9 @@ export default function PainelClientes() {
 
         {/* CONFIRM DELETE MODAL */}
         {showConfirmDelete && (
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
             <div className="glass max-w-sm w-full rounded-lg border border-border shadow-2xl p-6 relative flex flex-col space-y-6">
-              <button
+              <button aria-label="Fechar"
                 onClick={() => setShowConfirmDelete(false)}
                 className="absolute top-4 right-4 text-muted-foreground hover:text-foreground cursor-pointer"
               >

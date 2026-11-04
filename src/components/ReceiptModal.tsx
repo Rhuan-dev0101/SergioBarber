@@ -1,12 +1,8 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { 
-  X, Download, Share2, Loader2, CheckCircle2, 
-  Scissors, Phone, MapPin, Calendar, Clock, CreditCard, DollarSign, AlertCircle, Sparkles
-} from 'lucide-react'
+import { X, Download, Share2, Loader2, CheckCircle2, Scissors, Phone, MapPin, Clock, AlertCircle } from 'lucide-react'
 import { ReceiptData, getReceiptDataAction } from '@/lib/receipt-actions'
-
 interface ReceiptModalProps {
   paymentId?: string
   appointmentId?: string
@@ -53,7 +49,7 @@ export function ReceiptModal({ paymentId, appointmentId, onClose }: ReceiptModal
         } else {
           setCanShare(false)
         }
-      } catch (e) {
+      } catch {
         setCanShare(false)
       }
     } else {
@@ -236,7 +232,7 @@ export function ReceiptModal({ paymentId, appointmentId, onClose }: ReceiptModal
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 animate-in fade-in duration-200">
       <div className="bg-card border border-border/80 rounded-3xl max-w-lg w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden relative">
         
         {/* Header bar */}

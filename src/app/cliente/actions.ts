@@ -76,7 +76,7 @@ export async function cancelAppointmentAction(appointmentId: string): Promise<Ca
     return { success: true, message: 'Agendamento cancelado com sucesso.' }
   } catch (err) {
     console.error('Error inside cancelAppointmentAction:', err)
-    return { success: false, message: 'Erro interno no servidor ao cancelar agendamento.' }
+    return { success: false, message: 'Não foi possível cancelar o agendamento. Tente novamente em instantes.' }
   }
 }
 
@@ -113,6 +113,6 @@ export async function updateProfileAction(fullName: string, phone: string): Prom
     return { success: true, message: 'Dados cadastrais atualizados com sucesso.' }
   } catch (err) {
     console.error('Error inside updateProfileAction:', err)
-    return { success: false, message: 'Erro interno no servidor.' }
+    return { success: false, message: 'Não foi possível concluir a operação. Tente novamente em instantes.' }
   }
 }

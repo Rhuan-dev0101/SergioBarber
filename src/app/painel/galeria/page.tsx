@@ -537,7 +537,7 @@ export default function PainelGaleria() {
                   <Layers className="w-5 h-5 text-primary" />
                   <h3 className="font-serif font-bold text-base text-foreground">Fila de Envio Em Lote ({batchQueue.length} {batchQueue.length === 1 ? 'foto' : 'fotos'})</h3>
                 </div>
-                <p className="text-xs text-muted-foreground mt-0.5">Preencha o título e detalhes individuais para cada foto e clique em "Ajustar Corte" para reposicionar a imagem no quadrado.</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Preencha o título e detalhes individuais para cada foto e clique em &quot;Ajustar Corte&quot; para reposicionar a imagem no quadrado.</p>
               </div>
 
               <div className="flex items-center gap-2">
@@ -549,7 +549,7 @@ export default function PainelGaleria() {
                 >
                   <Plus className="w-3.5 h-3.5" /> Adicionar Mais
                 </button>
-                <button
+                <button aria-label="Fechar"
                   type="button"
                   onClick={() => {
                     setBatchQueue([])
@@ -732,7 +732,7 @@ export default function PainelGaleria() {
           <form onSubmit={handleEditSubmit} className="p-6 bg-secondary/15 rounded-xl border border-border space-y-4 max-w-2xl shadow-2xl animate-in slide-in-from-top duration-200">
             <div className="flex justify-between items-center pb-2 border-b border-border/40">
               <h3 className="font-serif font-bold text-sm text-foreground uppercase tracking-wider">Editar Detalhes da Foto</h3>
-              <button 
+              <button aria-label="Fechar" 
                 type="button" 
                 onClick={() => {
                   setEditingImage(null)
@@ -929,7 +929,7 @@ export default function PainelGaleria() {
           ) : (
             <div className="col-span-full p-12 text-center text-muted-foreground italic bg-secondary/10 border border-border rounded-lg shadow flex flex-col items-center justify-center gap-2">
               <ImageIcon className="w-12 h-12 text-primary/10" />
-              <p className="text-xs">A galeria de fotos está vazia. Clique em "Adicionar Fotos (Lote)" para cadastrar imagens.</p>
+              <p className="text-xs">A galeria de fotos está vazia. Clique em &quot;Adicionar Fotos (Lote)&quot; para cadastrar imagens.</p>
             </div>
           )}
         </div>
@@ -948,7 +948,7 @@ export default function PainelGaleria() {
 
       {/* DELETE CONFIRM MODAL */}
       {deleteTarget && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
           <div className="glass max-w-sm w-full rounded-lg border border-border shadow-2xl p-6 relative flex flex-col space-y-6">
             <div className="space-y-2 text-left">
               <h3 className="text-lg font-serif font-bold text-rose-500 flex items-center gap-2">

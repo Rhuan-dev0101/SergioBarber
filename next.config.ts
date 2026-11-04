@@ -53,7 +53,10 @@ const nextConfig: NextConfig = {
         hostname: 'images.unsplash.com',
         port: '',
         pathname: '/**',
-      }
+      },
+      // Avatares dos logins Google/Facebook (ja liberados na CSP em img-src).
+      { protocol: 'https', hostname: '*.googleusercontent.com', port: '', pathname: '/**' },
+      { protocol: 'https', hostname: '*.fbcdn.net', port: '', pathname: '/**' },
     ],
   },
   async headers() {

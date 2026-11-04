@@ -1,11 +1,12 @@
+import Image from 'next/image'
 import React from 'react'
 export const dynamic = 'force-dynamic'
 import Link from 'next/link'
-import { Scissors, Calendar, MapPin, Phone, MessageSquare, Star, Award, Sparkles, Check, ChevronRight, CreditCard, Wifi, Heart, Crown } from 'lucide-react'
+import { Scissors, MapPin, Phone, MessageSquare, Sparkles, Check, ChevronRight, CreditCard, Wifi, Heart, Crown } from 'lucide-react'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { createServerSupabaseClient } from '@/lib/supabase'
-import { GradientButton } from '@/components/ui/gradient-button'
+
 import { BarbersSection } from '@/components/BarbersSection'
 import { HeroActions } from '@/components/HeroActions'
 import { TestimonialsSection } from '@/components/TestimonialsSection'
@@ -181,7 +182,7 @@ export default async function Home() {
       <main className="flex-grow">
         {/* Hero Section */}
         <section className="relative overflow-hidden py-24 sm:py-32">
-          <img
+          <Image fill priority sizes="100vw"
             src="/barbearia-ambiente.jpg"
             alt=""
             className="absolute inset-0 w-full h-full object-cover object-[center_38%]"
@@ -414,7 +415,7 @@ export default async function Home() {
                 className="relative aspect-square rounded-xl border border-border/85 overflow-hidden group hover:border-primary/50 transition-all duration-500 shadow-xl flex flex-col justify-end p-4"
               >
                 <div className="absolute inset-0 z-0">
-                  <img 
+                  <Image fill sizes="(max-width: 768px) 50vw, 25vw" 
                     src={item.img} 
                     alt={item.title} 
                     className="w-full h-full object-cover group-hover:scale-110 duration-700 ease-out filter grayscale group-hover:grayscale-0" 

@@ -79,7 +79,7 @@ export function CompleteProfileModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
       <div className="glass max-w-md w-full rounded-lg border border-border shadow-2xl p-6 sm:p-8 relative flex flex-col space-y-5 animate-in fade-in duration-300">
         
         {!isBlocking && onClose && (

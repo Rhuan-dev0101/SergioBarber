@@ -46,7 +46,7 @@ export async function updateBarberStatusAction(
     return { success: true, message: 'Status do profissional atualizado com sucesso.' }
   } catch (err) {
     console.error('Error inside updateBarberStatusAction:', err)
-    return { success: false, message: 'Erro interno no servidor.' }
+    return { success: false, message: 'Não foi possível concluir a operação. Tente novamente em instantes.' }
   }
 }
 
@@ -100,7 +100,7 @@ export async function updateBarberWorkingHoursAction(
     return { success: true, message: 'Grade de horários atualizada com sucesso.' }
   } catch (err) {
     console.error('Error inside updateBarberWorkingHoursAction:', err)
-    return { success: false, message: 'Erro interno no servidor.' }
+    return { success: false, message: 'Não foi possível concluir a operação. Tente novamente em instantes.' }
   }
 }
 
@@ -148,7 +148,7 @@ export async function addBlockedTimeAction(
     return { success: true, message: 'Horário bloqueado com sucesso!' }
   } catch (err) {
     console.error('Error inside addBlockedTimeAction:', err)
-    return { success: false, message: 'Erro interno no servidor.' }
+    return { success: false, message: 'Não foi possível concluir a operação. Tente novamente em instantes.' }
   }
 }
 
@@ -190,7 +190,7 @@ export async function deleteBlockedTimeAction(
     return { success: true, message: 'Bloqueio removido com sucesso!' }
   } catch (err) {
     console.error('Error inside deleteBlockedTimeAction:', err)
-    return { success: false, message: 'Erro interno no servidor.' }
+    return { success: false, message: 'Não foi possível concluir a operação. Tente novamente em instantes.' }
   }
 }
 
@@ -236,7 +236,7 @@ export async function addDayOffAction(
     return { success: true, message: 'Folga registrada com sucesso!' }
   } catch (err) {
     console.error('Error inside addDayOffAction:', err)
-    return { success: false, message: 'Erro interno no servidor.' }
+    return { success: false, message: 'Não foi possível concluir a operação. Tente novamente em instantes.' }
   }
 }
 
@@ -278,7 +278,7 @@ export async function deleteDayOffAction(
     return { success: true, message: 'Folga removida com sucesso!' }
   } catch (err) {
     console.error('Error inside deleteDayOffAction:', err)
-    return { success: false, message: 'Erro interno no servidor.' }
+    return { success: false, message: 'Não foi possível concluir a operação. Tente novamente em instantes.' }
   }
 }
 
@@ -377,7 +377,7 @@ export async function createBarberAction(
     }
   } catch (err) {
     console.error('Error inside createBarberAction:', err)
-    return { success: false, message: 'Erro interno no servidor.' }
+    return { success: false, message: 'Não foi possível concluir a operação. Tente novamente em instantes.' }
   }
 }
 
@@ -412,13 +412,13 @@ export async function deleteBarberAction(barberId: string): Promise<StaffActionR
 
     if (deleteError) {
       console.error('Error deleting user via admin API:', deleteError)
-      return { success: false, message: `Erro ao deletar usuário: ${deleteError.message}` }
+      return { success: false, message: 'Não foi possível excluir o usuário. Tente novamente em instantes.' }
     }
 
     return { success: true, message: 'Funcionário excluído com sucesso!' }
   } catch (err) {
     console.error('Error inside deleteBarberAction:', err)
-    return { success: false, message: 'Erro interno no servidor.' }
+    return { success: false, message: 'Não foi possível concluir a operação. Tente novamente em instantes.' }
   }
 }
 
@@ -465,7 +465,7 @@ export async function updateUserEmailAction(
 
     if (authError) {
       console.error('Error updating user email in Auth:', authError)
-      return { success: false, message: `Erro ao atualizar e-mail na autenticação: ${authError.message}` }
+      return { success: false, message: 'Não foi possível atualizar o e-mail. Verifique se ele já não está em uso.' }
     }
 
     // 2. Update email in public.profiles table
@@ -476,12 +476,12 @@ export async function updateUserEmailAction(
 
     if (profileError) {
       console.error('Error updating user email in profiles table:', profileError)
-      return { success: false, message: `E-mail alterado na autenticação, mas ocorreu um erro no perfil: ${profileError.message}` }
+      return { success: false, message: 'O e-mail foi alterado no login, mas não foi possível atualizar o perfil. Tente novamente ou contate o suporte.' }
     }
 
     return { success: true, message: 'E-mail atualizado com sucesso!' }
   } catch (err: any) {
     console.error('Error inside updateUserEmailAction:', err)
-    return { success: false, message: 'Erro interno no servidor: ' + (err?.message || '') }
+    return { success: false, message: 'Não foi possível atualizar o e-mail. Tente novamente em instantes.' }
   }
 }

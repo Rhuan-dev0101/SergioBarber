@@ -2,20 +2,11 @@
 
 import React, { useEffect, useState, useTransition, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import {
-  Repeat, Plus, Loader2, Search, X, Check, AlertCircle,
-  CheckCircle2, Calendar, Clock, User, Trash2,
-  AlertTriangle, CalendarClock, Scissors
-} from 'lucide-react'
+import { Repeat, Plus, Loader2, Search, X, AlertCircle, CheckCircle2, Calendar, Clock, User, Trash2, AlertTriangle, CalendarClock, Scissors } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
 import { CreateRecurringModal } from '@/components/reservas-recorrentes/CreateRecurringModal'
-import {
-  createRecurringReservationAction,
-  cancelRecurringReservationAction,
-  getRecurringReservationsAction
-} from './actions'
-
+import { cancelRecurringReservationAction, getRecurringReservationsAction } from './actions'
 const DAY_NAMES = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
 const DAY_NAMES_SHORT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 
@@ -183,14 +174,14 @@ export default function ReservasRecorrentesPage() {
           <div className="flex items-center gap-2 p-3 mb-4 bg-green-500/10 border border-green-500/20 rounded-lg text-green-400 text-sm">
             <CheckCircle2 className="w-4 h-4 shrink-0" />
             {successMsg}
-            <button onClick={() => setSuccessMsg('')} className="ml-auto"><X className="w-3.5 h-3.5" /></button>
+            <button aria-label="Fechar aviso" onClick={() => setSuccessMsg('')} className="ml-auto"><X className="w-3.5 h-3.5" /></button>
           </div>
         )}
         {errorMsg && (
           <div className="flex items-center gap-2 p-3 mb-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
             <AlertCircle className="w-4 h-4 shrink-0" />
             {errorMsg}
-            <button onClick={() => setErrorMsg('')} className="ml-auto"><X className="w-3.5 h-3.5" /></button>
+            <button aria-label="Fechar aviso" onClick={() => setErrorMsg('')} className="ml-auto"><X className="w-3.5 h-3.5" /></button>
           </div>
         )}
 
@@ -200,7 +191,7 @@ export default function ReservasRecorrentesPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Buscar por cliente, barbeiro, dia..."
+              aria-label="Buscar por cliente, barbeiro, dia" placeholder="Buscar por cliente, barbeiro, dia..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 bg-card border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500"
@@ -337,7 +328,7 @@ export default function ReservasRecorrentesPage() {
 
         {/* ═══════════ CANCEL CONFIRMATION MODAL ═══════════ */}
         {cancelTarget && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
             <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-md p-6">
               <div className="flex flex-col items-center text-center">
                 <div className="p-3 bg-red-500/10 rounded-full mb-4">

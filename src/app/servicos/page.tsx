@@ -373,7 +373,7 @@ export default async function Servicos() {
                                   </span>
                                   {offering.customDescription && (
                                     <span className="text-[10px] text-primary/90 font-medium italic pl-0.5">
-                                      "{offering.customDescription}"
+                                      &quot;{offering.customDescription}&quot;
                                     </span>
                                   )}
                                 </div>

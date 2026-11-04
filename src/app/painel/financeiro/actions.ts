@@ -148,6 +148,6 @@ export async function confirmPaymentAction(
     return { success: true, message: 'Transação financeira liquidada com sucesso!' }
   } catch (err) {
     console.error('Error inside confirmPaymentAction:', err)
-    return { success: false, message: 'Erro interno no servidor.' }
+    return { success: false, message: 'Não foi possível concluir a operação. Tente novamente em instantes.' }
   }
 }

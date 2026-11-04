@@ -3,10 +3,7 @@
 import React, { useEffect, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { 
-  Scissors, Calendar, Clock, User, Phone, Edit, Trash2, 
-  AlertCircle, CheckCircle, HelpCircle, Loader2, ArrowRight, Wallet, Star 
-} from 'lucide-react'
+import { Scissors, Calendar, Clock, User, Phone, Edit, Trash2, AlertCircle, CheckCircle, Loader2, ArrowRight, Wallet, Star } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 
 function getAppointmentPrice(appt: any): number {
@@ -577,7 +574,7 @@ export default function ClientePanel() {
 
       {/* CANCEL CONFIRM MODAL */}
       {cancelTarget && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
           <div className="glass max-w-sm w-full rounded-lg border border-border shadow-2xl p-6 relative flex flex-col space-y-6">
             <div className="space-y-2 text-left">
               <h3 className="text-lg font-serif font-bold text-rose-500 flex items-center gap-2">

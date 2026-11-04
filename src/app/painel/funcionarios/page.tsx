@@ -3,22 +3,11 @@
 import React, { useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { 
-  Scissors, User, Shield, Clock, Calendar, Check, AlertCircle, 
-  CheckCircle2, Loader2, Save, Plus, X, Lock, Play, Pause, Trash2, Camera 
-} from 'lucide-react'
+import { User, AlertCircle, CheckCircle2, Loader2, Save, Plus, X, Play, Pause, Trash2, Camera } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
 import { AddBarberModal } from '@/components/funcionarios/AddBarberModal'
-import { 
-  updateBarberStatusAction, 
-  updateBarberWorkingHoursAction, 
-  addBlockedTimeAction, 
-  addDayOffAction,
-  createBarberAction,
-  deleteBarberAction,
-  updateUserEmailAction
-} from './actions'
+import { updateBarberStatusAction, updateBarberWorkingHoursAction, addBlockedTimeAction, addDayOffAction, deleteBarberAction, updateUserEmailAction } from './actions'
 import { updateBarberProfileAction } from '../perfil-barbeiro/actions'
 import { GradientButton } from '@/components/ui/gradient-button'
 
@@ -535,7 +524,7 @@ export default function PainelFuncionarios() {
                     <h2 className="text-xl font-serif font-bold text-foreground">{selectedBarber.full_name}</h2>
                     <span className="text-[10px] uppercase font-bold text-primary">Configuração de Agenda</span>
                   </div>
-                  <button
+                  <button aria-label="Fechar"
                     onClick={() => setSelectedBarber(null)}
                     className="text-muted-foreground hover:text-foreground p-1 hover:bg-secondary rounded"
                   >
@@ -1003,7 +992,7 @@ export default function PainelFuncionarios() {
                       </div>
 
                       <div className="space-y-1">
-                        <label htmlFor="editAboutQuote" className="block text-[10px] font-bold text-foreground uppercase tracking-wider">Frase "Sobre o Mestre"</label>
+                        <label htmlFor="editAboutQuote" className="block text-[10px] font-bold text-foreground uppercase tracking-wider">Frase &quot;Sobre o Mestre&quot;</label>
                         <textarea
                           id="editAboutQuote"
                           rows={3}
@@ -1139,9 +1128,9 @@ export default function PainelFuncionarios() {
 
         {/* CONFIRM DELETE MODAL */}
         {showConfirmDelete && (
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
             <div className="glass max-w-sm w-full rounded-lg border border-border shadow-2xl p-6 relative flex flex-col space-y-6">
-              <button
+              <button aria-label="Fechar"
                 onClick={() => setShowConfirmDelete(false)}
                 className="absolute top-4 right-4 text-muted-foreground hover:text-foreground cursor-pointer"
               >
@@ -1185,7 +1174,7 @@ export default function PainelFuncionarios() {
         )}
 
         {deleteTimeTarget && (
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
             <div className="glass max-w-sm w-full rounded-lg border border-border shadow-2xl p-6 relative flex flex-col space-y-6">
               <div className="space-y-2 text-left">
                 <h3 className="text-lg font-serif font-bold text-rose-500 flex items-center gap-2">

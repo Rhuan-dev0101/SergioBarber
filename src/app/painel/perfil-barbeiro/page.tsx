@@ -2,14 +2,11 @@
 
 import React, { useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { 
-  User, Camera, Loader2, Save, AlertCircle, CheckCircle2, Scissors, ArrowLeft 
-} from 'lucide-react'
+import { User, Camera, Loader2, Save, AlertCircle, CheckCircle2, ArrowLeft } from 'lucide-react'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
 import { getBarberProfileAction, updateBarberProfileAction, BarberProfileData } from './actions'
-import { GradientButton } from '@/components/ui/gradient-button'
 
 export default function PerfilBarbeiroPage() {
   const router = useRouter()

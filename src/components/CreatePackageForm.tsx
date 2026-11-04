@@ -1,10 +1,7 @@
 'use client'
 
 import React, { useEffect, useState, useTransition, useMemo } from 'react'
-import {
-  Crown, Plus, Loader2, Search, X, Check, AlertCircle,
-  CheckCircle2, Calendar, Clock, User, Scissors, DollarSign, Sparkles, CreditCard
-} from 'lucide-react'
+import { Crown, Plus, Loader2, Search, X, Check, AlertCircle, Sparkles, CreditCard } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { getSessionDatesForDuration, getExpandedSessionDates } from '@/lib/package-utils'
 import { createPackageAction, validatePackageSlotsAction } from '@/app/painel/pacotes/actions'
@@ -430,7 +427,7 @@ export function CreatePackageForm({
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <input
                   type="text"
-                  placeholder="Buscar cliente por nome ou telefone..."
+                  aria-label="Buscar cliente por nome ou telefone" placeholder="Buscar cliente por nome ou telefone..."
                   value={customerSearch}
                   onChange={(e) => {
                     const val = e.target.value
@@ -469,7 +466,7 @@ export function CreatePackageForm({
               {customerSearch.trim() && filteredCustomers.length === 0 && (
                 <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl space-y-2 text-left">
                   <p className="text-xs text-amber-400 font-medium">
-                    Nenhum cliente cadastrado encontrado para <strong>"{customerSearch.trim()}"</strong>.
+                    Nenhum cliente cadastrado encontrado para <strong>&quot;{customerSearch.trim()}&quot;</strong>.
                   </p>
                   <button
                     type="button"
@@ -480,7 +477,7 @@ export function CreatePackageForm({
                     className="px-3 py-1.5 bg-primary text-primary-foreground text-xs font-bold rounded-lg cursor-pointer hover:bg-primary/90 transition-all flex items-center gap-1.5"
                   >
                     <Plus className="w-3.5 h-3.5" />
-                    Criar pacote para "{customerSearch.trim()}" sem cadastro
+                    Criar pacote para &quot;{customerSearch.trim()}&quot; sem cadastro
                   </button>
                 </div>
               )}
@@ -503,7 +500,7 @@ export function CreatePackageForm({
             />
             {customerSearch.trim() ? (
               <p className="text-[11px] text-emerald-400 font-semibold bg-emerald-500/10 p-2 rounded-lg border border-emerald-500/20">
-                ✨ O pacote será gerado para o cliente sem cadastro: <strong>"{customerSearch.trim()}"</strong>
+                ✨ O pacote será gerado para o cliente sem cadastro: <strong>&quot;{customerSearch.trim()}&quot;</strong>
               </p>
             ) : (
               <p className="text-[10px] text-muted-foreground italic">
@@ -775,7 +772,7 @@ export function CreatePackageForm({
       )}
       {!customerId && customerSearch.trim() && (
         <p className="text-[11px] text-emerald-400 font-semibold bg-emerald-500/10 p-2.5 rounded-lg border border-emerald-500/20 text-center">
-          ✨ O pacote será gerado para o novo cliente <strong>"{customerSearch.trim()}"</strong>!
+          ✨ O pacote será gerado para o novo cliente <strong>&quot;{customerSearch.trim()}&quot;</strong>!
         </p>
       )}
       {(customerId || customerSearch.trim()) && !barberId && (

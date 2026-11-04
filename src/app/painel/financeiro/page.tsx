@@ -1,11 +1,9 @@
 'use client'
 
+import Image from 'next/image'
 import React, { useEffect, useState, useTransition, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { 
-  Scissors, DollarSign, Calendar, Clock, Check, X, 
-  AlertCircle, CheckCircle2, Loader2, ArrowUpRight, TrendingUp, Search, Crown, FileText, Users, BarChart3
-} from 'lucide-react'
+import { Scissors, DollarSign, Clock, AlertCircle, CheckCircle2, Loader2, TrendingUp, Search, Crown, FileText, Users, BarChart3 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
 import dynamic from 'next/dynamic'
@@ -433,7 +431,7 @@ export default function PainelFinanceiro() {
                         : 'border-border/80 group-hover:border-primary/50'
                     }`}>
                       {b.photo_url ? (
-                        <img
+                        <Image width={96} height={96} sizes="64px"
                           src={b.photo_url}
                           alt={b.full_name}
                           className="w-full h-full object-cover rounded-full"
@@ -492,7 +490,7 @@ export default function PainelFinanceiro() {
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full border border-primary/40 overflow-hidden shrink-0 bg-secondary flex items-center justify-center text-primary font-bold">
                           {stat.photoUrl ? (
-                            <img src={stat.photoUrl} alt={stat.fullName} className="w-full h-full object-cover" />
+                            <Image width={96} height={96} sizes="64px" src={stat.photoUrl} alt={stat.fullName} className="w-full h-full object-cover" />
                           ) : (
                             stat.firstName.charAt(0)
                           )}
@@ -582,7 +580,7 @@ export default function PainelFinanceiro() {
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Buscar por cliente, serviço, barbeiro ou status..."
+            aria-label="Buscar por cliente, serviço, barbeiro ou status" placeholder="Buscar por cliente, serviço, barbeiro ou status..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 bg-secondary/50 border border-border focus:border-primary rounded-xl text-base outline-none text-foreground font-medium"

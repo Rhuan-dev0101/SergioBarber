@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
-import { Scissors, Sun, Moon, Menu, X, User } from 'lucide-react'
+import { Sun, Moon, Menu, X, User } from 'lucide-react'
 import { useTheme } from '@/components/ThemeProvider'
 import { GradientButton } from '@/components/ui/gradient-button'
 
