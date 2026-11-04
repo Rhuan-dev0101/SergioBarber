@@ -560,7 +560,7 @@ export async function updateAppointmentPriceAction(
  * Bulk Checkout do Dia — settle multiple unpaid appointments at once.
  *
  * SAFETY:
- * - Processes each appointment INDEPENDENTLY (no bulk SQL).
+ * - Validates each appointment independently, but writes in batches (.in()) instead of one query per item.
  * - Only touches `appointments.status` and `payments.{status, method, total_amount}`.
  *   `total_amount` is only touched when the staff explicitly overrides it (e.g. a discount).
  * - Returns per-row success/failure so the UI can report individually.
@@ -591,120 +591,129 @@ export async function bulkCheckoutAction(
   }
 
   const supabase = await createServerSupabaseClient()
-  const results: BulkCheckoutResult[] = []
+  const resultById = new Map<string, BulkCheckoutResult>()
+  const fail = (id: string, message: string) => resultById.set(id, { appointmentId: id, success: false, message })
 
+  // Uma unica consulta para todos os agendamentos (antes: 1 por item).
+  const uniqueIds = Array.from(new Set(items.map(i => i.appointmentId)))
+  const { data: appts, error: fetchErr } = await supabase
+    .from('appointments')
+    .select('id, barber_id, customer_id, status')
+    .in('id', uniqueIds)
+
+  if (fetchErr) {
+    console.error('Checkout appointments fetch error:', fetchErr)
+  }
+  const apptById = new Map((appts || []).map(a => [a.id, a]))
+
+  // Validacao em memoria; so itens validos seguem para as escritas em lote.
+  const valid: Array<{ item: BulkCheckoutItem; customerId: string | null }> = []
+  const seen = new Set<string>()
   for (const item of items) {
-    try {
-      // 1. Fetch appointment to validate it exists and belongs to the barber
-      const { data: appt, error: fetchErr } = await supabase
-        .from('appointments')
-        .select('id, barber_id, customer_id, status')
-        .eq('id', item.appointmentId)
-        .single()
+    const id = item.appointmentId
+    if (seen.has(id)) continue // repeticao: reportada ao montar os resultados
+    
+    seen.add(id)
 
-      if (fetchErr || !appt) {
-        results.push({
-          appointmentId: item.appointmentId,
-          success: false,
-          message: 'Agendamento não encontrado.'
-        })
-        continue
-      }
-
+    const appt = apptById.get(id)
+    if (!appt) {
+      fail(id, 'Agendamento não encontrado.')
+    } else if (staff.role === 'barber' && appt.barber_id !== staff.user.id) {
       // Barber role can only checkout their own appointments
-      if (staff.role === 'barber' && appt.barber_id !== staff.user.id) {
-        results.push({
-          appointmentId: item.appointmentId,
-          success: false,
-          message: 'Você só pode gerenciar seus próprios agendamentos.'
-        })
-        continue
-      }
+      fail(id, 'Você só pode gerenciar seus próprios agendamentos.')
+    } else if (appt.status === 'completed' || appt.status === 'cancelled' || appt.status === 'no_show') {
+      fail(id, `Agendamento já finalizado (${appt.status}).`)
+    } else if (
+      item.finalAmount !== undefined && item.finalAmount !== null &&
+      (!Number.isFinite(item.finalAmount) || item.finalAmount < 0)
+    ) {
+      fail(id, 'Valor final informado é inválido.')
+    } else {
+      valid.push({ item, customerId: appt.customer_id || null })
+    }
+  }
 
-      // Skip already completed/cancelled/no_show
-      if (appt.status === 'completed' || appt.status === 'cancelled' || appt.status === 'no_show') {
-        results.push({
-          appointmentId: item.appointmentId,
-          success: false,
-          message: `Agendamento já finalizado (${appt.status}).`
-        })
-        continue
-      }
+  if (valid.length > 0) {
+    // 2. Update appointment status to completed (1 consulta para o lote)
+    let completedIds: string[] = valid.map(v => v.item.appointmentId)
+    const { error: apptUpdateErr } = await supabase
+      .from('appointments')
+      .update({ status: 'completed' })
+      .in('id', completedIds)
 
-      // 2. Update appointment status to completed
-      const { error: apptUpdateErr } = await supabase
-        .from('appointments')
-        .update({ status: 'completed' })
-        .eq('id', item.appointmentId)
+    if (apptUpdateErr) {
+      console.error('Checkout appt update error:', apptUpdateErr)
+      completedIds.forEach(id => fail(id, 'Erro ao atualizar status do agendamento.'))
+      completedIds = []
+    }
+    const completed = valid.filter(v => completedIds.includes(v.item.appointmentId))
 
-      if (apptUpdateErr) {
-        console.error('Checkout appt update error:', apptUpdateErr)
-        results.push({
-          appointmentId: item.appointmentId,
-          success: false,
-          message: 'Erro ao atualizar status do agendamento.'
-        })
-        continue
-      }
+    // 3. Update payment: status → confirmed_manually, method → selected,
+    //    total_amount → staff override when provided (e.g. a discount).
+    //    Itens com o mesmo metodo/valor viram uma unica consulta.
+    const groups = new Map<string, { method: string; amount?: number; ids: string[] }>()
+    for (const { item } of completed) {
+      const hasAmount = item.finalAmount !== undefined && item.finalAmount !== null
+      const key = `${item.paymentMethod}|${hasAmount ? item.finalAmount : ''}`
+      const g = groups.get(key) || { method: item.paymentMethod, amount: hasAmount ? item.finalAmount : undefined, ids: [] }
+      g.ids.push(item.appointmentId)
+      groups.set(key, g)
+    }
 
-      // 3. Update payment: status → confirmed_manually, method → selected,
-      //    total_amount → staff override when provided (e.g. a discount)
+    const paidIds = new Set<string>()
+    await Promise.all(Array.from(groups.values()).map(async g => {
       const paymentUpdate: { status: string; method: string; total_amount?: number } = {
         status: 'confirmed_manually',
-        method: item.paymentMethod
+        method: g.method
       }
-
-      if (item.finalAmount !== undefined && item.finalAmount !== null) {
-        if (!Number.isFinite(item.finalAmount) || item.finalAmount < 0) {
-          results.push({
-            appointmentId: item.appointmentId,
-            success: false,
-            message: 'Valor final informado é inválido.'
-          })
-          continue
-        }
-        paymentUpdate.total_amount = item.finalAmount
-      }
+      if (g.amount !== undefined) paymentUpdate.total_amount = g.amount
 
       const { error: payUpdateErr } = await supabase
         .from('payments')
         .update(paymentUpdate)
-        .eq('appointment_id', item.appointmentId)
+        .in('appointment_id', g.ids)
 
       if (payUpdateErr) {
         console.error('Checkout payment update error:', payUpdateErr)
-        results.push({
+        g.ids.forEach(id => fail(id, 'Agendamento concluído, mas erro ao atualizar pagamento.'))
+      } else {
+        g.ids.forEach(id => paidIds.add(id))
+      }
+    }))
+
+    // 4. Resolve outstanding no-show fee (uma vez por cliente, em paralelo)
+    const customerIds = Array.from(new Set(
+      completed.filter(v => paidIds.has(v.item.appointmentId) && v.customerId).map(v => v.customerId as string)
+    ))
+    await Promise.all(customerIds.map(async customerId => {
+      try {
+        await resolveNoShowFeeForCustomer(customerId)
+      } catch (nsFeeErr) {
+        // Non-fatal: log but don't fail the checkout for this item
+        console.error('No-show fee resolution error (non-fatal):', nsFeeErr)
+      }
+    }))
+
+    for (const { item } of completed) {
+      if (paidIds.has(item.appointmentId)) {
+        resultById.set(item.appointmentId, {
           appointmentId: item.appointmentId,
-          success: false,
-          message: 'Agendamento concluído, mas erro ao atualizar pagamento.'
+          success: true,
+          message: 'Pagamento confirmado com sucesso.'
         })
-        continue
       }
-
-      // 4. Resolve outstanding no-show fee if customer has one
-      if (appt.customer_id) {
-        try {
-          await resolveNoShowFeeForCustomer(appt.customer_id)
-        } catch (nsFeeErr) {
-          // Non-fatal: log but don't fail the checkout for this item
-          console.error('No-show fee resolution error (non-fatal):', nsFeeErr)
-        }
-      }
-
-      results.push({
-        appointmentId: item.appointmentId,
-        success: true,
-        message: 'Pagamento confirmado com sucesso.'
-      })
-    } catch (err) {
-      console.error('Checkout error for', item.appointmentId, ':', err)
-      results.push({
-        appointmentId: item.appointmentId,
-        success: false,
-        message: 'Não foi possível processar este agendamento. Tente novamente.'
-      })
     }
   }
+
+  // Mantem a ordem original dos itens.
+  const reported = new Set<string>()
+  const results: BulkCheckoutResult[] = items.map(i => {
+    if (reported.has(i.appointmentId)) {
+      return { appointmentId: i.appointmentId, success: false, message: 'Agendamento repetido na seleção.' }
+    }
+    reported.add(i.appointmentId)
+    return resultById.get(i.appointmentId)!
+  })
 
   const successCount = results.filter(r => r.success).length
   const failCount = results.filter(r => !r.success).length
